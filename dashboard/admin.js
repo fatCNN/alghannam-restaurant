@@ -198,22 +198,18 @@ function canManageUsers() {
 function canResetUserPassword(user) {
   if (!user || !currentProfile) return false;
 
-  // لا يمكن تغيير كلمة مرور الحساب الشخصي من هذه الشاشة
   if (String(user.id) === String(currentProfile.id)) {
     return false;
   }
 
-  // حماية حسابَي مالكي السيرفر الثابتين
   if (SERVER_OWNER_IDS.has(user.id)) {
     return false;
   }
 
-  // مالك السيرفر يستطيع تغيير كلمات مرور الحسابات الأخرى
   if (isServerOwner) {
     return true;
   }
 
-  // صاحب المطعم يستطيع تغيير كلمات مرور المديرين والموظفين والزبائن
   return (
     isOwner &&
     ['manager', 'staff', 'customer'].includes(user.role)
@@ -253,7 +249,6 @@ async function resetUserPassword(userId) {
   }
 
   try {
-    // استخدام manage-users وليس reset-user-password
     await manageUsers({
       action: 'change_password',
       userId: user.id,
@@ -280,28 +275,57 @@ function configureCreateRoleOptions() {
 
   const existingValue = select.value;
 
-  let ownerOption = [...select.options].find(
-    option => option.value === 'owner'
+  const optionDefinitions = [
+    {
+      value: 'staff',
+      text: 'موظف'
+    },
+    {
+      value: 'manager',
+      text: 'مدير فرع'
+    },
+    {
+      value: 'owner',
+      text: 'صاحب المطعم'
+    }
+  ];
+
+  optionDefinitions.forEach(item => {
+    const exists = [...select.options].some(
+      option => option.value === item.value
+    );
+
+    const allowed =
+      item.value === 'staff' ||
+      (item.value === 'manager' && isServerOwner) ||
+      (item.value === 'owner' && isServerOwner);
+
+    if (allowed && !exists) {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.text;
+      select.appendChild(option);
+    }
+  });
+
+  [...select.options].forEach(option => {
+    if (
+      option.value === 'manager' ||
+      option.value === 'owner'
+    ) {
+      if (!isServerOwner) {
+        option.remove();
+      }
+    }
+  });
+
+  const valueStillExists = [...select.options].some(
+    option => option.value === existingValue
   );
 
-  if (isServerOwner && !ownerOption) {
-    ownerOption = document.createElement('option');
-    ownerOption.value = 'owner';
-    ownerOption.textContent = 'صاحب المطعم';
-    select.appendChild(ownerOption);
-  }
-
-  if (!isServerOwner && ownerOption) {
-    ownerOption.remove();
-  }
-
-  if ([...select.options].some(option =>
-    option.value === existingValue
-  )) {
-    select.value = existingValue;
-  } else {
-    select.value = 'staff';
-  }
+  select.value = valueStillExists
+    ? existingValue
+    : 'staff';
 }
 
 /* =====================================================
@@ -331,12 +355,12 @@ function applyDashboardPermissions() {
 
   $('#categoryForm').hidden = !categoriesAllowed;
   $('#offersPanel').hidden = !offersAllowed;
+
   const couponsPanel = $('#couponsPanel');
 
-    if (couponsPanel) {
-      couponsPanel.hidden = !isOwner;
-    }
-
+  if (couponsPanel) {
+    couponsPanel.hidden = !isOwner;
+  }
 
   const ordersLink = document.querySelector('a[href="orders.html"]');
   const conversationsLink = document.querySelector('a[href="conversations.html"]');
@@ -404,7 +428,6 @@ function setProductFormPermissions() {
         ? 'حفظ التعديلات'
         : 'حفظ المنتج';
 }
-
 
 /* =====================================================
    تسجيل الدخول والتحقق من الحساب
@@ -499,9 +522,7 @@ async function authorizeAndLoad() {
 
   currentProfile = profile;
 
-  // الاعتماد على UUID الثابت وليس role وحدها
   isServerOwner = SERVER_OWNER_IDS.has(profile.id);
-
   isOwner = isServerOwner || profile.role === 'owner';
 
   ownPermissions = {};
@@ -732,7 +753,6 @@ function renderUsers() {
         `
         : '';
 
-    // زر إعادة تعيين كلمة المرور
     const passwordAction = canResetUserPassword(user)
       ? `
         <button
@@ -784,6 +804,10 @@ function renderUsers() {
   $('#usersCount').textContent = users.length;
 }
 
+/* =====================================================
+   إنشاء حساب جديد
+===================================================== */
+
 async function createUser(event) {
   event.preventDefault();
 
@@ -809,6 +833,15 @@ async function createUser(event) {
     return;
   }
 
+  if (password.length < 8) {
+    message(
+      $('#createUserMessage'),
+      'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
+      'error'
+    );
+    return;
+  }
+
   if (['staff', 'manager'].includes(role) && !branchId) {
     message(
       $('#createUserMessage'),
@@ -818,9 +851,10 @@ async function createUser(event) {
     return;
   }
 
+  // مالك السيرفر فقط يستطيع إنشاء مدير أو صاحب مطعم
   const allowedRoles = isServerOwner
     ? ['staff', 'manager', 'owner']
-    : ['staff', 'manager'];
+    : ['staff'];
 
   if (!allowedRoles.includes(role)) {
     message(
@@ -868,6 +902,10 @@ async function createUser(event) {
   }
 }
 
+/* =====================================================
+   تغيير رتبة المستخدم
+===================================================== */
+
 async function changeUserRole(userId) {
   if (!isOwner) {
     toast('تغيير الرتب متاح للمالك فقط.', 'error');
@@ -893,9 +931,11 @@ async function changeUserRole(userId) {
     return;
   }
 
+  // مالك السيرفر يستطيع تعيين جميع الرتب المسموحة
+  // صاحب المطعم يستطيع اختيار موظف أو زبون فقط
   const allowedRoles = isServerOwner
     ? ['owner', 'manager', 'staff', 'customer']
-    : ['manager', 'staff', 'customer'];
+    : ['staff', 'customer'];
 
   const answer = prompt(
     `تغيير رتبة ${user.full_name || user.email}\n\nالرتب المتاحة:\n${allowedRoles.join(' / ')}`,
@@ -928,6 +968,10 @@ async function changeUserRole(userId) {
     toast(`تعذر تغيير الرتبة: ${error.message}`, 'error');
   }
 }
+
+/* =====================================================
+   إدارة صلاحيات المديرين
+===================================================== */
 
 function openPermissionsEditor(userId) {
   if (!isOwner) {
@@ -1021,6 +1065,10 @@ async function saveUserPermissions() {
     setBusy(button, false);
   }
 }
+
+/* =====================================================
+   حذف المستخدم
+===================================================== */
 
 async function deleteUser(userId) {
   const user = users.find(item =>
@@ -2266,7 +2314,6 @@ function wireEvents() {
       await changeUserRole(button.dataset.changeRole);
     }
 
-    // إعادة تعيين كلمة مرور الحساب
     if (button.dataset.resetPassword) {
       await resetUserPassword(button.dataset.resetPassword);
     }

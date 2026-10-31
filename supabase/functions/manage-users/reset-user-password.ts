@@ -364,6 +364,17 @@ Deno.serve(async (req) => {
       const branchId = String(body.branchId ?? "").trim();
       const role = body.role;
 
+      // إنشاء حساب المدير وربطه بالفرع من صلاحية مالك السيرفر فقط
+      if (role === "manager" && !isServerOwner) {
+        return response(
+          {
+            error:
+              "إنشاء حسابات المدراء وربطهم بالفروع من صلاحية مالك السيرفر فقط.",
+          },
+          403,
+        );
+      }
+
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return response(
           { error: "يرجى إدخال بريد إلكتروني صحيح." },
@@ -511,7 +522,19 @@ Deno.serve(async (req) => {
         );
       }
 
+      // تعريف البيانات أولاً
       const { userId, role } = body;
+
+      // ترقية المستخدم إلى مدير من صلاحية مالك السيرفر فقط
+      if (role === "manager" && !isServerOwner) {
+        return response(
+          {
+            error:
+              "ترقية المستخدم إلى مدير من صلاحية مالك السيرفر فقط.",
+          },
+          403,
+        );
+      }
 
       if (!validUUID(userId)) {
         return response(

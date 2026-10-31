@@ -30,7 +30,11 @@ const STATUS_LABELS = {
 let currentUser = null;
 let currentProfile = null;
 let allOrders = [];
+
 let isOwner = false;
+let isServerOwner = false;
+
+const canViewAllBranches = () => isOwner || isServerOwner;
 
 function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -105,27 +109,41 @@ function getStatusOptions(selectedStatus) {
 
 function updateStatistics(orders) {
   elements.totalCount.textContent = orders.length;
-  elements.newCount.textContent = orders.filter(order => order.status === 'new').length;
-  elements.preparingCount.textContent = orders.filter(order => order.status === 'preparing').length;
-  elements.readyCount.textContent = orders.filter(order => order.status === 'ready').length;
+
+  elements.newCount.textContent =
+    orders.filter(order => order.status === 'new').length;
+
+  elements.preparingCount.textContent =
+    orders.filter(order => order.status === 'preparing').length;
+
+  elements.readyCount.textContent =
+    orders.filter(order => order.status === 'ready').length;
 }
 
 function fillBranchFilter(orders) {
-  if (!isOwner) {
-    elements.branchFilter.innerHTML = '<option value="">فرعي</option>';
+  if (!canViewAllBranches()) {
+    elements.branchFilter.innerHTML =
+      '<option value="">فرعي</option>';
+
     elements.branchFilter.disabled = true;
     return;
   }
 
+  elements.branchFilter.disabled = false;
+
   const selectedValue = elements.branchFilter.value;
+
   const branches = [...new Set(
     orders.map(order => order.branch_id).filter(Boolean)
   )];
 
   elements.branchFilter.innerHTML = `
     <option value="">كل الفروع</option>
+
     ${branches.map(branch => `
-      <option value="${escapeHTML(branch)}">${escapeHTML(branch)}</option>
+      <option value="${escapeHTML(branch)}">
+        ${escapeHTML(branch)}
+      </option>
     `).join('')}
   `;
 
@@ -140,8 +158,11 @@ function renderOrders() {
   const search = elements.searchInput.value.trim().toLowerCase();
 
   const filteredOrders = allOrders.filter(order => {
-    const matchesStatus = !status || order.status === status;
-    const matchesBranch = !branch || String(order.branch_id) === branch;
+    const matchesStatus =
+      !status || order.status === status;
+
+    const matchesBranch =
+      !branch || String(order.branch_id) === branch;
 
     const searchableText = [
       order.order_number,
@@ -150,7 +171,8 @@ function renderOrders() {
       order.customer_address
     ].join(' ').toLowerCase();
 
-    const matchesSearch = !search || searchableText.includes(search);
+    const matchesSearch =
+      !search || searchableText.includes(search);
 
     return matchesStatus && matchesBranch && matchesSearch;
   });
@@ -164,15 +186,19 @@ function renderOrders() {
 
   elements.ordersList.innerHTML = filteredOrders.map(order => {
     const orderNumber = order.order_number ?? order.id;
-    const statusLabel = STATUS_LABELS[order.status] || order.status || 'غير محدد';
+
+    const statusLabel =
+      STATUS_LABELS[order.status] || order.status || 'غير محدد';
 
     return `
       <article class="order-card" data-order-id="${escapeHTML(order.id)}">
+
         <div class="order-card-header">
           <div>
             <h3>طلب رقم: ${escapeHTML(orderNumber)}</h3>
             <span>${escapeHTML(formatDate(order.created_at))}</span>
           </div>
+
           <span class="order-status status-${escapeHTML(order.status)}">
             ${escapeHTML(statusLabel)}
           </span>
@@ -182,25 +208,32 @@ function renderOrders() {
           <p><strong>الزبون:</strong> ${escapeHTML(order.customer_name)}</p>
           <p><strong>الهاتف:</strong> ${escapeHTML(order.customer_phone)}</p>
           <p><strong>العنوان:</strong> ${escapeHTML(order.customer_address)}</p>
+
           ${order.customer_notes ? `
             <p><strong>ملاحظات:</strong> ${escapeHTML(order.customer_notes)}</p>
           ` : ''}
+
           <p><strong>الفرع:</strong> ${escapeHTML(order.branch_id)}</p>
         </div>
 
         ${getItemsHTML(order.items)}
 
         <div class="order-total">
-          <span>المجموع قبل الخصم: ${formatPrice(order.subtotal)}</span>
+          <span>
+            المجموع قبل الخصم: ${formatPrice(order.subtotal)}
+          </span>
+
           ${Number(order.discount_amount) > 0 ? `
             <span>الخصم: ${formatPrice(order.discount_amount)}</span>
           ` : ''}
+
           <strong>الإجمالي: ${formatPrice(order.total)}</strong>
         </div>
 
         <div class="order-actions">
           <label>
             تحديث حالة الطلب
+
             <select class="status-select">
               ${getStatusOptions(order.status)}
             </select>
@@ -210,6 +243,7 @@ function renderOrders() {
             حفظ الحالة
           </button>
         </div>
+
       </article>
     `;
   }).join('');
@@ -236,55 +270,105 @@ async function authorizeUser() {
 
   if (error) throw error;
 
-  if (!profile || !['owner', 'manager'].includes(profile.role)) {
-    showMessage('ليس لديك صلاحية الدخول إلى إدارة الطلبات.', 'error');
+  if (
+    !profile ||
+    !['server_owner', 'owner', 'manager', 'staff'].includes(profile.role)
+  ) {
+    showMessage(
+      'ليس لديك صلاحية الدخول إلى إدارة الطلبات.',
+      'error'
+    );
+
     elements.ordersList.innerHTML = '';
     return false;
   }
 
   currentProfile = profile;
+
   isOwner = profile.role === 'owner';
+  isServerOwner = profile.role === 'server_owner';
 
   elements.userRole.textContent =
-    isOwner ? 'المالك' : 'مدير الفرع';
+    isServerOwner ? 'مالك السيرفر' :
+    isOwner ? 'صاحب المطعم' :
+    profile.role === 'manager' ? 'مدير الفرع' :
+    'موظف الفرع';
 
-  if (!isOwner && !profile.branch_id) {
-    showMessage('حسابك غير مرتبط بفرع. راجع إعدادات الحساب.', 'error');
+  if (!canViewAllBranches() && !profile.branch_id) {
+    showMessage(
+      'حسابك غير مرتبط بفرع. راجع إعدادات الحساب.',
+      'error'
+    );
+
     return false;
   }
 
   return true;
 }
 
+async function fetchAllOrders() {
+  const pageSize = 1000;
+  let from = 0;
+  let results = [];
+
+  while (true) {
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (!canViewAllBranches()) {
+      query = query.eq(
+        'branch_id',
+        String(currentProfile.branch_id)
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const page = data || [];
+
+    results = results.concat(page);
+
+    if (page.length < pageSize) break;
+
+    from += pageSize;
+  }
+
+  return results;
+}
+
 async function loadOrders() {
   hideMessage();
+
+  elements.refreshButton.disabled = true;
+
   elements.ordersList.innerHTML =
     '<div class="loading">جارٍ تحميل الطلبات...</div>';
 
-  let query = supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    allOrders = await fetchAllOrders();
 
-  // المالك يشاهد جميع الفروع، والمدير يشاهد فرعه فقط.
-  if (!isOwner) {
-    query = query.eq('branch_id', String(currentProfile.branch_id));
-  }
+    fillBranchFilter(allOrders);
+    updateStatistics(allOrders);
+    renderOrders();
 
-  const { data, error } = await query;
-
-  if (error) {
+  } catch (error) {
     console.error('Load orders error:', error);
+
     elements.ordersList.innerHTML = '';
-    showMessage('تعذر تحميل الطلبات. تحقق من صلاحيات قاعدة البيانات.', 'error');
-    return;
+
+    showMessage(
+      'تعذر تحميل الطلبات. تحقق من صلاحيات قاعدة البيانات والاتصال.',
+      'error'
+    );
+
+  } finally {
+    elements.refreshButton.disabled = false;
   }
-
-  allOrders = data || [];
-
-  fillBranchFilter(allOrders);
-  updateStatistics(allOrders);
-  renderOrders();
 }
 
 async function updateOrderStatus(orderId, newStatus, button) {
@@ -302,9 +386,11 @@ async function updateOrderStatus(orderId, newStatus, button) {
       .update({ status: newStatus })
       .eq('id', orderId);
 
-    // حماية إضافية للمدير: لا يحدّث إلا طلبات فرعه.
-    if (!isOwner) {
-      query = query.eq('branch_id', String(currentProfile.branch_id));
+    if (!canViewAllBranches()) {
+      query = query.eq(
+        'branch_id',
+        String(currentProfile.branch_id)
+      );
     }
 
     const { data, error } = await query.select('id');
@@ -312,15 +398,23 @@ async function updateOrderStatus(orderId, newStatus, button) {
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      throw new Error('لم يتم تحديث الطلب. تحقق من صلاحيات التعديل.');
+      throw new Error(
+        'لم يتم تحديث الطلب. تحقق من صلاحيات التعديل.'
+      );
     }
 
     showMessage('تم تحديث حالة الطلب بنجاح.');
+
     await loadOrders();
 
   } catch (error) {
     console.error('Update status error:', error);
-    showMessage(error.message || 'حدث خطأ أثناء تحديث الطلب.', 'error');
+
+    showMessage(
+      error.message || 'حدث خطأ أثناء تحديث الطلب.',
+      'error'
+    );
+
   } finally {
     button.disabled = false;
     button.textContent = 'حفظ الحالة';
@@ -330,16 +424,22 @@ async function updateOrderStatus(orderId, newStatus, button) {
 elements.refreshButton.addEventListener('click', loadOrders);
 
 elements.statusFilter.addEventListener('change', renderOrders);
+
 elements.branchFilter.addEventListener('change', renderOrders);
+
 elements.searchInput.addEventListener('input', renderOrders);
 
 elements.ordersList.addEventListener('click', async (event) => {
   const button = event.target.closest('.save-status-button');
+
   if (!button) return;
 
   const card = button.closest('.order-card');
+
   const orderId = card?.dataset.orderId;
-  const newStatus = card?.querySelector('.status-select')?.value;
+
+  const newStatus =
+    card?.querySelector('.status-select')?.value;
 
   if (!orderId || !newStatus) return;
 
@@ -353,9 +453,14 @@ async function startOrdersPage() {
     if (allowed) {
       await loadOrders();
     }
+
   } catch (error) {
     console.error('Orders page error:', error);
-    showMessage('حدث خطأ أثناء التحقق من الحساب أو تحميل الصفحة.', 'error');
+
+    showMessage(
+      'حدث خطأ أثناء التحقق من الحساب أو تحميل الصفحة.',
+      'error'
+    );
   }
 }
 
