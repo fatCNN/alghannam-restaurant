@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="مطعم الغنام - اكتشف فروعنا واختر وجبتك المفضلة، واستمتع بالطعم العراقي الأصيل.">
+    <meta name="theme-color" content="#4b1111">
+    <link rel="icon" type="image/png" href="/image/logo.png">
+    <link rel="apple-touch-icon" href="/image/logo.png">
+    <title>مطعم الغنام | الفروع</title>
+
+
+    <style>
+        /* تنسيق أساسي مدمج: الصفحة لا تعتمد على ملفات CSS خارجية */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; padding: 0 0 82px; direction: rtl; text-align: right;
+            color: #432016; background: #fff8f0;
+            font-family: Tahoma, Arial, sans-serif; line-height: 1.7;
+        }
+        img { max-width: 100%; }
+        .header {
+            position: relative; z-index: 1; display: flex; align-items: center;
+            justify-content: space-between; gap: 14px;
+            padding: 15px max(18px, calc((100% - 1200px)/2));
+            color: #fff5e9; background: linear-gradient(120deg,#4b1111,#7b1b0b);
+            box-shadow: 0 5px 20px rgba(59,8,5,.15);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .header-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+        .header-action-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 40px; padding: 8px 13px; color: #fff5e9;
+            background: rgba(255,255,255,.10); border: 1px solid rgba(245,193,108,.65);
+            border-radius: 11px; font: 700 13px Tahoma,Arial,sans-serif; cursor: pointer;
+            transition: background .2s ease, transform .2s ease;
+        }
+        .header-action-btn:hover { background: rgba(255,255,255,.19); transform: translateY(-1px); }
+        .header-action-btn:focus-visible { outline: 3px solid #f5c16c; outline-offset: 3px; }
+        .account-open-btn { color: #4b1111; background: #f5c16c; border-color: #f5c16c; }
+        .account-open-btn:hover { background: #ffda91; }
+        .brand-logo-img { width: 62px; height: 62px; flex: 0 0 62px; object-fit: contain; background: #fff; border-radius: 50%; padding: 4px; }
+        .brand-info h1 { margin: 0; font-size: clamp(20px,3vw,28px); line-height: 1.4; color: #fff; }
+        .brand-info p { margin: 2px 0 0; color: #f5c16c; font-size: 13px; }
+        main { width: min(1180px, calc(100% - 32px)); margin: 24px auto 0; }
+        .main-banner {
+            display: flex; align-items: center; justify-content: center; gap: 24px;
+            min-height: 210px; padding: 28px; border-radius: 22px; overflow: hidden;
+            color: #fff5e9; box-shadow: 0 10px 28px rgba(59,8,5,.14);
+        }
+        .main-banner-logo { display: block; width: clamp(90px,15vw,150px); height: clamp(90px,15vw,150px); object-fit: contain; flex-shrink: 0; background: #fff; border-radius: 50%; padding: 7px; }
+        .banner-text { min-width: 0; }
+        .banner-text .eyebrow { margin: 0 0 4px; color: #f5c16c; font-weight: 800; font-size: 14px; }
+        .banner-text h2 { margin: 0; color: #fff; font-size: clamp(26px,4vw,40px); line-height: 1.45; }
+        .banner-text > p:last-child { margin: 5px 0 0; color: #f5e2c4; }
+        .branches-home { padding: 25px 0 10px; }
+        .branches-title { position: relative; margin: 0 0 18px; color: #4b1111; font-size: clamp(23px,3vw,30px); }
+        .branches-title::after { content: ""; display: block; width: 58px; height: 4px; margin-top: 7px; border-radius: 4px; background: #c8994f; }
+        .branches-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; align-items: stretch; }
+        .branch-card {
+            display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+            border-radius: 17px; box-shadow: 0 7px 20px rgba(59,8,5,.14);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .branch-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(59,8,5,.22); }
+        .branch-image { display: block; width: 100%; height: 205px; object-fit: cover; background: #f2e4d7; }
+        .branch-card-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 8px; padding: 17px; }
+        .branch-card h3 { margin: 0; font-size: 19px; line-height: 1.5; }
+        .branch-card p { margin: 0 0 4px; color: #f7e5d3; font-size: 13px; line-height: 1.8; }
+        .branch-link { display: inline-flex; align-items: center; justify-content: center; margin-top: auto; padding: 7px 13px; border-radius: 9px; font-size: 13px; font-weight: 800; }
+        .loader {
+            position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 5px; color: #fff5e9;
+            background: #4b1111; transition: opacity .3s ease, visibility .3s ease;
+        }
+        .loader h2 { margin: 0; font-size: 28px; }
+        .loader p { margin: 0; color: #f5c16c; }
+        .loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        a { -webkit-tap-highlight-color: transparent; }
+        @media (max-width: 760px) {
+            main { width: min(100% - 24px, 600px); margin-top: 14px; }
+            .header { padding: 12px; gap: 8px; }
+            .brand-logo-img { width: 52px; height: 52px; flex-basis: 52px; }
+            .header-actions { gap: 6px; }
+            .header-action-btn { min-height: 37px; padding: 7px 9px; font-size: 12px; }
+            .main-banner { min-height: 170px; gap: 14px; padding: 20px 14px; border-radius: 16px; }
+            .branches-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+            .branch-image { height: 155px; }
+            .branch-card-content { padding: 12px; gap: 6px; }
+            .branch-card h3 { font-size: 16px; }
+            .branch-card p { font-size: 12px; }
+        }
+        @media (max-width: 480px) {
+            .header { padding: 10px; }
+            .brand { gap: 8px; }
+            .brand-logo-img { width: 44px; height: 44px; flex-basis: 44px; }
+            .brand-info h1 { font-size: 17px; }
+            .brand-info p { font-size: 10px; }
+            .header-actions { gap: 5px; }
+            .header-action-btn { min-height: 35px; padding: 6px 8px; font-size: 11px; border-radius: 9px; }
+            .main-banner { flex-direction: column; text-align: center; gap: 10px; padding: 18px 12px; }
+            .main-banner-logo { width: 80px; height: 80px; }
+            .banner-text h2 { font-size: 25px; }
+            .branches-grid { grid-template-columns: minmax(0,1fr); }
+            .branch-card { display: grid; grid-template-columns: 112px minmax(0,1fr); min-height: 142px; }
+            .branch-image { width: 112px; height: 100%; min-height: 142px; object-fit: cover; }
+            .branch-card-content { padding: 11px; }
+            .branch-card h3 { font-size: 15px; }
+            .branch-card p { font-size: 11px; }
+            .branch-link { padding: 5px 9px; font-size: 11px; }
+        }
+        /* ألوان موحّدة للصفحة الرئيسية لتتناسب مع الفروع */
+        :root {
+            --orange: #7b1b0b;
+            --orange-dark: #4b1111;
+            --orange-light: #f5e2c4;
+            --cream: #fff5e9;
+            --white: #ffffff;
+            --text: #432016;
+            --muted: #866b5c;
+            --border: #e8c9a9;
+            --green: #23834b;
+            --shadow: 0 8px 24px rgba(59, 8, 5, .12);
+        }
+
+        .main-banner {
+            background:
+                radial-gradient(circle at 85% 10%, rgba(245,193,108,.20), transparent 38%),
+                linear-gradient(135deg, #4b1111, #260604) !important;
+            border: 1px solid rgba(245,193,108,.3);
+        }
+
+        .branch-card {
+            color: #fff5e9;
+            background: linear-gradient(135deg, #7b1b0b, #4b1111) !important;
+            border: 1px solid rgba(245,193,108,.35);
+            font: inherit;
+            text-decoration: none;
+        }
+
+        .branch-card h3,
+        .branch-card p { color: #fff5e9 !important; }
+
+        .branches-grid .branch-card:focus-visible {
+            outline: 3px solid #f5c16c;
+            outline-offset: 4px;
+        }
+
+        .branch-link {
+            color: #4b1111 !important;
+            background: #fff5e9 !important;
+            border: 1px solid #f5c16c;
+        }
+
+        .bottom-nav {
+            border-top-color: #f5c16c !important;
+        }
+
+        .bottom-nav-item:hover,
+        .bottom-nav-item.active {
+            color: #7b1b0b !important;
+            background: #fff5e9 !important;
+        }
+
+        a.floating-help-button {
+            background: #7b1b0b !important;
+        }
+        a.floating-help-button:hover {
+            background: #4b1111 !important;
+        }
+
+        /* فوتر مطعم الغنام */
+        .footer {
+            --footer-accent: #f5c16c;
+            --footer-muted: #c9bcb3;
+            --footer-bg: #211411;
+            --footer-card: #2b201b;
+            --footer-border: rgba(255,255,255,.09);
+            margin-top: 45px;
+            color: #fff;
+            background: var(--footer-bg);
+            border-top: 4px solid var(--footer-accent);
+            font-family: inherit;
+        }
+        .footer, .footer * { box-sizing: border-box; }
+        .footer-top { padding: 30px 18px 25px; }
+        .footer-container {
+            display: grid;
+            grid-template-columns: minmax(0,1fr) minmax(0,1.2fr) minmax(0,.95fr) minmax(0,.85fr);
+            gap: 20px;
+            align-items: start;
+            width: 100%;
+            max-width: 1250px;
+            margin: 0 auto;
+        }
+        .footer-brand { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+        .footer-logo {
+            width: 60px; height: 60px; flex-shrink: 0; padding: 4px;
+            object-fit: contain; background: #fff; border-radius: 13px;
+        }
+        .footer-brand-info { min-width: 0; }
+        .footer-brand-info h2 { margin: 2px 0 5px; color: #fff; font-size: 20px; }
+        .footer-welcome { margin: 0 0 6px; color: var(--footer-accent); font-size: 13px; font-weight: 800; }
+        .footer-description { margin: 0; color: var(--footer-muted); font-size: 11px; line-height: 1.8; }
+        .footer-section { min-width: 0; }
+        .footer-section h3 {
+            position: relative; margin: 0 0 12px; padding-bottom: 8px;
+            color: #fff; font-size: 15px; border-bottom: 1px solid var(--footer-border);
+        }
+        .footer-section h3::after {
+            position: absolute; right: 0; bottom: -1px; width: 38px; height: 2px;
+            background: var(--footer-accent); content: "";
+        }
+        .footer-branch-link {
+            display: flex; align-items: center; gap: 8px; min-width: 0;
+            margin-bottom: 8px; padding: 8px; color: #fff; text-decoration: none;
+            background: var(--footer-card); border: 1px solid var(--footer-border);
+            border-radius: 10px; transition: background .2s ease, border-color .2s ease;
+        }
+        .footer-branch-link:hover { background: #352922; border-color: var(--footer-accent); }
+        .footer-branch-logo {
+            width: 34px; height: 34px; flex-shrink: 0; padding: 3px;
+            object-fit: contain; background: #fff; border-radius: 8px;
+        }
+        .footer-branch-details { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+        .footer-branch-details strong { font-size: 11px; line-height: 1.6; }
+        .footer-branch-details small { color: var(--footer-muted); font-size: 10px; line-height: 1.7; }
+        .footer-map-action { color: var(--footer-accent); font-size: 10px; font-weight: 700; }
+        .footer-branch-arrow { flex-shrink: 0; color: var(--footer-accent); font-size: 16px; }
+        .footer-contact-note { margin: -3px 0 8px; color: var(--footer-muted); font-size: 10px; line-height: 1.7; }
+        .footer-contact-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .footer-contact-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-bottom: 7px; border-bottom: 1px solid var(--footer-border); }
+        .footer-contact-group:last-child { border-bottom: 0; }
+        .footer-contact-group h4 { margin: 0; color: var(--footer-accent); font-size: 11px; line-height: 1.5; }
+        .footer-contact-number { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 5px; min-width: 0; padding: 2px 0; }
+        .footer-phone-number { direction: ltr; text-align: left; color: #e8ded7; font-size: 10px; font-weight: 700; white-space: nowrap; }
+        .footer-contact-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; white-space: nowrap; }
+        .footer-contact-actions a { display: inline-flex; align-items: center; gap: 3px; padding: 0; background: transparent; border: 0; font-family: inherit; font-size: 10px; text-decoration: none; white-space: nowrap; }
+        .footer-whatsapp { color: #25d366; }
+        .footer-call { color: #ffbd82; }
+        .footer-contact-actions a:hover { text-decoration: underline; }
+        .footer-hours-card { display: flex; align-items: flex-start; gap: 9px; padding: 11px 9px; background: var(--footer-card); border: 1px solid var(--footer-border); border-radius: 10px; }
+        .hours-dot { width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px; background: #35c46a; border-radius: 50%; box-shadow: 0 0 0 3px rgba(53,196,106,.12); }
+        .footer-hours-card strong { display: block; margin-bottom: 5px; color: #fff; font-size: 12px; }
+        .footer-hours-card p { margin: 0; color: var(--footer-muted); font-size: 10px; line-height: 1.8; }
+        .footer-hours-note { margin: 8px 0 0; color: var(--footer-muted); font-size: 10px; line-height: 1.8; }
+        .footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 20px; background: #191411; border-top: 1px solid var(--footer-border); }
+        .footer-bottom p { margin: 0; color: var(--footer-muted); font-size: 11px; line-height: 1.7; }
+        .footer-bottom p:first-child { color: #fff; }
+
+        .floating-help-button {
+            position: fixed; right: 20px; bottom: 85px; z-index: 999;
+            display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 30px);
+            padding: 11px 15px; color: #fff; background: #7b1b0b; border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,.22); font-size: 12px; font-weight: 800;
+            text-decoration: none; transition: transform .2s ease, background .2s ease;
+        }
+        .floating-help-button:hover { background: #4b1111; transform: translateY(-2px); }
+        .floating-help-icon { display: inline-block; width: 9px; height: 9px; flex-shrink: 0; background: #fff; border-radius: 50%; }
+
+        .bottom-nav {
+            position: fixed; right: 0; bottom: 0; left: 0; z-index: 3000;
+            display: flex; align-items: stretch; justify-content: space-around; gap: 0;
+            width: 100%; min-height: 66px; margin: 0; padding: 6px 5px calc(6px + env(safe-area-inset-bottom));
+            direction: rtl; background: #fff; border-top: 2px solid var(--footer-accent, #f5c16c);
+            box-shadow: 0 -4px 18px rgba(0,0,0,.12);
+        }
+        .bottom-nav-item {
+            display: flex; flex: 1 1 0; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; min-width: 0; min-height: 50px; margin: 0; padding: 5px 2px; color: #75675e;
+            background: transparent; border: 0; border-radius: 10px; font-family: Tahoma,Arial,sans-serif;
+            font-size: 11px; font-weight: bold; line-height: 1.4; text-align: center; text-decoration: none;
+            white-space: nowrap; cursor: pointer; transition: color .2s ease, background .2s ease;
+        }
+        .bottom-nav-item:hover, .bottom-nav-item.active { color: #7b1b0b; background: #fff5e9; }
+        .bottom-nav-icon { display: block; font-size: 23px; font-weight: bold; line-height: 1.1; }
+        .bottom-nav-item span:last-child { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+        #bottomSearchPanel:not([hidden]) {
+            position: fixed; right: 12px; bottom: 82px; left: 12px; z-index: 3001;
+            display: block; padding: 18px; direction: rtl; background: #fff;
+            border: 1px solid #c58d4d; border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,.2);
+        }
+        #bottomSearchPanel label { display: block; margin-bottom: 10px; color: #432016; font-weight: bold; }
+        #bottomSearchInput { display: block; width: 100%; min-height: 44px; padding: 10px 12px; color: #432016; background: #fff; border: 1px solid #ddd0c6; border-radius: 9px; font: inherit; outline: none; }
+        #bottomSearchInput:focus { border-color: #7b1b0b; }
+        #bottomSearchMessage { color: #866b5c; font-size: 13px; }
+        #closeBottomSearch { padding: 9px 15px; color: #fff; background: #7b1b0b; border: 0; border-radius: 8px; font: inherit; cursor: pointer; }
+        [hidden] { display: none !important; }
+
+        @media (max-width: 1050px) {
+            .footer-container { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 25px; }
+            .footer-brand { grid-column: 1 / -1; }
+            .footer-phone-number { font-size: 11px; }
+            .footer-contact-actions a { font-size: 11px; }
+        }
+        @media (max-width: 700px) {
+            .footer-container { grid-template-columns: minmax(0,1fr); gap: 24px; }
+            .footer-brand { grid-column: auto; }
+        }
+        @media (max-width: 600px) {
+            body { padding-bottom: 78px; }
+            .footer { margin-top: 30px; }
+            .footer-top { padding: 25px 14px 22px; }
+            .footer-container { gap: 22px; }
+            .footer-brand { align-items: center; }
+            .footer-logo { width: 55px; height: 55px; }
+            .footer-brand-info h2 { font-size: 19px; }
+            .footer-section h3 { font-size: 15px; }
+            .footer-contact-list { gap: 7px; }
+            .footer-contact-group { gap: 5px; }
+            .footer-contact-group h4 { font-size: 12px; }
+            .footer-contact-number { gap: 8px; }
+            .footer-phone-number { font-size: 12px; }
+            .footer-contact-actions { gap: 12px; }
+            .footer-contact-actions a { font-size: 11px; }
+            .footer-bottom { flex-direction: column; text-align: center; padding: 14px 10px; gap: 5px; }
+            .floating-help-button { right: 12px; bottom: 78px; padding: 10px 13px; font-size: 11px; }
+            .bottom-nav { min-height: 62px; padding: 5px 3px calc(5px + env(safe-area-inset-bottom)); }
+            .bottom-nav-item { min-height: 48px; gap: 3px; padding: 4px 1px; font-size: 10px; }
+            .bottom-nav-icon { font-size: 21px; }
+            #bottomSearchPanel:not([hidden]) { bottom: 75px; }
+        }
+        @media (max-width: 390px) {
+            .footer-brand { gap: 9px; }
+            .footer-logo { width: 50px; height: 50px; }
+            .footer-brand-info h2 { font-size: 18px; }
+            .footer-branch-link { gap: 6px; padding: 8px; }
+            .footer-branch-logo { width: 30px; height: 30px; }
+            .footer-branch-details strong { font-size: 10px; }
+            .footer-branch-details small, .footer-map-action { font-size: 9px; }
+            .footer-contact-group { gap: 3px; }
+            .footer-contact-actions { gap: 4px; }
+            .footer-phone-number { font-size: 9px; }
+            .bottom-nav-item { font-size: 9px; }
+            .bottom-nav-icon { font-size: 20px; }
+            .floating-help-button { right: 8px; bottom: 70px; padding: 8px 10px; font-size: 10px; }
+        }
+        /* نافذة حساب الزبون: تنزلق من اليسار إلى اليمين */
+        .account-modal-overlay {
+            position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+            padding: 18px; background: rgba(20,8,6,.68); opacity: 0; visibility: hidden;
+            transition: opacity .28s ease, visibility .28s ease;
+        }
+        .account-modal-overlay.is-visible { opacity: 1; visibility: visible; }
+        .account-modal {
+            position: relative; width: min(100%, 430px); max-height: min(88vh, 720px);
+            overflow-y: auto; padding: 25px; color: #432016; background: #fffaf4;
+            border: 1px solid rgba(245,193,108,.75); border-radius: 20px;
+            box-shadow: 0 22px 70px rgba(0,0,0,.30);
+            opacity: 0; transform: translateX(-110vw) scale(.97);
+            transition: transform .48s cubic-bezier(.2,.8,.2,1), opacity .3s ease;
+            direction: rtl; text-align: right;
+        }
+        .account-modal-overlay.is-visible .account-modal { opacity: 1; transform: translateX(0) scale(1); }
+        .account-modal-close {
+            position: absolute; top: 12px; left: 12px; width: 36px; height: 36px;
+            display: grid; place-items: center; color: #6b2a1d; background: #f6e8dc;
+            border: 0; border-radius: 50%; font-size: 24px; line-height: 1; cursor: pointer;
+        }
+        .account-modal-heading { margin: 0 35px 5px 0; color: #4b1111; font-size: 24px; }
+        .account-modal-subtitle { margin: 0 0 20px; color: #866b5c; font-size: 13px; }
+        .account-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 19px; padding: 5px; background: #f2e5d9; border-radius: 12px; }
+        .account-tab {
+            min-height: 40px; color: #704b3b; background: transparent; border: 0;
+            border-radius: 9px; font: 700 13px Tahoma,Arial,sans-serif; cursor: pointer;
+        }
+        .account-tab.active { color: #fff; background: #741f1f; box-shadow: 0 3px 9px rgba(75,17,17,.18); }
+        .account-form { display: grid; gap: 10px; }
+        .account-form label { color: #573426; font-size: 13px; font-weight: 700; }
+        .account-form input {
+            width: 100%; min-height: 46px; padding: 10px 12px; color: #432016;
+            background: #fff; border: 1px solid #e4cdbb; border-radius: 10px;
+            font: 14px Tahoma,Arial,sans-serif; outline: none;
+        }
+        .account-form input:focus { border-color: #9b5a37; box-shadow: 0 0 0 3px rgba(155,90,55,.12); }
+        .account-submit {
+            min-height: 46px; margin-top: 8px; color: #fff; background: linear-gradient(120deg,#741f1f,#4b1111);
+            border: 0; border-radius: 10px; font: 700 14px Tahoma,Arial,sans-serif; cursor: pointer;
+        }
+        .account-admin-link {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; min-height: 46px; margin-top: 14px; padding: 10px 14px;
+            color: #741f1f; background: #fff; border: 1px solid #741f1f;
+            border-radius: 10px; text-decoration: none;
+            font: 700 14px Tahoma,Arial,sans-serif; transition: .2s ease;
+        }
+        .account-admin-link:hover { color: #fff; background: #741f1f; }
+        .account-forgot {
+            justify-self: center; padding: 5px; color: #8a4c2e; background: transparent;
+            border: 0; font: 700 12px Tahoma,Arial,sans-serif; cursor: pointer;
+        }
+        .account-status { min-height: 20px; margin: 8px 0 0; color: #79533f; font-size: 12px; text-align: center; }
+        .account-status.error { color: #b42318; }
+        .account-status.success { color: #187044; }
+        body.account-modal-open { overflow: hidden; }
+        html[dir="ltr"] body { direction: ltr; text-align: left; }
+        html[dir="ltr"] .account-modal { direction: ltr; text-align: left; }
+        html[dir="ltr"] .account-modal-close { right: 12px; left: auto; }
+        html[dir="ltr"] .account-modal-heading { margin: 0 0 5px 35px; }
+        @media (max-width: 480px) {
+            .account-modal-overlay { padding: 12px; }
+            .account-modal { padding: 22px 17px; border-radius: 17px; }
+            .account-modal-heading { font-size: 21px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+        }
+
+        /* تحسينات الهيدر الثابت الشفاف وتجاوب الصفحة مع مختلف الشاشات */
+        :root { --site-header-height: 92px; }
+        html { scroll-padding-top: calc(var(--site-header-height) + 14px); }
+        body { padding-top: var(--site-header-height); overflow-x: hidden; }
+        .header {
+            position: fixed;
+            inset: 0 0 auto 0;
+            z-index: 5000;
+            width: 100%;
+            min-height: var(--site-header-height);
+            padding-top: max(10px, env(safe-area-inset-top));
+            padding-bottom: 10px;
+            background: linear-gradient(115deg, rgba(45,8,8,.78), rgba(123,27,11,.70));
+            border-bottom: 1px solid rgba(245,193,108,.28);
+            box-shadow: 0 5px 24px rgba(30,8,5,.13);
+            -webkit-backdrop-filter: blur(14px) saturate(145%);
+            backdrop-filter: blur(14px) saturate(145%);
+        }
+        .header > * { min-width: 0; }
+        .brand { flex: 1 1 auto; }
+        .header-actions { flex: 0 0 auto; }
+        main { width: min(1200px, calc(100% - 40px)); margin: 22px auto 0; }
+        .main-banner { width: 100%; }
+        .branches-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .branch-card { min-width: 0; }
+        .branch-image { width: 100%; aspect-ratio: 16 / 10; height: auto; object-fit: cover; }
+        .footer-container { width: min(100%, 1250px); }
+        .account-modal-overlay { z-index: 6000; }
+        .floating-help-button { z-index: 2500; }
+        .bottom-nav { z-index: 3000; }
+
+        @media (max-width: 900px) {
+            :root { --site-header-height: 82px; }
+            .header { padding-inline: 18px; }
+            .brand-logo-img { width: 54px; height: 54px; flex-basis: 54px; }
+            .branches-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .branch-image { aspect-ratio: 16 / 10; }
+            .branch-card-content { padding: 14px; }
+        }
+        @media (max-width: 600px) {
+            :root { --site-header-height: 72px; }
+            body { padding-top: var(--site-header-height); }
+            .header {
+                gap: 8px;
+                padding-inline: max(10px, env(safe-area-inset-left));
+                padding-bottom: 8px;
+            }
+            .brand { gap: 8px; }
+            .brand-logo-img { width: 45px; height: 45px; flex-basis: 45px; }
+            .brand-info h1 { font-size: clamp(15px, 4vw, 18px); }
+            .brand-info p { max-width: 42vw; font-size: clamp(9px, 2.5vw, 11px); line-height: 1.35; }
+            .header-actions { gap: 6px; }
+            .header-action-btn { min-height: 36px; padding: 6px 9px; font-size: 11px; white-space: nowrap; }
+            main { width: calc(100% - 22px); margin-top: 14px; }
+            .main-banner { min-height: 0; padding: 18px 12px; gap: 12px; }
+            .branches-home { padding-top: 20px; }
+            .branches-grid { grid-template-columns: minmax(0, 1fr); gap: 11px; }
+            .branch-card { display: grid; grid-template-columns: minmax(104px, 31%) minmax(0, 1fr); min-height: 132px; }
+            .branch-image { width: 100%; height: 100%; min-height: 132px; aspect-ratio: auto; object-fit: cover; }
+            .branch-card-content { align-items: flex-start; justify-content: center; padding: 10px 11px; gap: 5px; }
+            .branch-card h3 { font-size: clamp(14px, 3.8vw, 16px); }
+            .branch-card p { font-size: clamp(10px, 2.8vw, 12px); line-height: 1.6; }
+            .branch-link { font-size: 11px; }
+            .footer { margin-top: 28px; }
+        }
+        @media (max-width: 360px) {
+            :root { --site-header-height: 68px; }
+            .header { padding-inline: 7px; gap: 5px; }
+            .brand { gap: 6px; }
+            .brand-logo-img { width: 39px; height: 39px; flex-basis: 39px; }
+            .brand-info h1 { font-size: 14px; }
+            .brand-info p { font-size: 8px; }
+            .header-actions { gap: 4px; }
+            .header-action-btn { min-height: 33px; padding: 5px 7px; font-size: 10px; }
+            .branch-card { grid-template-columns: 100px minmax(0,1fr); }
+            .branch-card-content { padding: 8px; }
+        }
+        @media (min-width: 601px) and (max-width: 760px) {
+            .header { padding-inline: 15px; }
+            main { width: calc(100% - 28px); }
+        }
+        @media (min-width: 1200px) {
+            .header { padding-inline: max(28px, calc((100% - 1200px) / 2)); }
+        }
+        @media (max-height: 520px) and (orientation: landscape) {
+            :root { --site-header-height: 62px; }
+            .header { min-height: var(--site-header-height); padding-block: 5px; }
+            .brand-logo-img { width: 42px; height: 42px; flex-basis: 42px; }
+            .account-modal { max-height: 82vh; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            .header { background: rgba(75,17,17,.96); -webkit-backdrop-filter: none; backdrop-filter: none; }
+        }
+
+        /* توزيع بطاقات الفروع: فرعان في كل صف على الهاتف والتابلت */
+        .branches-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(12px, 1.8vw, 22px);
+            align-items: stretch;
+        }
+        .branch-card {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 100%;
+        }
+        .branch-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+        }
+        .branch-card-content {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 0;
+            padding: clamp(11px, 1.5vw, 18px);
+            gap: 7px;
+        }
+        .branch-card h3 {
+            font-size: clamp(14px, 1.5vw, 19px);
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .branch-card p {
+            font-size: clamp(10px, 1.05vw, 13px);
+            line-height: 1.7;
+            overflow-wrap: anywhere;
+        }
+        .branch-link {
+            margin-top: auto;
+            font-size: clamp(10px, 1vw, 13px);
+        }
+
+        @media (max-width: 1024px) {
+            .branches-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 600px) {
+            .branches-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+            .branch-card {
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+                border-radius: 13px;
+            }
+            .branch-image {
+                width: 100%;
+                height: auto;
+                min-height: 0;
+                aspect-ratio: 4 / 3;
+            }
+            .branch-card-content {
+                justify-content: flex-start;
+                padding: 10px 9px 11px;
+                gap: 5px;
+            }
+            .branch-card h3 { font-size: clamp(12px, 3.5vw, 16px); }
+            .branch-card p { font-size: clamp(9px, 2.7vw, 11px); line-height: 1.55; }
+            .branch-link {
+                align-self: flex-start;
+                padding: 6px 9px;
+                font-size: clamp(9px, 2.5vw, 11px);
+                white-space: nowrap;
+            }
+        }
+        @media (max-width: 360px) {
+            .branches-grid { gap: 8px; }
+            .branch-card-content { padding: 8px 7px 9px; }
+            .branch-card h3 { font-size: 12px; }
+            .branch-card p { font-size: 9px; }
+            .branch-link { padding: 5px 7px; font-size: 9px; }
+        }
+        @media (min-width: 1025px) {
+            .branches-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+    </style>
+        <link rel="stylesheet" href="dashboard/loader.css">
+        <script src="dashboard/loader.js" defer></script>
+</head>
+<body>
+    <div id="pageLoader" class="page-loader">
+        <div class="loader-content">
+            <img src="image/logo.png" alt="مطعم الغنّام">
+            <div class="loader-spinner"></div>
+            <h2>مطعم الغنّام</h2>
+            <p>جاري تحميل الموقع...</p>
+        </div>
+    </div>
+    <!-- شاشة التحميل -->
+    <div id="loader" class="loader" aria-live="polite">
+        <h2>مطعم الغنام</h2>
+        <p>جاري تحضير الصفحة...</p>
+    </div>
+
+    <!-- رأس الموقع -->
+    <header class="header">
+        <div class="brand">
+            <img src="image/logo.png" alt="شعار مطعم الغنام" class="brand-logo-img">
+            <div class="brand-info">
+                <h1>مطعم الغنام</h1>
+                <p data-i18n="tagline">جرب الطعم العراقي الأصيل</p>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button type="button" class="header-action-btn" id="languageToggle" aria-label="Change language" aria-pressed="false">EN</button>
+            <button type="button" class="header-action-btn account-open-btn" id="openAccountModal">حسابي</button>
+        </div>
+    </header>
+
+    <!-- نافذة حساب الزبون -->
+    <div class="account-modal-overlay" id="accountModalOverlay" aria-hidden="true" hidden>
+        <section class="account-modal" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+            <button type="button" class="account-modal-close" id="closeAccountModal" aria-label="إغلاق النافذة">×</button>
+            <h2 class="account-modal-heading" id="accountModalTitle">أهلاً بيك</h2>
+            <p class="account-modal-subtitle" id="accountModalSubtitle">سجّل دخولك أو أنشئ حساب جديد حتى تتابع طلباتك.</p>
+
+            <div class="account-tabs" role="tablist" aria-label="خيارات الحساب">
+                <button type="button" class="account-tab active" id="loginTab" role="tab" aria-selected="true">تسجيل الدخول</button>
+                <button type="button" class="account-tab" id="registerTab" role="tab" aria-selected="false">إنشاء حساب</button>
+            </div>
+
+            <form class="account-form" id="customerAccountForm" novalidate>
+                <div id="customerNameField" hidden>
+                    <label for="customerName">الاسم الكامل</label>
+                    <input type="text" id="customerName" name="name" autocomplete="name" maxlength="100" placeholder="اكتب اسمك الكامل">
+                </div>
+                <label for="customerEmail">البريد الإلكتروني</label>
+                <input type="email" id="customerEmail" name="email" autocomplete="email" required placeholder="example@email.com">
+                <label for="customerPassword">كلمة المرور</label>
+                <input type="password" id="customerPassword" name="password" autocomplete="current-password" minlength="6" required placeholder="أدخل كلمة المرور">
+                <div id="customerConfirmField" hidden>
+                    <label for="customerConfirmPassword">تأكيد كلمة المرور</label>
+                    <input type="password" id="customerConfirmPassword" name="confirmPassword" autocomplete="new-password" minlength="6" placeholder="أعد كتابة كلمة المرور">
+                </div>
+                <button type="submit" class="account-submit" id="accountSubmitButton">تسجيل الدخول</button>
+                <button type="button" class="account-forgot" id="forgotPasswordButton">نسيت كلمة المرور؟</button>
+                <p class="account-status" id="accountStatus" role="status" aria-live="polite"></p>
+            </form>
+            <a href="dashboard/admin.html" class="button">
+                تسجيل الدخول كأدمن
+            </a>
+        </section>
+    </div>
+
+    <!-- المحتوى الرئيسي: الصفحة الرئيسية وبطاقات الفروع فقط -->
+    <main>
+        <section id="homePage">
+            <section class="hero main-banner">
+                <img src="image/logo.png" alt="شعار مطعم الغنام" class="main-banner-logo">
+                <div class="banner-text">
+                    <p class="eyebrow">مطعم الغنام</p>
+                    <h2>هلا يابه نورتونا</h2>
+                    <p>اطلب من الفرع الأقرب عليك</p>
+                </div>
+            </section>
+
+            <section class="branches-home" aria-labelledby="branchesTitle">
+                <h2 class="branches-title" id="branchesTitle">فروعنا</h2>
+                <div class="branches-grid">
+                    <!-- فرع المشاوي -->
+                    <a class="branch-card" href="grill.html" aria-label="فتح منيو فرع المشاوي">
+                        <img src="image/alghnam kbab .png" alt="أكلات ومشاوي الغنام" class="branch-image" loading="lazy">
+                        <div class="branch-card-content">
+                            <h3>الغنام فرع المشاوي</h3>
+                            <p>الدورة، شارع المصافي، مجاور مصرف الرشيد</p>
+                            <span class="branch-link">عرض المنيو ←</span>
+                        </div>
+                    </a>
+
+                    <!-- فرع الوجبات السريعة -->
+                    <a class="branch-card" href="fastfood.html" aria-label="فتح منيو فرع الوجبات السريعة">
+                        <img src="image/Fast food.png" alt="الوجبات السريعة من مطعم الغنام" class="branch-image" loading="lazy">
+                        <div class="branch-card-content">
+                            <h3>الغنام فرع الوجبات السريعة</h3>
+                            <p>الدورة، شارع المصافي</p>
+                            <span class="branch-link">عرض المنيو ←</span>
+                        </div>
+                    </a>
+
+                    <!-- فرع الفلافل -->
+                    <a class="branch-card" href="falafel.html" aria-label="فتح منيو فرع الفلافل">
+                        <img src="image/flafl.png" alt="فلافل الغنام" class="branch-image" loading="lazy">
+                        <div class="branch-card-content">
+                            <h3>فلافل الغنام</h3>
+                            <p>الإعلام، سوق أميمة، مقابل جامع المصطفى</p>
+                            <span class="branch-link">عرض المنيو ←</span>
+                        </div>
+                    </a>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <!-- فوتر مطعم الغنام -->
+    <footer class="footer" dir="rtl">
+        <div class="footer-top">
+            <div class="footer-container">
+                <div class="footer-brand">
+                    <img src="image/logo.png" alt="شعار مطعم الغنام" class="footer-logo" loading="lazy">
+                    <div class="footer-brand-info">
+                        <h2>مطعم الغنام</h2>
+                        <p class="footer-welcome">هلا يابه، نورتونا</p>
+                        <p class="footer-description">الطعم الأصيل، واللمة الحلوة، والخدمة اللي تستاهلوها.</p>
+                    </div>
+                </div>
+
+                <div class="footer-section footer-locations">
+                    <h3>فروعنا ومواقعنا</h3>
+                    <a class="footer-branch-link" href="https://maps.app.goo.gl/dCkqtV3qVzQYP1hU8?g_st=ac" target="_blank" rel="noopener noreferrer" aria-label="عرض موقع فرع المشاوي على الخريطة">
+                        <img src="image/logo.png" alt="" class="footer-branch-logo" loading="lazy">
+                        <span class="footer-branch-details">
+                            <strong>الغنام — فرع المشاوي</strong>
+                            <small>الدورة، شارع المصافي، مجاور مصرف الرشيد</small>
+                            <span class="footer-map-action">عرض الموقع على الخريطة ↗</span>
+                        </span>
+                        <span class="footer-branch-arrow" aria-hidden="true">←</span>
+                    </a>
+                    <a class="footer-branch-link" href="https://www.waze.com/ar/live-map/directions?to=ll.33.254435%2C44.385173" target="_blank" rel="noopener noreferrer" aria-label="عرض موقع فرع الوجبات السريعة على Waze">
+                        <img src="image/logo.png" alt="" class="footer-branch-logo" loading="lazy">
+                        <span class="footer-branch-details">
+                            <strong>الغنام — الوجبات السريعة</strong>
+                            <small>الدورة، شارع المصافي</small>
+                            <span class="footer-map-action">عرض الموقع على Waze ↗</span>
+                        </span>
+                        <span class="footer-branch-arrow" aria-hidden="true">←</span>
+                    </a>
+                    <a class="footer-branch-link" href="https://maps.app.goo.gl/RT8akvQPBNvdWgZL7" target="_blank" rel="noopener noreferrer" aria-label="عرض موقع فرع الفلافل على الخريطة">
+                        <img src="image/logo.png" alt="" class="footer-branch-logo" loading="lazy">
+                        <span class="footer-branch-details">
+                            <strong>الغنام — فرع الفلافل</strong>
+                            <small>الإعلام، سوق أميمة، مقابل جامع المصطفى</small>
+                            <span class="footer-map-action">عرض الموقع على الخريطة ↗</span>
+                        </span>
+                        <span class="footer-branch-arrow" aria-hidden="true">←</span>
+                    </a>
+                </div>
+
+                <div class="footer-section footer-contact">
+                    <h3>تواصل ويانا</h3>
+                    <div class="footer-contact-list">
+                        <div class="footer-contact-group">
+                            <h4>فرع المشاوي</h4>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07740000062</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647740000062" target="_blank" rel="noopener noreferrer" aria-label="واتساب المشاوي 07740000062">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07740000062" aria-label="اتصال بالمشاوي 07740000062">☎ اتصال</a>
+                                </div>
+                            </div>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07840000062</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647840000062" target="_blank" rel="noopener noreferrer" aria-label="واتساب المشاوي 07840000062">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07840000062" aria-label="اتصال بالمشاوي 07840000062">☎ اتصال</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="footer-contact-group">
+                            <h4>فرع الوجبات السريعة</h4>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07840000068</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647840000068" target="_blank" rel="noopener noreferrer" aria-label="واتساب الوجبات السريعة 07840000068">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07840000068" aria-label="اتصال بالوجبات السريعة 07840000068">☎ اتصال</a>
+                                </div>
+                            </div>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07740000068</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647740000068" target="_blank" rel="noopener noreferrer" aria-label="واتساب الوجبات السريعة 07740000068">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07740000068" aria-label="اتصال بالوجبات السريعة 07740000068">☎ اتصال</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="footer-contact-group">
+                            <h4>فرع الفلافل</h4>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07760000552</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647760000552" target="_blank" rel="noopener noreferrer" aria-label="واتساب الفلافل 07760000552">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07760000552" aria-label="اتصال بالفلافل 07760000552">☎ اتصال</a>
+                                </div>
+                            </div>
+                            <div class="footer-contact-number">
+                                <span class="footer-phone-number">07860000556</span>
+                                <div class="footer-contact-actions">
+                                    <a class="footer-whatsapp" href="https://wa.me/9647860000556" target="_blank" rel="noopener noreferrer" aria-label="واتساب الفلافل 07860000556">◉ واتساب</a>
+                                    <a class="footer-call" href="tel:07860000556" aria-label="اتصال بالفلافل 07860000556">☎ اتصال</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer-section footer-hours">
+                    <h3>أوقات العمل</h3>
+                    <div class="footer-hours-card">
+                        <span class="hours-dot" aria-hidden="true"></span>
+                        <div>
+                            <strong>يوميًا</strong>
+                            <p>من 6:00 صباحًا إلى 12:00 ليلًا في جميع الفروع</p>
+                        </div>
+                    </div>
+                    <p class="footer-hours-note">قد تختلف أوقات العمل في بعض المناسبات.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>صُنع بحب لعشاق الطعم الأصيل</p>
+            <p>جميع الحقوق محفوظة © مطعم الغنام</p>
+        </div>
+    </footer>
+
+    <!-- مساعد الغنام الذكي -->
+    <a href="support/support.html" class="floating-help-button" aria-label="فتح مساعد الغنام الذكي">
+        <span class="floating-help-icon" aria-hidden="true"></span>
+        <span class="floating-help-text">مساعد الغنام الذكي</span>
+    </a>
+
+    <!-- لوحة البحث عن الفروع -->
+    <div id="bottomSearchPanel" hidden>
+        <label for="bottomSearchInput">ابحث عن فرع</label>
+        <input type="search" id="bottomSearchInput" placeholder="اكتب اسم الفرع..." autocomplete="off">
+        <p id="bottomSearchMessage" aria-live="polite"></p>
+        <button type="button" id="closeBottomSearch">إغلاق البحث</button>
+    </div>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+        <button type="button" class="bottom-nav-item active" data-nav="home">
+            <span class="bottom-nav-icon" aria-hidden="true">⌂</span><span>الرئيسية</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-nav="search">
+            <span class="bottom-nav-icon" aria-hidden="true">⌕</span><span>بحث</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-nav="about">
+            <span class="bottom-nav-icon" aria-hidden="true">ⓘ</span><span>عن المطعم</span>
+        </button>
+        <a href="support/support.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon" aria-hidden="true">؟</span><span>المساعدة</span>
+        </a>
+    </nav>
+
+    <script>
+    (() => {
+        "use strict";
+
+        const loader = document.getElementById("loader");
+        const home = document.getElementById("homePage");
+        const cards = Array.from(document.querySelectorAll(".branch-card[href]"));
+        const navItems = Array.from(document.querySelectorAll(".bottom-nav-item[data-nav]"));
+        const searchPanel = document.getElementById("bottomSearchPanel");
+        const searchInput = document.getElementById("bottomSearchInput");
+        const searchMessage = document.getElementById("bottomSearchMessage");
+        const closeSearch = document.getElementById("closeBottomSearch");
+        const about = document.querySelector(".footer");
+
+        function hideLoader() {
+            if (!loader) return;
+            loader.classList.add("hidden");
+            window.setTimeout(() => { loader.hidden = true; }, 350);
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", hideLoader, { once: true });
+        } else {
+            hideLoader();
+        }
+        window.addEventListener("load", hideLoader, { once: true });
+
+        // تنقل مباشر إلى الملفات المستقلة للفروع ومنع سكربت قديم من تبديل الصفحة داخلياً.
+        document.addEventListener("click", event => {
+            const link = event.target.closest("a.branch-card[href]");
+            if (!link) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            window.location.assign(link.href);
+        }, true);
+
+        function setActiveNav(key) {
+            navItems.forEach(item => item.classList.toggle("active", item.dataset.nav === key));
+        }
+
+        function openSearch() {
+            if (!searchPanel) return;
+            searchPanel.hidden = false;
+            setActiveNav("search");
+            if (searchInput) searchInput.focus();
+        }
+
+        function closeSearchPanel() {
+            if (searchPanel) searchPanel.hidden = true;
+            setActiveNav("home");
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener("click", () => {
+                const key = item.dataset.nav;
+                if (key === "home") {
+                    closeSearchPanel();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                } else if (key === "search") {
+                    openSearch();
+                } else if (key === "about") {
+                    closeSearchPanel();
+                    setActiveNav("about");
+                    if (about) about.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            });
+        });
+
+        if (closeSearch) closeSearch.addEventListener("click", closeSearchPanel);
+
+        if (searchInput) {
+            searchInput.addEventListener("input", () => {
+                const term = searchInput.value.trim().toLocaleLowerCase("ar");
+                let visibleCount = 0;
+                cards.forEach(card => {
+                    const matches = !term || card.textContent.toLocaleLowerCase("ar").includes(term);
+                    card.hidden = !matches;
+                    if (matches) visibleCount++;
+                });
+                if (searchMessage) {
+                    searchMessage.textContent = term
+                        ? (visibleCount ? `وجدنا ${visibleCount} فرع/فروع.` : "ما لقينا فرع بهذا الاسم.")
+                        : "اكتب اسم الفرع للبحث.";
+                }
+            });
+        }
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") {
+                if (searchPanel && !searchPanel.hidden) closeSearchPanel();
+                if (accountOverlay && accountOverlay.classList.contains("is-visible")) closeAccountModal();
+            }
+        });
+
+        // تبديل لغة الصفحة الرئيسية بين العربية والإنجليزية.
+        const languageToggle = document.getElementById("languageToggle");
+        const translations = {
+            "مطعم الغنام": "Al-Ghannam Restaurant",
+            "جرب الطعم العراقي الأصيل": "Taste the authentic Iraqi flavor",
+            "جاري تحضير الصفحة...": "Preparing the page...",
+            "هلا يابه نورتونا": "Welcome!",
+            "اطلب من الفرع الأقرب عليك": "Order from the nearest branch",
+            "فروعنا": "Our Branches",
+            "الغنام فرع المشاوي": "Al-Ghannam Grills Branch",
+            "الدورة، شارع المصافي، مجاور مصرف الرشيد": "Al-Dora, Al-Masafi Street, next to Al-Rasheed Bank",
+            "عرض المنيو ←": "View Menu ←",
+            "الغنام فرع الوجبات السريعة": "Al-Ghannam Fast Food Branch",
+            "الدورة، شارع المصافي": "Al-Dora, Al-Masafi Street",
+            "فلافل الغنام": "Al-Ghannam Falafel",
+            "الإعلام، سوق أميمة، مقابل جامع المصطفى": "Al-Ilam, Omaima Market, opposite Al-Mustafa Mosque",
+            "هلا يابه، نورتونا": "Welcome, we're glad you're here",
+            "الطعم الأصيل، واللمة الحلوة، والخدمة اللي تستاهلوها.": "Authentic taste, warm gatherings, and service you deserve.",
+            "فروعنا ومواقعنا": "Our Branches & Locations",
+            "الغنام — فرع المشاوي": "Al-Ghannam — Grills",
+            "عرض الموقع على الخريطة ↗": "View on map ↗",
+            "الغنام — الوجبات السريعة": "Al-Ghannam — Fast Food",
+            "عرض الموقع على Waze ↗": "View on Waze ↗",
+            "الغنام — فرع الفلافل": "Al-Ghannam — Falafel",
+            "تواصل ويانا": "Contact Us",
+            "فرع المشاوي": "Grills Branch",
+            "فرع الوجبات السريعة": "Fast Food Branch",
+            "فرع الفلافل": "Falafel Branch",
+            "◉ واتساب": "◉ WhatsApp",
+            "☎ اتصال": "☎ Call",
+            "أوقات العمل": "Opening Hours",
+            "يوميًا": "Daily",
+            "من 6:00 صباحًا إلى 12:00 ليلًا في جميع الفروع": "6:00 AM to 12:00 AM at all branches",
+            "قد تختلف أوقات العمل في بعض المناسبات.": "Opening hours may vary on special occasions.",
+            "صُنع بحب لعشاق الطعم الأصيل": "Made with love for authentic taste lovers",
+            "جميع الحقوق محفوظة © مطعم الغنام": "All rights reserved © Al-Ghannam Restaurant",
+            "مساعد الغنام الذكي": "Al-Ghannam Smart Assistant",
+            "ابحث عن فرع": "Find a Branch",
+            "اكتب اسم الفرع...": "Enter branch name...",
+            "إغلاق البحث": "Close Search",
+            "الرئيسية": "Home",
+            "بحث": "Search",
+            "عن المطعم": "About",
+            "المساعدة": "Help",
+            "ما لقينا فرع بهذا الاسم.": "No branch found with that name.",
+            "اكتب اسم الفرع للبحث.": "Enter a branch name to search.",
+            "حسابي": "My Account",
+            "أهلاً بيك": "Welcome",
+            "سجّل دخولك أو أنشئ حساب جديد حتى تتابع طلباتك.": "Sign in or create an account to follow your orders.",
+            "تسجيل الدخول": "Sign In",
+            "إنشاء حساب": "Create Account",
+            "الاسم الكامل": "Full Name",
+            "اكتب اسمك الكامل": "Enter your full name",
+            "البريد الإلكتروني": "Email Address",
+            "كلمة المرور": "Password",
+            "أدخل كلمة المرور": "Enter your password",
+            "تأكيد كلمة المرور": "Confirm Password",
+            "أعد كتابة كلمة المرور": "Re-enter your password",
+            "نسيت كلمة المرور؟": "Forgot password?",
+            "إغلاق النافذة": "Close window"
+        };
+        function translatePage(toEnglish) {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const original = node.nodeValue.trim();
+                if (!original) return;
+                if (toEnglish && translations[original]) {
+                    node.__arabicOriginal = original;
+                    node.nodeValue = node.nodeValue.replace(original, translations[original]);
+                } else if (!toEnglish && node.__arabicOriginal) {
+                    node.nodeValue = node.nodeValue.replace(translations[node.__arabicOriginal], node.__arabicOriginal);
+                    delete node.__arabicOriginal;
+                }
+            });
+            document.documentElement.lang = toEnglish ? "en" : "ar";
+            document.documentElement.dir = toEnglish ? "ltr" : "rtl";
+            document.body.style.direction = toEnglish ? "ltr" : "rtl";
+            document.body.style.textAlign = toEnglish ? "left" : "right";
+            if (languageToggle) {
+                languageToggle.textContent = toEnglish ? "AR" : "EN";
+                languageToggle.setAttribute("aria-pressed", String(toEnglish));
+                languageToggle.setAttribute("aria-label", toEnglish ? "Switch to Arabic" : "Switch to English");
+            }
+            if (searchInput) searchInput.placeholder = toEnglish ? "Enter branch name..." : "اكتب اسم الفرع...";
+            const searchLabel = document.querySelector('label[for="bottomSearchInput"]');
+            if (searchLabel) searchLabel.textContent = toEnglish ? "Find a Branch" : "ابحث عن فرع";
+            if (searchMessage && !searchInput?.value) searchMessage.textContent = toEnglish ? "Enter a branch name to search." : "اكتب اسم الفرع للبحث.";
+            document.querySelectorAll(".branch-card").forEach(card => {
+                const name = card.querySelector("h3")?.textContent || "";
+                card.setAttribute("aria-label", toEnglish ? `Open ${name} menu` : "فتح منيو الفرع");
+            });
+        }
+        let isEnglish = false;
+        if (languageToggle) languageToggle.addEventListener("click", () => {
+            isEnglish = !isEnglish;
+            translatePage(isEnglish);
+        });
+
+        // نافذة حساب الزبون: الحركة تبدأ من يسار الشاشة وتنتهي في المنتصف.
+        const accountOverlay = document.getElementById("accountModalOverlay");
+        const accountModal = document.getElementById("accountModal");
+        const openAccountButton = document.getElementById("openAccountModal");
+        const closeAccountButton = document.getElementById("closeAccountModal");
+        const loginTab = document.getElementById("loginTab");
+        const registerTab = document.getElementById("registerTab");
+        const accountForm = document.getElementById("customerAccountForm");
+        const customerNameField = document.getElementById("customerNameField");
+        const customerConfirmField = document.getElementById("customerConfirmField");
+        const customerPassword = document.getElementById("customerPassword");
+        const customerConfirmPassword = document.getElementById("customerConfirmPassword");
+        const accountSubmitButton = document.getElementById("accountSubmitButton");
+        const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+        const accountStatus = document.getElementById("accountStatus");
+        let accountMode = "login";
+        let accountCloseTimer;
+
+        function openAccountModal() {
+            if (!accountOverlay) return;
+            window.clearTimeout(accountCloseTimer);
+            accountOverlay.hidden = false;
+            document.body.classList.add("account-modal-open");
+            requestAnimationFrame(() => accountOverlay.classList.add("is-visible"));
+            accountOverlay.setAttribute("aria-hidden", "false");
+            window.setTimeout(() => document.getElementById("customerEmail")?.focus(), 180);
+        }
+        function closeAccountModal() {
+            if (!accountOverlay) return;
+            accountOverlay.classList.remove("is-visible");
+            accountOverlay.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("account-modal-open");
+            accountCloseTimer = window.setTimeout(() => { accountOverlay.hidden = true; }, 500);
+        }
+        function setAccountMode(mode) {
+            accountMode = mode;
+            const registering = mode === "register";
+            customerNameField.hidden = !registering;
+            customerConfirmField.hidden = !registering;
+            customerPassword.autocomplete = registering ? "new-password" : "current-password";
+            customerConfirmPassword.required = registering;
+            loginTab.classList.toggle("active", !registering);
+            registerTab.classList.toggle("active", registering);
+            loginTab.setAttribute("aria-selected", String(!registering));
+            registerTab.setAttribute("aria-selected", String(registering));
+            accountSubmitButton.textContent = registering ? "إنشاء حساب" : "تسجيل الدخول";
+            forgotPasswordButton.hidden = registering;
+            accountStatus.textContent = "";
+            accountStatus.className = "account-status";
+        }
+        if (openAccountButton) openAccountButton.addEventListener("click", openAccountModal);
+        if (closeAccountButton) closeAccountButton.addEventListener("click", closeAccountModal);
+        if (loginTab) loginTab.addEventListener("click", () => setAccountMode("login"));
+        if (registerTab) registerTab.addEventListener("click", () => setAccountMode("register"));
+        if (accountOverlay) accountOverlay.addEventListener("click", event => {
+            if (event.target === accountOverlay) closeAccountModal();
+        });
+        if (forgotPasswordButton) forgotPasswordButton.addEventListener("click", () => {
+            accountStatus.className = "account-status";
+            accountStatus.textContent = isEnglish
+                ? "Password recovery will be connected to your account service in the next step."
+                : "راح نربط استعادة كلمة المرور بخدمة الحساب بالخطوة التالية.";
+        });
+        if (accountForm) accountForm.addEventListener("submit", event => {
+            event.preventDefault();
+            accountStatus.className = "account-status";
+            if (accountMode === "register" && customerPassword.value !== customerConfirmPassword.value) {
+                accountStatus.classList.add("error");
+                accountStatus.textContent = isEnglish ? "Passwords do not match." : "كلمتا المرور غير متطابقتين.";
+                customerConfirmPassword.focus();
+                return;
+            }
+            accountStatus.textContent = isEnglish
+                ? "The account interface is ready. Supabase authentication will be connected next."
+                : "واجهة الحساب جاهزة. ربط تسجيل الدخول بـ Supabase يكون بالخطوة التالية.";
+        });
+    })();
+    </script>
+    <script type="module" src="customer-auth.js"></script>
+</body>
+</html>

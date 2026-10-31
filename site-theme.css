@@ -1,0 +1,388 @@
+/* ==========================================================
+   مطعم الغنّام — لوحة الألوان المركزية لكل صفحات الموقع
+   غيّر الألوان في قسم :root فقط، وستتحدث الأجزاء المرتبطة بها.
+   يجب ربط هذا الملف بعد ملف CSS الخاص بكل صفحة.
+========================================================== */
+
+:root {
+  /* الألوان الأساسية */
+  --theme-primary: #7b1b0b;          /* اللون الأساسي: الأزرار والعناصر المهمة */
+  --theme-primary-hover: #4b1111;    /* اللون عند مرور المؤشر */
+  --theme-primary-dark: #260604;     /* أغمق لون للخلفيات والتدرجات */
+  --theme-accent: #c58d4d;           /* اللون المميز */
+  --theme-gold: #f5c16c;             /* الذهبي */
+
+  /* ألوان الخلفيات والنصوص */
+  --theme-page: #3b0805;             /* خلفية الصفحة */
+  --theme-card: #ffffff;             /* خلفية البطاقات والنوافذ */
+  --theme-soft: #fff0df;              /* خلفية فاتحة للعناصر النشطة */
+  --theme-text: #432016;             /* النص الأساسي */
+  --theme-light-text: #fff8ef;       /* النص فوق الخلفيات الداكنة */
+  --theme-muted: #866b5c;            /* النص الثانوي */
+  --theme-border: #e8c9a9;           /* الحدود */
+
+  /* حالات ورسائل */
+  --theme-success: #23834b;
+  --theme-danger: #c83232;
+  --theme-warning: #b97815;
+
+  /* الفوتر والزجاج والظلال */
+  --theme-footer-bg: #211411;
+  --theme-footer-card: #2b201b;
+  --theme-footer-muted: #c9bcb3;
+  --theme-footer-border: rgba(255,255,255,.12);
+  --theme-glass: rgba(38,6,4,.88);
+  --theme-glass-border: rgba(255,248,239,.22);
+  --theme-shadow: 0 8px 25px rgba(59,8,5,.12);
+  --theme-shadow-strong: 0 12px 34px rgba(20,4,2,.25);
+
+  /* توافق مع متغيرات الصفحة الرئيسية style.css */
+  --orange: var(--theme-primary);
+  --orange-dark: var(--theme-primary-hover);
+  --orange-light: var(--theme-soft);
+  --cream: var(--theme-page);
+  --white: var(--theme-card);
+  --text: var(--theme-text);
+  --muted: var(--theme-muted);
+  --border: var(--theme-border);
+  --shadow: var(--theme-shadow);
+
+  /* توافق مع متغيرات الفروع الثلاثة */
+  --grill-primary: var(--theme-primary);
+  --grill-primary-dark: var(--theme-primary-dark);
+  --grill-primary-light: var(--theme-accent);
+  --grill-gold: var(--theme-gold);
+  --grill-gold-light: var(--theme-soft);
+  --grill-background: var(--theme-page);
+  --grill-card: var(--theme-card);
+  --grill-text: var(--theme-text);
+  --grill-light-text: var(--theme-light-text);
+  --grill-muted: var(--theme-muted);
+  --grill-border: var(--theme-border);
+  --grill-success: var(--theme-success);
+  --grill-danger: var(--theme-danger);
+  --grill-shadow: var(--theme-shadow);
+  --grill-shadow-hover: var(--theme-shadow-strong);
+
+  /* توافق مع ألوان الفوتر القديمة */
+  --footer-orange: var(--theme-accent);
+  --footer-muted: var(--theme-footer-muted);
+  --footer-bg: var(--theme-footer-bg);
+  --footer-card: var(--theme-footer-card);
+  --footer-border: var(--theme-footer-border);
+}
+
+/* القاعدة العامة */
+html { scroll-behavior: smooth; }
+body {
+  background: var(--theme-page) !important;
+  color: var(--theme-text) !important;
+}
+[hidden] { display: none !important; }
+::selection { color: var(--theme-light-text); background: var(--theme-primary); }
+
+/* الرؤوس والشريط العلوي في صفحات الفروع */
+.site-header {
+  color: var(--theme-light-text) !important;
+  background: var(--theme-glass) !important;
+  border-color: var(--theme-glass-border) !important;
+  box-shadow: var(--theme-shadow-strong) !important;
+}
+.site-header .brand,
+.site-header .brand span,
+.site-header .brand strong,
+.site-header .main-nav-link,
+.site-header .back-link,
+.site-header .language-toggle,
+.site-header .menu-icon-button,
+.site-header a { color: var(--theme-light-text) !important; }
+.site-header .language-toggle,
+.site-header .menu-icon-button,
+.site-header .back-link,
+.site-header .main-nav-link { border-color: var(--theme-glass-border) !important; }
+.site-header a:hover,
+.site-header button:hover { background-color: var(--theme-primary-hover) !important; }
+
+/* الصفحة الرئيسية: الرأس والبانر وبطاقات الفروع */
+.header {
+  color: var(--theme-text) !important;
+  background: var(--theme-card) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: var(--theme-shadow) !important;
+}
+.brand-info h1,
+.branches-title,
+.menu-section > h2,
+.cart-section > h2 { color: var(--theme-primary) !important; }
+body #homePage .hero.main-banner,
+body #homePage .main-banner {
+  color: var(--theme-light-text) !important;
+  background: radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--theme-accent) 24%, transparent), transparent 40%),
+              linear-gradient(135deg, var(--theme-primary-hover), var(--theme-primary-dark)) !important;
+  border-color: color-mix(in srgb, var(--theme-accent) 45%, transparent) !important;
+}
+body #homePage .main-banner .banner-text,
+body #homePage .main-banner .banner-text h2,
+body #homePage .main-banner .banner-text p,
+body #homePage .main-banner .eyebrow { color: var(--theme-light-text) !important; }
+body #homePage .branches-grid a.branch-card,
+body #homePage a.branch-card {
+  color: var(--theme-light-text) !important;
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-hover)) !important;
+  border-color: color-mix(in srgb, var(--theme-accent) 48%, transparent) !important;
+  box-shadow: var(--theme-shadow) !important;
+}
+body #homePage .branches-grid a.branch-card h3,
+body #homePage .branches-grid a.branch-card p,
+body #homePage a.branch-card h3,
+body #homePage a.branch-card p { color: var(--theme-light-text) !important; }
+body #homePage .branches-grid a.branch-card .branch-link,
+body #homePage a.branch-card .branch-link {
+  color: var(--theme-primary-dark) !important;
+  background: var(--theme-soft) !important;
+  border-color: var(--theme-accent) !important;
+}
+body #homePage a.branch-card:hover { box-shadow: var(--theme-shadow-strong) !important; }
+
+/* أزرار وروابط التفاعل */
+button,
+input[type="button"],
+input[type="submit"],
+.hero-button,
+.add-to-cart-button,
+.cart-addon-add-button,
+.addon-card button,
+.fixed-cart-bar,
+.popup-submit-button,
+.cart-modal button[type="submit"],
+.settings-done-button,
+#applyCouponButton,
+#closeBottomSearch,
+.cart-button,
+.add-button {
+  accent-color: var(--theme-primary);
+}
+.hero-button,
+.add-to-cart-button,
+.cart-addon-add-button,
+.addon-card button,
+.fixed-cart-bar,
+.popup-submit-button,
+.cart-modal button[type="submit"],
+.settings-done-button,
+#applyCouponButton,
+#closeBottomSearch,
+.cart-button,
+.add-button {
+  color: #fff !important;
+  background: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+}
+.hero-button:hover,
+.add-to-cart-button:hover,
+.cart-addon-add-button:hover,
+.addon-card button:hover,
+.settings-done-button:hover,
+#applyCouponButton:hover,
+#closeBottomSearch:hover,
+.cart-button:hover,
+.add-button:hover {
+  background: var(--theme-primary-hover) !important;
+  border-color: var(--theme-primary-hover) !important;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--theme-accent) !important;
+  outline-offset: 3px;
+}
+
+/* أقسام المنيو، الأقسام النشطة، الأسعار */
+.section-title,
+.category-title,
+.menu-section > h2,
+#grillMenu > section > h2,
+#grillMenu .section-title,
+#fastfoodMenu .section-title,
+#falafelMenu .section-title { color: var(--theme-primary-dark) !important; }
+.category-nav a.active,
+.category-nav button.active,
+.category-nav .active,
+.category-chip.active,
+.filter-button.active,
+.view-toggle.active {
+  color: #fff !important;
+  background: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+}
+.product-price,
+.cart-addon-price,
+.addon-card > span,
+.price,
+.total-price { color: var(--theme-primary) !important; }
+.product-card,
+#falafelMenu .product-card,
+#fastfoodMenu .product-card,
+#grillMenu .product-card,
+.cart-addon-card,
+.addon-card {
+  color: var(--theme-text) !important;
+  background: var(--theme-card) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: var(--theme-shadow) !important;
+}
+.product-name,
+.product-card h3,
+.cart-addon-name { color: var(--theme-text) !important; }
+.product-details small,
+.product-description,
+.product-card .description { color: var(--theme-muted) !important; }
+.product-card select,
+#grillSearch,
+#falafelSearch,
+#fastfoodSearch,
+input, textarea, select {
+  border-color: var(--theme-border);
+}
+input:focus,
+textarea:focus,
+select:focus,
+#grillSearch:focus,
+#falafelSearch:focus,
+#fastfoodSearch:focus {
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-primary) 15%, transparent) !important;
+}
+
+/* شريط تبديل الفروع إن وُجد */
+.branch-switcher {
+  background: color-mix(in srgb, var(--theme-card) 88%, transparent) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: var(--theme-shadow) !important;
+}
+.branch-switcher a { color: var(--theme-primary-dark) !important; }
+.branch-switcher a:hover,
+.branch-switcher a[aria-current="page"] {
+  color: #fff !important;
+  background: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+}
+
+/* السلة والنوافذ المنبثقة والإعدادات */
+.cart-modal,
+#cartModalOverlay .cart-modal {
+  color: var(--theme-text) !important;
+  background: var(--theme-card) !important;
+  border-color: var(--theme-border) !important;
+}
+.cart-modal-header,
+.cart-modal-footer,
+.settings-panel-header {
+  color: var(--theme-light-text) !important;
+  background: linear-gradient(135deg, var(--theme-primary-dark), var(--theme-primary)) !important;
+  border-color: var(--theme-border) !important;
+}
+.cart-modal h2,
+.cart-modal h3,
+.cart-modal-header p,
+.settings-panel-header h2,
+.settings-panel-header p { color: var(--theme-light-text) !important; }
+.cart-modal input,
+.cart-modal textarea,
+.cart-modal select,
+.settings-panel input,
+.settings-panel textarea,
+.settings-panel select {
+  color: var(--theme-text) !important;
+  background: var(--theme-card) !important;
+  border-color: var(--theme-border) !important;
+}
+.settings-panel,
+.settings-panel-content,
+.settings-info-card,
+.settings-compact-card {
+  color: var(--theme-text);
+  border-color: var(--theme-border) !important;
+}
+.settings-panel { background: var(--theme-card) !important; }
+.settings-section-title,
+.settings-panel-content strong { color: var(--theme-primary-dark) !important; }
+.settings-menu-item,
+.settings-info-card,
+.settings-compact-card {
+  background-color: var(--theme-soft) !important;
+  border-color: var(--theme-border) !important;
+}
+.cart-modal-overlay,
+.settings-overlay,
+#cartModalOverlay,
+#settingsOverlay { background: rgba(18,4,3,.72) !important; }
+
+/* الفوتر في الفروع والصفحة الرئيسية */
+.footer,
+.site-footer {
+  color: var(--theme-light-text) !important;
+  background: var(--theme-footer-bg) !important;
+  border-top-color: var(--theme-accent) !important;
+}
+.footer-top,
+.footer-bottom { background: var(--theme-footer-bg) !important; }
+.footer-section h3,
+.footer-brand-info h2 { color: var(--theme-light-text) !important; }
+.footer-section h3::after { background: var(--theme-accent) !important; }
+.footer-welcome,
+.footer-contact-group h4,
+.footer-map-action,
+.footer-branch-arrow { color: var(--theme-accent) !important; }
+.footer-description,
+.footer-contact-note,
+.footer-hours-note,
+.footer-hours-card p,
+.footer-bottom p:not(:first-child),
+.footer-branch-details small { color: var(--theme-footer-muted) !important; }
+.footer-branch-link,
+.footer-hours-card { background: var(--theme-footer-card) !important; border-color: var(--theme-footer-border) !important; }
+.footer-branch-link:hover { background: color-mix(in srgb, var(--theme-footer-card) 70%, var(--theme-accent)) !important; border-color: var(--theme-accent) !important; }
+.footer-bottom { border-top-color: var(--theme-footer-border) !important; }
+.footer-logo,
+.footer-branch-logo { background: #fff !important; }
+.footer-whatsapp { color: var(--theme-success) !important; }
+.footer-call { color: var(--theme-accent) !important; }
+
+/* مساعد المطعم والبحث السفلي */
+a.floating-help-button,
+.floating-help-button {
+  color: #fff !important;
+  background: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+}
+a.floating-help-button:hover,
+.floating-help-button:hover { background: var(--theme-primary-hover) !important; }
+.bottom-nav {
+  background: var(--theme-card) !important;
+  border-top-color: var(--theme-accent) !important;
+  box-shadow: 0 -4px 18px rgba(0,0,0,.12) !important;
+}
+.bottom-nav-item { color: var(--theme-muted) !important; }
+.bottom-nav-item:hover,
+.bottom-nav-item.active {
+  color: var(--theme-primary) !important;
+  background: var(--theme-soft) !important;
+}
+#bottomSearchPanel:not([hidden]) {
+  background: var(--theme-card) !important;
+  border-color: var(--theme-accent) !important;
+}
+#bottomSearchPanel label { color: var(--theme-primary-dark) !important; }
+#bottomSearchMessage { color: var(--theme-muted) !important; }
+
+/* الحالات */
+.success, .status-success, [data-status="success"] { color: var(--theme-success) !important; }
+.error, .status-error, [data-status="error"] { color: var(--theme-danger) !important; }
+.warning, .status-warning, [data-status="warning"] { color: var(--theme-warning) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

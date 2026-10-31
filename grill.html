@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b0805">
+    <meta name="description" content="منيو مطعم الغنام - فرع المشاوي">
+
+    <title>مطعم الغنام | فرع المشاوي</title>
+
+    <link rel="stylesheet" href="grill.css">
+    <script type="module" src="grill.js"></script>
+    <link rel="stylesheet" href="site-theme.css">
+    <link rel="stylesheet" href="/dashboard/loader.css">
+    <link rel="icon" type="image/png" href="/image/logo.png">
+    <link rel="apple-touch-icon" href="/image/logo.png">
+</head>
+
+<body>
+    <div id="pageLoader" class="page-loader">
+      <div class="loader-content">
+        <img src="/image/logo.png" alt="مطعم الغنّام">
+        <div class="loader-spinner"></div>
+        <p>مطعم الغنّام</p>
+        <span>يرجى الانتظار...</span>
+      </div>
+    </div>
+
+    <!-- الهيدر -->
+    <header class="site-header">
+
+        <a class="brand" href="index.html"
+           aria-label="مطعم الغنام - الصفحة الرئيسية">
+            <img src="image/logo.png"
+                 alt="شعار مطعم الغنام"
+                 onerror="this.style.display='none'">
+            <span>مطعم الغنام</span>
+        </a>
+
+        <nav class="header-actions" aria-label="التنقل الرئيسي">
+
+            <a class="back-link" href="index.html"
+               title="العودة إلى الصفحة الرئيسية">
+                العودة للرئيسية
+            </a>
+
+            <button type="button"
+                    class="language-toggle"
+                    id="languageToggle"
+                    aria-label="تغيير اللغة"
+                    title="تغيير اللغة">
+                EN
+            </button>
+
+            <button type="button"
+                    class="settings-link menu-icon-button"
+                    id="openSettingsPanel"
+                    aria-controls="settingsPanel"
+                    aria-expanded="false"
+                    aria-label="فتح القائمة الجانبية"
+                    title="القائمة">
+
+                <svg class="menu-lines-icon"
+                     xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h16"></path>
+                    <path d="M4 18h16"></path>
+                </svg>
+
+            </button>
+
+        </nav>
+    </header>
+
+
+    <!-- معلومات المطعم والتوصيل -->
+    <section class="top-info-bar"
+             aria-label="معلومات المطعم والتوصيل">
+
+        <div class="top-info-brand">
+
+            <img class="top-info-logo"
+                 src="image/logo.png"
+                 alt="شعار مطعم الغنام">
+
+            <div class="top-info-text">
+                <strong>خصومات توصل 50%</strong>
+                <span>- عروض على منتجات مختارة</span>
+            </div>
+
+        </div>
+
+        <div class="top-info-divider" aria-hidden="true"></div>
+
+        <div class="top-info-delivery">
+
+            <span class="delivery-icon" aria-hidden="true"></span>
+
+            <div class="delivery-text">
+                <strong>التوصيل </strong>
+                <span>عبر الموقع</span>
+            </div>
+
+            <span class="delivery-check" aria-hidden="true">✓</span>
+
+        </div>
+    </section>
+
+
+    <!-- المحتوى الرئيسي -->
+    <main class="container">
+
+        <section class="hero hero-home" id="home" aria-label="فرع المشاوي">
+
+            <img
+                class="hero-banner-image"
+                src="falafel/imagefalafel/falafel-banner2.png"
+                alt="مشاوي مطعم الغنّام"
+                onerror="this.style.display='none'"
+            >
+
+            <div class="hero-content">
+
+            </div>
+
+        </section>
+
+
+        <!-- البحث والتصنيفات -->
+        <section class="menu-tools" aria-label="البحث في المنيو">
+
+            <input id="grillSearch"
+                   type="search"
+                   placeholder="ابحث عن وجبتك المفضلة..."
+                   aria-label="ابحث عن وجبتك المفضلة">
+
+            <nav id="categoryNav"
+                 class="category-nav"
+                 aria-label="أقسام المنيو">
+            </nav>
+
+        </section>
+
+
+        <!-- التحكم بطريقة عرض المنتجات -->
+        <section class="menu-heading-row" aria-label="طريقة عرض المنتجات">
+            <div class="menu-heading-text">
+            </div>
+
+            <div class="menu-view-controls" role="group" aria-label="طريقة عرض المنتجات">
+                <button type="button" class="view-icon" id="grillGridView" aria-label="عرض شبكي" title="عرض شبكي" aria-pressed="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                    </svg>
+                </button>
+                <button type="button" class="view-icon" id="grillListView" aria-label="عرض أفقي" title="عرض أفقي" aria-pressed="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="4" width="5" height="5" rx="1"></rect>
+                        <path d="M12 5h9M12 8h9"></path>
+                        <rect x="3" y="15" width="5" height="5" rx="1"></rect>
+                        <path d="M12 16h9M12 19h9"></path>
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- قائمة الطعام -->
+        <section id="menu" class="menu-area">
+
+            <div id="grillMenu">
+                <p class="empty-message">جارٍ تحميل المنيو...</p>
+            </div>
+
+        </section>
+
+
+        <!-- عناصر التوافق مع JavaScript -->
+        <section id="cart"
+                 class="cart-section"
+                 hidden
+                 aria-hidden="true">
+
+            <span id="cartCount">0 صنف</span>
+
+            <div id="grillCartItems"></div>
+
+            <span id="grillTotal">0</span>
+
+            <form id="grillOrderForm">
+                <input id="customerName" name="customerName">
+                <input id="customerPhone" name="customerPhone">
+                <input id="customerAddress" name="customerAddress">
+                <textarea id="customerNotes" name="customerNotes"></textarea>
+                <p id="orderStatus"></p>
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <!-- شريط السلة الثابت -->
+    <button type="button"
+            class="fixed-cart-bar"
+            id="fixedCartBar"
+            aria-label="فتح سلة المشتريات">
+
+        <span class="fixed-cart-icon">
+            <span class="cart-icon" aria-hidden="true">🛒</span>
+            <span class="fixed-cart-count" id="fixedCartCount">0</span>
+        </span>
+
+        <span class="fixed-cart-label">
+            <strong>عرض السلة</strong>
+            <small id="fixedCartSubtitle">لا توجد منتجات في السلة</small>
+        </span>
+
+        <strong class="fixed-cart-total" id="fixedCartTotal">0 د.ع</strong>
+
+        <span class="fixed-cart-arrow" aria-hidden="true">←</span>
+
+    </button>
+
+
+    <!-- نافذة السلة -->
+    <div class="cart-modal-overlay" id="cartModalOverlay" hidden>
+
+        <section class="cart-modal"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="cartModalTitle">
+
+            <header class="cart-modal-header">
+
+                <div>
+                    <h2 id="cartModalTitle">سلة مشترياتك 🛒</h2>
+                    <p>مطعم الغنام — فرع المشاوي</p>
+                </div>
+
+                <button type="button"
+                        id="closeCartModal"
+                        class="cart-modal-close"
+                        aria-label="إغلاق السلة">
+                    ×
+                </button>
+
+            </header>
+
+
+            <div class="cart-modal-body">
+
+                <!-- المنتجات -->
+                <section class="popup-cart-products"
+                         aria-label="المنتجات في السلة">
+
+                    <h3 class="popup-section-title">طلبك الحالي</h3>
+
+                    <div id="popupCartItems"></div>
+
+                </section>
+
+
+                <!-- الإضافات -->
+                <section class="cart-addons-section"
+                         id="cartAddonsSection"
+                         aria-labelledby="cartAddonsTitle">
+
+                    <div class="cart-addons-heading">
+
+                        <div>
+                            <h3 id="cartAddonsTitle">أضف إلى طلبك</h3>
+                            <p>إضافات من المنيو</p>
+                        </div>
+
+                        <span class="cart-addons-hint" aria-hidden="true">
+                            اسحب للتصفح ←
+                        </span>
+
+                    </div>
+
+                    <div id="cartAddonsList"
+                         class="cart-addons-list"
+                         aria-label="اقتراحات الإضافات">
+                        <p class="addons-loading">جارٍ تحميل الإضافات...</p>
+                    </div>
+
+                </section>
+
+
+                <!-- كود الخصم -->
+                <section class="coupon-box">
+
+                    <label for="couponCode">🎟️ كود الخصم</label>
+
+                    <div class="coupon-input-row">
+
+                        <input id="couponCode"
+                               type="text"
+                               placeholder="أدخل كود الخصم"
+                               autocomplete="off"
+                               maxlength="40">
+
+                        <button type="button" id="applyCouponButton">
+                            تطبيق
+                        </button>
+
+                    </div>
+
+                    <p id="couponStatus"
+                       role="status"
+                       aria-live="polite">
+                    </p>
+
+                </section>
+
+
+                <!-- ملخص الحساب -->
+                <section class="coupon-summary"
+                         aria-label="ملخص الحساب">
+
+                    <div>
+                        <span>المجموع الفرعي</span>
+                        <strong id="popupSubtotal">0 د.ع</strong>
+                    </div>
+
+                    <div>
+                        <span>الخصم</span>
+                        <strong id="popupDiscount">0 د.ع</strong>
+                    </div>
+
+                    <div class="coupon-grand-total">
+                        <span>الإجمالي النهائي</span>
+                        <strong id="popupGrandTotal">0 د.ع</strong>
+                    </div>
+
+                </section>
+
+
+                <!-- معلومات الزبون -->
+                <form id="popupOrderForm" class="popup-order-form">
+
+                    <h3>معلومات الزبون</h3>
+
+                    <label for="popupCustomerName">الاسم</label>
+
+                    <input id="popupCustomerName"
+                           name="name"
+                           type="text"
+                           required
+                           maxlength="100"
+                           autocomplete="name"
+                           placeholder="الاسم الكامل">
+
+                    <label for="popupCustomerPhone">رقم الهاتف</label>
+
+                    <input id="popupCustomerPhone"
+                           name="phone"
+                           type="tel"
+                           required
+                           maxlength="25"
+                           autocomplete="tel"
+                           placeholder="رقم الهاتف">
+
+                    <label for="popupCustomerAddress">العنوان</label>
+
+                    <input id="popupCustomerAddress"
+                           name="address"
+                           type="text"
+                           required
+                           maxlength="250"
+                           autocomplete="street-address"
+                           placeholder="منطقة السكن وأقرب نقطة دالة">
+
+                    <label for="popupCustomerNotes">ملاحظات إضافية</label>
+
+                    <textarea id="popupCustomerNotes"
+                              name="notes"
+                              rows="2"
+                              maxlength="500"
+                              placeholder="أي ملاحظات على الطلب"></textarea>
+
+                    <button type="submit" class="popup-submit-button">
+                        إرسال الطلب عبر واتساب
+                    </button>
+
+                    <p id="popupOrderStatus"
+                       class="status-message"
+                       role="status"
+                       aria-live="polite">
+                    </p>
+
+                </form>
+
+            </div>
+
+
+            <footer class="cart-modal-footer">
+
+                <button type="button"
+                        id="continueShoppingButton"
+                        class="popup-continue-button">
+                    مواصلة التسوق
+                </button>
+
+                <div class="popup-footer-total">
+                    <span>الإجمالي</span>
+                    <strong id="popupFooterTotal">0 د.ع</strong>
+                </div>
+
+            </footer>
+
+        </section>
+
+    </div>
+
+
+    <!-- خلفية القائمة الجانبية -->
+    <div class="settings-overlay"
+         id="settingsOverlay"
+         hidden>
+    </div>
+
+
+    <!-- القائمة الجانبية -->
+    <aside class="settings-panel"
+          id="settingsPanel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="settingsPanelTitle"
+          aria-hidden="true"
+          inert>
+
+        <header class="settings-panel-header">
+
+            <div class="settings-heading">
+
+                <span class="settings-heading-icon" aria-hidden="true">
+                    ☰
+                </span>
+
+                <div>
+                    <h2 id="settingsPanelTitle">القائمة</h2>
+                    <p>مطعم الغنام — فرع المشاوي</p>
+                </div>
+
+            </div>
+
+            <button type="button"
+                    class="settings-close"
+                    id="closeSettingsPanel"
+                    aria-label="إغلاق القائمة">
+                ×
+            </button>
+
+        </header>
+
+
+        <div class="settings-panel-content">
+
+            <h3 class="settings-section-title">التنقل</h3>
+
+            <a class="settings-menu-item" href="index.html">
+
+                <span class="settings-item-icon" aria-hidden="true">⌂</span>
+
+                <span>
+                    <strong>الصفحة الرئيسية</strong>
+                    <small>العودة إلى صفحة الفروع</small>
+                </span>
+
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
+
+            </a>
+
+
+            <a class="settings-menu-item"
+               href="#menu"
+               id="settingsGoToMenu">
+
+                <span class="settings-item-icon" aria-hidden="true">🍽️</span>
+
+                <span>
+                    <strong>قائمة الطعام</strong>
+                    <small>الانتقال إلى المنيو</small>
+                </span>
+
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
+
+            </a>
+
+
+            <button type="button"
+                    class="settings-menu-item settings-menu-button"
+                    id="settingsOpenCart">
+
+                <span class="settings-item-icon" aria-hidden="true">🛒</span>
+
+                <span>
+                    <strong>سلة المشتريات</strong>
+                    <small>عرض المنتجات والإجمالي</small>
+                </span>
+
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
+
+            </button>
+
+
+            <div class="settings-divider"></div>
+
+            <h3 class="settings-section-title">معلومات المطعم</h3>
+
+
+            <div class="settings-info-card">
+
+                <span aria-hidden="true">🥩</span>
+
+                <div>
+                    <strong>مطعم الغنام</strong>
+                    <p>فرع المشاوي</p>
+                </div>
+
+            </div>
+
+
+            <div class="settings-info-card">
+
+                <span aria-hidden="true">💰</span>
+
+                <div>
+                    <strong>العملة</strong>
+                    <p>الدينار العراقي (د.ع)</p>
+                </div>
+
+            </div>
+
+
+            <!-- المساعدة والشكاوى -->
+            <a class="settings-menu-item" href="support/support.html">
+            <span class="settings-item-icon" aria-hidden="true">💬</span>
+
+            <span>
+                <strong>المساعدة والشكاوى</strong>
+                <small>للاستفسارات وتقديم الشكاوى</small>
+            </span>
+
+            <span class="settings-item-arrow" aria-hidden="true">←</span>
+            </a>
+
+
+
+
+            <!-- أرقام الفرع -->
+            <div class="settings-compact-card">
+
+                <span class="settings-compact-icon" aria-hidden="true">📞</span>
+
+                <div class="settings-compact-content">
+
+                    <strong>أرقام الفرع</strong>
+
+                    <a href="tel:07XXXXXXXXX">07740000062</a>
+
+                    <a href="tel:07YYYYYYYYY">07840000062</a>
+
+                </div>
+
+            </div>
+
+
+            <!-- موقع الفرع -->
+            <a class="settings-compact-card settings-location-link"
+               href="https://maps.google.com/?q=مطعم+الغنام+فرع+المشاوي"
+               target="_blank"
+               rel="noopener noreferrer">
+
+                <span class="settings-compact-icon" aria-hidden="true">📍</span>
+
+                <div class="settings-compact-content">
+                    <strong>موقع الفرع</strong>
+                    <small>عرض الموقع على خرائط Google</small>
+                </div>
+
+                <span class="settings-item-arrow" aria-hidden="true">↗</span>
+
+            </a>
+
+        </div>
+
+
+        <footer class="settings-panel-footer">
+
+            <button type="button"
+                    class="settings-done-button"
+                    id="settingsDoneButton">
+                إغلاق القائمة
+            </button>
+
+        </footer>
+
+    </aside>
+
+
+    <!-- تذييل الموقع -->
+    <footer class="site-footer">
+
+        <p>مطعم الغنام — فرع المشاوي</p>
+
+        <p>جميع الأسعار بالدينار العراقي</p>
+
+        <a href="index.html">العودة إلى الصفحة الرئيسية</a>
+
+    </footer>
+
+
+    <!-- وظائف القائمة الجانبية -->
+    <script>
+    (() => {
+        const panel = document.getElementById("settingsPanel");
+        const overlay = document.getElementById("settingsOverlay");
+        const openButton = document.getElementById("openSettingsPanel");
+        const closeButton = document.getElementById("closeSettingsPanel");
+        const doneButton = document.getElementById("settingsDoneButton");
+        const menuLink = document.getElementById("settingsGoToMenu");
+        const cartButton = document.getElementById("settingsOpenCart");
+        const fixedCartBar = document.getElementById("fixedCartBar");
+
+        if (!panel || !overlay || !openButton || !closeButton || !doneButton) {
+            return;
+        }
+
+        let previousFocus = null;
+
+        function openSettings() {
+            if (!overlay.hidden) return;
+
+            previousFocus = document.activeElement;
+
+            overlay.hidden = false;
+            panel.inert = false;
+            panel.setAttribute("aria-hidden", "false");
+            openButton.setAttribute("aria-expanded", "true");
+
+            document.body.classList.add("settings-panel-open");
+
+            requestAnimationFrame(() => {
+                panel.classList.add("is-open");
+                closeButton.focus();
+            });
+        }
+
+        function closeSettings() {
+            if (overlay.hidden) return;
+
+            panel.classList.remove("is-open");
+            panel.setAttribute("aria-hidden", "true");
+            panel.inert = true;
+            openButton.setAttribute("aria-expanded", "false");
+
+            document.body.classList.remove("settings-panel-open");
+            overlay.hidden = true;
+
+            if (previousFocus && previousFocus.isConnected) {
+                previousFocus.focus();
+            } else {
+                openButton.focus();
+            }
+        }
+
+        openButton.addEventListener("click", openSettings);
+        closeButton.addEventListener("click", closeSettings);
+        doneButton.addEventListener("click", closeSettings);
+        overlay.addEventListener("click", closeSettings);
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && !overlay.hidden) {
+                closeSettings();
+            }
+        });
+
+        if (menuLink) {
+            menuLink.addEventListener("click", closeSettings);
+        }
+
+        if (cartButton) {
+            cartButton.addEventListener("click", () => {
+                closeSettings();
+
+                if (fixedCartBar) {
+                    fixedCartBar.click();
+                }
+            });
+        }
+    })();
+    </script>
+    <script src="/dashboard/loader.js"></script>
+    <script type="module" src="customer-auth.js"></script>
+</body>
+</html>

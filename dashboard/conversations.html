@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#4b1111">
+  <title>محادثات ليلى | مطعم الغنّام</title>
+  <link rel="stylesheet" href="conversations.css">
+  <link rel="stylesheet" href="/dashboard/loader.css">
+  <link rel="icon" type="image/png" href="/image/logo.png">
+  <link rel="apple-touch-icon" href="/image/logo.png">
+</head>
+<body>
+  <div id="pageLoader" class="page-loader">
+    <div class="loader-content">
+      <img src="/image/logo.png" alt="مطعم الغنّام">
+      <div class="loader-spinner"></div>
+      <p>مطعم الغنّام</p>
+      <span>يرجى الانتظار...</span>
+    </div>
+  </div>
+  <header class="topbar">
+    <a class="brand" href="admin.html"><span class="brand-mark">غ</span><span><strong>مطعم الغنّام</strong><small>إدارة المساعد ليلى</small></span></a>
+    <div class="top-actions">
+      <span id="staffRoleLabel"></span><span id="staffEmail"></span>
+      <button id="notificationButton" type="button" class="top-link">تفعيل التنبيهات</button>
+      <a href="admin.html" class="top-link">لوحة المنيو</a>
+      <button id="logoutButton" type="button" hidden>تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="loginPanel" class="login-card" hidden>
+      <div class="login-symbol">🔐</div><h1>دخول الموظف</h1>
+      <p>سجّل الدخول بحساب موظف أو قائد فريق أو صاحب المطعم لمتابعة محادثات ليلى.</p>
+      <form id="loginForm">
+        <label>البريد الإلكتروني<input id="loginEmail" type="email" autocomplete="username" required></label>
+        <label>كلمة المرور<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <button type="submit" class="primary">دخول</button>
+      </form>
+      <p id="loginMessage" class="status-message" role="status"></p>
+      <a href="admin.html" class="back-link">الرجوع إلى لوحة الإدارة</a>
+    </section>
+
+    <section id="accessPanel" class="notice error-notice" hidden>
+      <h2>ما عندك صلاحية للدخول</h2><p>هذه الصفحة متاحة لحسابات الموظفين وقادة الفريق وصاحب المطعم. راجع دور حسابك في جدول profiles.</p>
+      <a href="admin.html">العودة إلى لوحة الإدارة</a>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="page-heading">
+        <div><span class="eyebrow">خدمة الزبائن وإدارة الفريق</span><h1>محادثات ليلى</h1><p>وزّع المحادثات على الموظفين، تابع الحالات، وراقب أداء الفريق.</p></div>
+        <div class="heading-actions"><button id="refreshButton" class="secondary" type="button">↻ تحديث</button></div>
+      </div>
+
+      <div class="summary-row summary-row-four">
+        <article><span>كل المحادثات</span><strong id="totalCount">0</strong></article>
+        <article><span>بانتظار موظف</span><strong id="waitingCount">0</strong></article>
+        <article><span>قيد المتابعة</span><strong id="activeCount">0</strong></article>
+        <article><span>غير مسندة لموظف</span><strong id="unassignedCount">0</strong></article>
+      </div>
+
+      <nav class="tabs" aria-label="أقسام المساعد">
+        <button type="button" class="tab active" data-tab="inbox">صندوق المحادثات</button>
+        <button type="button" class="tab" data-tab="team" id="teamTabButton">متابعة الفريق</button>
+        <button type="button" class="tab" data-tab="settings">إعدادات ليلى</button>
+      </nav>
+
+      <section id="inboxTab" class="tab-panel">
+        <div class="inbox-layout">
+          <aside class="conversation-list-card">
+            <div class="list-tools">
+              <input id="conversationSearch" type="search" placeholder="بحث بالرسائل أو رقم المحادثة">
+              <div class="filter-grid">
+                <select id="statusFilter" aria-label="تصفية حسب الحالة">
+                  <option value="all">كل الحالات</option><option value="waiting_staff">بانتظار موظف</option><option value="open">جديدة</option><option value="in_progress">قيد المتابعة</option><option value="closed">مكتملة</option>
+                </select>
+                <select id="branchFilter" aria-label="تصفية حسب الفرع"><option value="all">كل الفروع</option></select>
+                <select id="assigneeFilter" aria-label="تصفية حسب الموظف"><option value="all">كل الموظفين</option><option value="unassigned">غير مسندة</option><option value="mine">المسندة إليّ</option></select>
+              </div>
+            </div>
+            <div id="conversationList" class="conversation-list"><div class="empty-state">جارٍ تحميل المحادثات...</div></div>
+          </aside>
+
+          <section class="thread-card">
+            <div id="threadEmpty" class="thread-empty"><span>💬</span><h2>اختَر محادثة</h2><p>ستظهر رسائل الزبون هنا حتى تتمكن من الرد أو إسناد المتابعة.</p></div>
+            <div id="threadArea" hidden>
+              <header class="thread-header">
+                <div><h2 id="threadTitle">محادثة زبون</h2><p id="threadMeta"></p></div>
+                <div class="thread-controls">
+                  <label class="status-select-label">الحالة<select id="threadStatus"><option value="open">جديدة</option><option value="waiting_staff">بانتظار موظف</option><option value="in_progress">قيد المتابعة</option><option value="closed">مكتملة</option></select></label>
+                  <label class="status-select-label">الموظف المسؤول<select id="assigneeSelect"><option value="">غير مسندة</option></select></label>
+                </div>
+              </header>
+              <div id="threadMessages" class="thread-messages" aria-live="polite"></div>
+              <form id="replyForm" class="reply-form"><textarea id="replyText" rows="2" maxlength="5000" placeholder="اكتب ردك للزبون..." required></textarea><button type="submit" class="primary">إرسال الرد</button></form>
+              <p id="threadMessage" class="status-message" role="status"></p>
+            </div>
+          </section>
+        </div>
+        <p id="inboxStatus" class="muted-note" role="status">يتم تحديث المحادثات تلقائيًا كل 15 ثانية. يمكنك تفعيل إشعارات المتصفح للرسائل الجديدة.</p>
+      </section>
+
+      <section id="teamTab" class="tab-panel settings-panel" hidden>
+        <div class="settings-intro"><h2>متابعة فريق خدمة الزبائن</h2><p>يظهر هنا عدد الإسنادات والردود والمحادثات المكتملة لكل موظف خلال آخر 30 يومًا. دور manager هو قائد الفريق.</p></div>
+        <div class="team-toolbar"><button id="refreshTeamButton" type="button" class="secondary">تحديث إحصائيات الفريق</button><span id="teamStatsMessage" class="status-message" role="status"></span></div>
+        <div class="table-wrap"><table class="team-table"><thead><tr><th>الموظف</th><th>المحادثات المسندة</th><th>الردود</th><th>المكتملة</th></tr></thead><tbody id="teamStatsBody"><tr><td colspan="4" class="empty-state">جارٍ تحميل إحصائيات الفريق...</td></tr></tbody></table></div>
+        <div class="future-note"><strong>تنظيم الفريق:</strong> اجعل حساب قائد الفريق بدور <code>manager</code>، وحسابات بقية الموظفين بدور <code>staff</code>. قائد الفريق وصاحب المطعم يستطيعان إسناد المحادثات إلى الموظفين؛ الموظف يستطيع استلام المحادثة لنفسه.</div>
+      </section>
+
+      <section id="settingsTab" class="tab-panel settings-panel" hidden>
+        <div class="settings-intro"><h2>إعدادات ردود ليلى</h2><p>عدّل رسالة الترحيب وساعات العمل والرد عند عدم فهم السؤال.</p></div>
+        <form id="settingsForm" class="settings-form">
+          <label>اسم المساعد<input id="assistantName" maxlength="60" required></label>
+          <label class="full-field">رسالة الترحيب<textarea id="welcomeMessage" rows="5" maxlength="1500" required></textarea></label>
+          <label>أوقات العمل<input id="workingHours" maxlength="180" required></label>
+          <label class="full-field">الرد عند عدم فهم السؤال<textarea id="fallbackMessage" rows="4" maxlength="1000" required></textarea></label>
+          <label class="switch-row"><input id="assistantEnabled" type="checkbox"><span><strong>تفعيل المساعد ليلى</strong><small>عند إلغاء التفعيل، تظهر الصفحة لكن يتوقف إرسال الرسائل.</small></span></label>
+          <div class="form-actions"><button id="saveSettingsButton" type="submit" class="primary">حفظ إعدادات ليلى</button><p id="settingsMessage" class="status-message" role="status"></p></div>
+        </form>
+        <div class="future-note"><strong>ملاحظة:</strong> ردود الأسعار والعروض والفروع تُقرأ من قاعدة البيانات. هذه الإعدادات لا تغير صلاحيات الموظفين.</div>
+      </section>
+    </section>
+    <div id="toast" class="toast" hidden></div>
+  </main>
+  <script type="module" src="conversations.js"></script>
+  <script src="/dashboard/loader.js"></script>
+</body>
+</html>

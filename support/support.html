@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5660b">
+  <link rel="stylesheet" href="/dashboard/loader.css">
+  <link rel="icon" type="image/png" href="/image/logo.png">
+  <link rel="apple-touch-icon" href="/image/logo.png">
+  <title>ليلى | مطعم الغنّام</title>
+  <style>
+    :root{--orange: #482016;--orange-dark: #482016;--orange-light:#fff0df;--cream:#fffaf5;--white:#fff;--text:#292522;--muted:#777;--border:#eee2d7;--green:#23834b;--footer-bg:#211b18;--footer-card:#2b231f}
+    *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;line-height:1.7;color:var(--text);background:var(--cream)}button,input{font:inherit}button,a{-webkit-tap-highlight-color:transparent}button{cursor:pointer}
+    .page{width:min(800px,100%);margin:25px auto 45px;padding:16px}.back-link{display:inline-block;margin-bottom:15px;color:var(--orange-dark);font-weight:bold;font-size:14px;text-decoration:none}.back-link:hover{color:var(--orange)}
+    .chat-card{overflow:hidden;background:var(--white);border:1px solid var(--border);border-radius:22px;box-shadow:0 8px 24px rgba(50,28,14,.10)}.chat-header{display:flex;align-items:center;gap:14px;padding:22px;color:var(--white);background:var(--orange)}
+    .bot-avatar{display:flex;align-items:center;justify-content:center;width:66px;height:66px;flex-shrink:0;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.85);border-radius:50%}.bot-avatar svg{width:100%;height:100%}.header-info{flex:1;min-width:0}.header-info h1{margin:0 0 5px;color:var(--white);font-size:25px}.header-info p{margin:0;color:#fff8f1;font-size:13px}.bot-label{display:inline-block;margin-top:7px;padding:4px 10px;color:var(--white);background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.25);border-radius:20px;font-size:11px}
+    .chat-messages{min-height:300px;max-height:55vh;overflow-y:auto;padding:22px;background:var(--white);scroll-behavior:smooth}.message{max-width:90%;margin-bottom:13px;padding:12px 15px;border-radius:16px;font-size:14px;line-height:2;overflow-wrap:anywhere;white-space:pre-wrap}.bot-message{margin-left:auto;color:var(--text);background:var(--orange-light);border:1px solid #ffe1c1;border-bottom-right-radius:5px}.user-message{margin-right:auto;color:var(--white);background:var(--orange);border-bottom-left-radius:5px}.staff-message{border-color:#cfe7d5;background:#edf8ef;color:#203b29}
+    .quick-actions{display:flex;flex-wrap:wrap;gap:9px;padding:0 18px 18px;background:var(--white)}.quick-actions button{padding:9px 13px;color:var(--orange-dark);background:var(--white);border:1px solid #f4c8a5;border-radius:24px;font-size:12px;transition:.2s}.quick-actions button:hover{color:var(--white);background:var(--orange);border-color:var(--orange)}.quick-actions button:disabled{opacity:.5;cursor:not-allowed}
+    .chat-input{display:flex;gap:10px;padding:16px;background:var(--white);border-top:1px solid var(--border)}.chat-input input{flex:1;min-width:0;padding:13px;color:var(--text);background:var(--cream);border:1px solid var(--border);border-radius:12px;outline:none;font-size:14px}.chat-input input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(245,102,11,.10)}.chat-input button{padding:0 21px;color:var(--white);background:var(--orange);border:0;border-radius:12px;font-size:14px;font-weight:bold}.chat-input button:hover{background:var(--orange-dark)}.chat-input button:disabled{opacity:.6;cursor:not-allowed}.footer-note{padding:14px;color:var(--muted);background:var(--white);font-size:12px;line-height:1.9;text-align:center}
+    .branch-options{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 15px}.branch-options button{padding:9px 12px;color:var(--orange-dark);background:#fff;border:1px solid #f4c8a5;border-radius:12px;font-size:13px;font-weight:bold}.branch-options button:hover{color:#fff;background:var(--orange)}.whatsapp-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 15px}.whatsapp-option{display:block;padding:11px 8px;color:#fff;background:var(--green);border-radius:11px;font-size:12px;font-weight:bold;text-align:center;text-decoration:none;overflow-wrap:anywhere}.whatsapp-option:hover{background:#176c3d}.cancel-action{padding:8px 12px;color:var(--muted);background:#f5f2ef;border:1px solid var(--border);border-radius:10px;font-size:12px}
+    .footer{margin-top:45px;color:var(--white);background:var(--footer-bg);border-top:4px solid var(--orange)}.footer-main{width:min(1150px,92%);margin:0 auto;padding:38px 0 28px}.footer-intro{display:flex;justify-content:space-between;align-items:center;gap:25px;padding-bottom:28px;border-bottom:1px solid #40352e}.footer-brand{display:flex;align-items:center;gap:15px}.footer-brand img{width:72px;height:72px;padding:5px;object-fit:contain;background:#fff;border:2px solid var(--orange);border-radius:18px}.footer-brand h2{margin:0 0 5px;color:#fff;font-size:23px}.footer-brand p{margin:0;color:#cfc3ba;font-size:13px}.footer-hours{display:flex;align-items:center;gap:12px;padding:13px 17px;background:#302722;border:1px solid #4a3b32;border-radius:14px}.hours-icon{display:flex;align-items:center;justify-content:center;width:42px;height:42px;flex-shrink:0;background:#453127;border-radius:12px;font-size:20px}.footer-hours strong{display:block;margin-bottom:4px;color:#fff;font-size:14px}.footer-hours p{margin:0;color:#d1c4ba;font-size:12px;line-height:1.8}
+    .footer-branches-section{padding-top:28px}.footer-heading{margin-bottom:20px;text-align:center}.footer-heading h3{margin:0 0 6px;color:#fff;font-size:22px}.footer-heading p{margin:0;color:#bdb0a6;font-size:13px}.footer-branches-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}.footer-branch-card{display:flex;flex-direction:column;min-width:0;padding:20px 17px;background:var(--footer-card);border:1px solid #48382f;border-radius:17px;transition:transform .2s,border-color .2s}.footer-branch-card:hover{transform:translateY(-3px);border-color:var(--orange)}.branch-card-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin-bottom:13px;background:#453025;border:1px solid #62412e;border-radius:14px;font-size:23px}.footer-branch-card h4{margin:0 0 9px;color:#fff;font-size:16px}.branch-address{min-height:52px;margin:0 0 12px;color:#c8bbb1;font-size:12px;line-height:1.9}.branch-map{display:inline-block;align-self:flex-start;margin-bottom:16px;color:#ff9a57;font-size:12px;font-weight:bold;text-decoration:none}.branch-map:hover{color:#ffc08f;text-decoration:underline}.branch-contact{display:grid;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid #48382f}.branch-contact a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 11px;color:#fff;background:#263b2d;border:1px solid #35533d;border-radius:9px;font-size:11px;text-decoration:none;transition:background .2s}.branch-contact a:hover{background:#188b4b}.branch-contact a span:first-child{color:#aee6bd;font-weight:bold}.branch-contact a span:last-child{direction:ltr;white-space:nowrap}
+    .footer-help{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-top:25px;padding:20px;background:#342821;border:1px solid #554033;border-radius:16px}.footer-help-content{display:flex;align-items:center;gap:12px;min-width:0}.footer-help strong{display:block;margin-bottom:5px;color:#fff;font-size:14px}.footer-help p{margin:0;color:#c9b9ad;font-size:12px;line-height:1.8}.footer-help-button{display:inline-flex;justify-content:center;align-items:center;gap:12px;flex-shrink:0;padding:11px 17px;color:#fff;background:var(--orange);border-radius:10px;font-size:13px;font-weight:bold;text-decoration:none;transition:background .2s}.footer-help-button:hover{background:var(--orange-dark)}.footer-help-button span{font-size:17px}.footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px 4%;background:#17120f;border-top:1px solid #40352e}.footer-bottom p{margin:0;color:#bdb0a6;font-size:12px;line-height:1.8}
+    @media(max-width:850px){.footer-branches-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.footer-intro{align-items:flex-start;flex-direction:column}.footer-hours{width:100%}}
+    @media(max-width:520px){.page{margin:0 auto 30px;padding:0}.back-link{margin:15px}.chat-card{min-height:calc(100vh - 50px);border-radius:0}.chat-header{padding:18px}.bot-avatar{width:56px;height:56px}.header-info h1{font-size:21px}.chat-messages{min-height:40vh;max-height:50vh;padding:16px}.message{max-width:95%}.chat-input{padding:12px}.chat-input button{padding:0 15px}.footer{margin-top:30px}.footer-main{width:90%;padding-top:27px}.footer-brand img{width:60px;height:60px;border-radius:15px}.footer-brand h2{font-size:20px}.footer-brand p{font-size:12px}.footer-branches-grid{grid-template-columns:minmax(0,1fr);gap:13px}.footer-branch-card{padding:17px}.branch-address{min-height:auto}.footer-heading h3{font-size:20px}.footer-help{align-items:stretch;flex-direction:column;padding:16px}.footer-help-button{width:100%}.footer-bottom{align-items:center;flex-direction:column;gap:5px;padding:16px 5%;text-align:center}}
+  </style>
+</head>
+<body>
+  <div id="pageLoader" class="page-loader">
+    <div class="loader-content">
+      <img src="/image/logo.png" alt="مطعم الغنّام">
+      <div class="loader-spinner"></div>
+      <p>مطعم الغنّام</p>
+      <span>يرجى الانتظار...</span>
+    </div>
+  </div>
+  <main class="page">
+    <a class="back-link" href="../index.html">→ الرجوع إلى مطعم الغنّام</a>
+    <section class="chat-card" aria-label="محادثة ليلى">
+      <header class="chat-header">
+        <div class="bot-avatar">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="أيقونة ليلى">
+            <circle cx="50" cy="50" r="49" fill="#FFF0DF"/>
+            <path d="M24 43 C19 22 32 12 50 12 C70 12 82 27 76 48 L78 69 C75 83 64 88 50 88 C35 88 25 80 22 68Z" fill="#49352E"/>
+            <path d="M41 66 L41 79 Q50 87 59 79 L59 66Z" fill="#F0C8A8"/>
+            <ellipse cx="50" cy="47" rx="22" ry="26" fill="#F7D9BD"/>
+            <path d="M28 40 C26 22 39 17 51 17 C67 17 76 28 72 41 C64 37 57 31 53 26 C47 34 38 38 28 40Z" fill="#49352E"/>
+            <path d="M37 47 Q41 43 45 47 M55 47 Q59 43 63 47" fill="none" stroke="#49352E" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M43 57 Q50 63 57 57" fill="none" stroke="#B66C5B" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M25 49 C19 27 35 17 50 17 C66 17 79 30 75 48" fill="none" stroke="#F5660B" stroke-width="4" stroke-linecap="round"/>
+            <rect x="19" y="44" width="10" height="17" rx="5" fill="#F5660B"/><rect x="71" y="44" width="10" height="17" rx="5" fill="#F5660B"/>
+            <path d="M76 59 Q77 69 65 69" fill="none" stroke="#F5660B" stroke-width="3" stroke-linecap="round"/><circle cx="63" cy="69" r="3" fill="#F5660B"/>
+          </svg>
+        </div>
+        <div class="header-info">
+          <h1>ليلى</h1><p>هلا بيك! أني موجودة حتى أساعدك</p><span class="bot-label">مساعدة مطعم الغنّام</span>
+        </div>
+      </header>
+      <div class="chat-messages" id="chatMessages" aria-live="polite">
+        <div class="message bot-message">هلا والله بيك بمطعم الغنّام! 🌷
+
+أني ليلى، أساعدك بمعلومات الفروع والدوام والمنيو.
+
+عندك شكوى أو اقتراح؟ اضغط «تقديم شكوى» أو اكتب تفاصيل المشكلة بالمحادثة، وراح أساعدك توصلها إلى واتساب الفرع المناسب.
+
+وإذا تريد موظف، اكتب #.</div>
+      </div>
+      <div class="quick-actions">
+        <button type="button" data-action="branches">📍 عناوين الفروع</button>
+        <button type="button" data-action="hours">🕒 أوقات العمل</button>
+        <button type="button" data-action="menu">📋 المنيو والأسعار</button>
+        <button type="button" data-action="complaint">📝 تقديم شكوى</button>
+        <button type="button" data-action="staff">👩‍💼 أريد موظف</button>
+      </div>
+      <form class="chat-input" id="chatForm">
+        <input id="userInput" type="text" placeholder="اكتب سؤالك أو تفاصيل الشكوى..." autocomplete="off" aria-label="اكتب رسالتك" required>
+        <button type="submit">إرسال</button>
+      </form>
+      <div class="footer-note">قد تُحفظ المحادثة لمتابعة الاستفسارات والشكاوى والرد عليها من موظفي مطعم الغنّام. لا ترسل معلومات بنكية أو كلمات مرور.</div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-main">
+      <section class="footer-intro">
+        <div class="footer-brand">
+          <img src="../image/logo.png" alt="شعار مطعم الغنّام">
+          <div><h2>مطعم الغنّام</h2><p>الطعم الأصيل، والخدمة اللي تستاهلوها</p></div>
+        </div>
+        <div class="footer-hours"><span class="hours-icon">🕒</span><div><strong>أوقات العمل</strong><p>يوميًا من 6 صباحًا إلى 12 منتصف الليل</p></div></div>
+      </section>
+      <section class="footer-branches-section">
+        <div class="footer-heading"><h3>فروعنا</h3><p>اختار الفرع الأقرب إلك وتواصل ويانا</p></div>
+        <div class="footer-branches-grid">
+          <article class="footer-branch-card">
+            <div class="branch-card-icon">🥩</div><h4>المشويات والكباب</h4><p class="branch-address">الدورة، شارع المصافي، مجاور مصرف الرشيد</p>
+            <a class="branch-map" href="https://maps.app.goo.gl/dCkqtV3qVzQYP1hU8?g_st=ac" target="_blank" rel="noopener noreferrer">📍 عرض الموقع</a>
+            <div class="branch-contact">
+              <a href="https://wa.me/9647840000062" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07840000062</span></a>
+              <a href="https://wa.me/9647740000062" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07740000062</span></a>
+            </div>
+          </article>
+          <article class="footer-branch-card">
+            <div class="branch-card-icon">🍔</div><h4>الوجبات السريعة</h4><p class="branch-address">الدورة، شارع المصافي</p>
+            <a class="branch-map" href="https://www.waze.com/ar/live-map/directions?to=ll.33.254435%2C44.385173" target="_blank" rel="noopener noreferrer">📍 عرض الموقع</a>
+            <div class="branch-contact">
+              <a href="https://wa.me/9647840000068" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07840000068</span></a>
+              <a href="https://wa.me/9647740000068" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07740000068</span></a>
+            </div>
+          </article>
+          <article class="footer-branch-card">
+            <div class="branch-card-icon">🧆</div><h4>الفلافل</h4><p class="branch-address">الإعلام، سوق أميمة، مقابل جامع المصطفى</p>
+            <a class="branch-map" href="https://maps.app.goo.gl/RT8akvQPBNvdWgZL7" target="_blank" rel="noopener noreferrer">📍 عرض الموقع</a>
+            <div class="branch-contact">
+              <a href="https://wa.me/9647860000556" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07860000556</span></a>
+              <a href="https://wa.me/9647760000552" target="_blank" rel="noopener noreferrer"><span>هاتف - واتساب</span><span>07760000552</span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="footer-help">
+        <div class="footer-help-content"><div><strong>عندك استفسار أو شكوى؟</strong><p>ليلى تساعدك بالتواصل ويا الفرع المناسب.</p></div></div>
+        <a href="./support.html" class="footer-help-button">تواصل ويانا <span>←</span></a>
+      </section>
+    </div>
+    <div class="footer-bottom"><p>© مطعم الغنّام - جميع الحقوق محفوظة</p><p>نورتونا، ونتشرف بخدمتكم </p></div>
+  </footer>
+
+  <!-- ملف ليلى الخارجي: الصفحة support/support.html والملف laila-chat.js في المجلد الرئيسي -->
+  <script type="module" src="../laila-chat.js"></script>
+  <script src="/dashboard/loader.js"></script>
+</body>
+</html>

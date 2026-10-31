@@ -1,0 +1,66 @@
+/* شاشة تحميل مطعم الغنّام */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: #fffaf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.page-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-content {
+  text-align: center;
+}
+
+.loader-content img {
+  width: 145px;
+  height: 145px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 20px;
+  animation: logoPulse 1.5s infinite ease-in-out;
+}
+
+.loader-spinner {
+  width: 35px;
+  height: 35px;
+  border: 3px solid #ead9d0;
+  border-top-color: #741f1f;
+  border-radius: 50%;
+  margin: 0 auto 15px;
+  animation: loaderSpin 0.8s linear infinite;
+}
+
+.loader-content p {
+  color: #741f1f;
+  font-size: 21px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.loader-content span {
+  color: #777;
+  font-size: 13px;
+}
+
+@keyframes loaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes logoPulse {
+  50% {
+    transform: scale(1.06);
+  }
+}

@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4b1111">
+
+    <title>لوحة إدارة مطعم الغنّام</title>
+
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="./loader.css">
+    <link rel="icon" type="image/png" href="/image/logo.png">
+    <link rel="apple-touch-icon" href="/image/logo.png">
+</head>
+
+<body>
+
+<!-- شاشة التحميل -->
+<div id="pageLoader" class="page-loader" data-manual="true">
+    <div class="loader-content">
+        <img src="/image/logo.png" alt="مطعم الغنّام">
+        <div class="loader-spinner"></div>
+        <p>مطعم الغنّام</p>
+        <span>يرجى الانتظار...</span>
+    </div>
+</div>
+
+<!-- الشريط العلوي -->
+<header class="topbar">
+    <div class="brand-area">
+        <img
+            src="/image/logo.png"
+            alt="شعار مطعم الغنّام"
+            class="brand-logo"
+        >
+
+        <div class="brand-title">
+            <strong>مطعم الغنّام</strong>
+            <span>لوحة إدارة المنيو والطلبات</span>
+        </div>
+    </div>
+
+    <div class="topbar-actions">
+        <span id="userEmail" class="user-email"></span>
+
+        <a
+            href="../index.html"
+            class="button button-quiet"
+            title="الانتقال إلى الموقع الرئيسي">
+            🏠 الموقع الرئيسي
+        </a>
+
+        <button
+            type="button"
+            id="languageToggle"
+            class="language-icon"
+            title="Change language">
+            EN
+        </button>
+
+        <button
+            id="logoutButton"
+            class="button button-quiet"
+            hidden>
+            تسجيل الخروج
+        </button>
+    </div>
+</header>
+
+<main class="page-shell">
+
+    <!-- تنبيه إعداد قاعدة البيانات -->
+    <section
+        id="setupWarning"
+        class="notice notice-warning"
+        hidden>
+
+        <strong>أكمل ربط قاعدة البيانات</strong>
+
+        <p>
+            افتح <code>supabase-config.js</code>
+            وضع رابط مشروعك والمفتاح العام.
+            لا تستخدم مفتاح service_role.
+        </p>
+    </section>
+
+    <!-- تسجيل الدخول -->
+    <section id="loginPanel" class="login-card">
+
+        <div class="login-icon">🔐</div>
+
+        <h1>تسجيل دخول صاحب المطعم</h1>
+
+        <p class="muted">
+            هذه اللوحة مخصصة للمستخدمين الذين لديهم صلاحية إدارة.
+        </p>
+
+        <form id="loginForm" class="form-stack">
+
+            <label>
+                البريد الإلكتروني
+
+                <input
+                    id="loginEmail"
+                    type="email"
+                    autocomplete="username"
+                    required
+                    placeholder="owner@example.com">
+            </label>
+
+            <label>
+                كلمة المرور
+
+                <input
+                    id="loginPassword"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    placeholder="كلمة المرور">
+            </label>
+
+            <button
+                class="button button-primary"
+                type="submit">
+                دخول إلى لوحة الإدارة
+            </button>
+        </form>
+
+        <p
+            id="loginMessage"
+            class="form-message"
+            role="status">
+        </p>
+    </section>
+
+    <!-- لوحة الإدارة الرئيسية -->
+    <section id="dashboard" hidden>
+
+        <!-- الترحيب وروابط التنقل -->
+        <div class="welcome-row">
+
+            <div>
+                <p class="eyebrow">إدارة المطعم</p>
+
+                <h1>لوحة التحكم الرئيسية</h1>
+
+                <p class="muted">
+                    تحكم بالمنتجات والتصنيفات والعروض والطلبات من مكان واحد.
+                </p>
+            </div>
+
+            <div class="welcome-actions">
+
+                <a
+                    class="button button-secondary"
+                    href="../index.html"
+                    target="_blank"
+                    rel="noopener">
+                    🏠 الصفحة الرئيسية للمطعم
+                </a>
+
+                <a
+                    class="button button-secondary"
+                    href="orders.html">
+                    📦 إدارة الطلبات
+                </a>
+
+                <a
+                    class="button button-secondary"
+                    href="conversations.html">
+                    💬 محادثات ليلى
+                </a>
+
+                <span class="secure-pill">
+                    ● اتصال آمن بالصلاحيات
+                </span>
+            </div>
+        </div>
+
+        <!-- تغيير كلمة مرور الحساب الشخصي -->
+        <section class="panel password-panel" id="passwordPanel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>🔐 تغيير كلمة المرور</h2>
+
+                    <p class="muted">
+                        حدّث كلمة مرور حسابك من لوحة الإدارة.
+                    </p>
+                </div>
+            </div>
+
+            <form id="changePasswordForm" class="form-stack">
+
+                <label>
+                    كلمة المرور الجديدة
+
+                    <input
+                        type="password"
+                        id="accountNewPassword"
+                        minlength="8"
+                        autocomplete="new-password"
+                        placeholder="أدخل كلمة المرور الجديدة"
+                        required>
+                </label>
+
+                <label>
+                    تأكيد كلمة المرور الجديدة
+
+                    <input
+                        type="password"
+                        id="accountConfirmPassword"
+                        minlength="8"
+                        autocomplete="new-password"
+                        placeholder="أعد كتابة كلمة المرور الجديدة"
+                        required>
+                </label>
+
+                <button
+                    type="submit"
+                    id="changePasswordButton"
+                    class="button button-primary">
+                    🔒 تغيير كلمة المرور
+                </button>
+
+                <p
+                    id="changePasswordMessage"
+                    class="form-message"
+                    role="status">
+                </p>
+            </form>
+        </section>
+
+        <!-- إدارة المستخدمين والصلاحيات -->
+        <section
+            class="panel users-panel"
+            id="usersPanel"
+            hidden>
+
+            <div class="section-heading">
+
+                <div>
+                    <h2>إدارة المستخدمين والصلاحيات</h2>
+
+                    <p class="muted">
+                        إدارة حسابات المالك والمديرين والموظفين.
+                    </p>
+                </div>
+
+                <span class="count-badge" id="usersCount">0</span>
+            </div>
+
+            <!-- تغيير كلمة مرور حساب آخر -->
+            <div
+                id="passwordResetPanel"
+                class="user-create-panel"
+                hidden>
+
+                <h3>🔐 تغيير كلمة مرور حساب آخر</h3>
+
+                <p class="muted">
+                    اختر حساب الموظف أو المدير الذي تريد تغيير كلمة مروره.
+                </p>
+
+                <div class="user-form-grid">
+
+                    <label>
+                        اختر الحساب
+
+                        <select id="passwordResetUser" required>
+                            <option value="">اختر حساباً من القائمة</option>
+                        </select>
+                    </label>
+
+                    <div class="user-form-actions">
+
+                        <button
+                            type="button"
+                            id="resetSelectedUserPasswordButton"
+                            class="button button-primary"
+                            disabled>
+                            🔒 تغيير كلمة مرور الحساب المحدد
+                        </button>
+
+                        <p
+                            id="passwordResetMessage"
+                            class="form-message"
+                            role="status">
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إضافة حساب جديد -->
+            <div
+                id="createUserPanel"
+                class="user-create-panel"
+                hidden>
+
+                <h3>إضافة حساب جديد</h3>
+
+                <form
+                    id="createUserForm"
+                    class="user-form-grid">
+
+                    <label>
+                        الاسم الكامل *
+
+                        <input
+                            id="newUserName"
+                            type="text"
+                            maxlength="120"
+                            required
+                            placeholder="اسم الموظف أو المدير">
+                    </label>
+
+                    <label>
+                        البريد الإلكتروني *
+
+                        <input
+                            id="newUserEmail"
+                            type="email"
+                            required
+                            placeholder="name@example.com">
+                    </label>
+
+                    <label>
+                        كلمة المرور *
+
+                        <input
+                            id="newUserPassword"
+                            type="password"
+                            minlength="8"
+                            autocomplete="new-password"
+                            required
+                            placeholder="كلمة مرور من 8 أحرف على الأقل">
+                    </label>
+
+                    <label>
+                        الفرع *
+
+                        <select id="newUserBranch" required>
+                            <option value="">اختر الفرع</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        نوع الحساب *
+
+                        <select id="newUserRole" required>
+                            <option value="staff">موظف</option>
+                            <option value="manager">مدير فرع</option>
+                        </select>
+                    </label>
+
+                    <div class="user-form-actions">
+
+                        <button
+                            id="createUserButton"
+                            class="button button-primary"
+                            type="submit">
+                            ＋ إنشاء الحساب
+                        </button>
+
+                        <p
+                            id="createUserMessage"
+                            class="form-message"
+                            role="status">
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- قائمة المستخدمين -->
+            <div class="section-heading users-list-heading">
+
+                <div>
+                    <h3>قائمة المستخدمين</h3>
+
+                    <p class="muted">
+                        الحسابات التي يمكنك إدارتها حسب صلاحيتك.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="button button-quiet"
+                    id="refreshUsersButton">
+                    🔄 تحديث القائمة
+                </button>
+            </div>
+
+            <div class="table-wrap">
+
+                <table class="users-table">
+
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الفرع</th>
+                            <th>الرتبة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="usersTable">
+                        <tr>
+                            <td colspan="5" class="empty-cell">
+                                حمّل المستخدمين لعرضهم هنا.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p
+                id="usersMessage"
+                class="form-message"
+                role="status">
+            </p>
+
+            <!-- محرر صلاحيات المدير -->
+            <section
+                id="permissionsEditor"
+                class="permissions-editor"
+                hidden>
+
+                <div class="section-heading">
+
+                    <div>
+                        <h3>صلاحيات المدير</h3>
+                        <p class="muted" id="permissionsUserName"></p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="button button-quiet"
+                        id="closePermissionsButton">
+                        إغلاق
+                    </button>
+                </div>
+
+                <input
+                    type="hidden"
+                    id="permissionsUserId">
+
+                <div class="permissions-grid">
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_menu">
+
+                        <span>
+                            <strong>إدارة التصنيفات</strong>
+                            <small>إضافة وتعديل وحذف التصنيفات.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_prices">
+
+                        <span>
+                            <strong>إدارة الأسعار</strong>
+                            <small>تعديل أسعار المنتجات.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_products">
+
+                        <span>
+                            <strong>إدارة المنتجات</strong>
+                            <small>إضافة وتعديل وحذف المنتجات.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_orders">
+
+                        <span>
+                            <strong>إدارة الطلبات</strong>
+                            <small>الوصول إلى إدارة الطلبات.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_conversations">
+
+                        <span>
+                            <strong>إدارة المحادثات</strong>
+                            <small>الوصول إلى محادثات ليلى.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_offers">
+
+                        <span>
+                            <strong>إدارة العروض</strong>
+                            <small>إضافة وتعديل وإيقاف العروض.</small>
+                        </span>
+                    </label>
+
+                    <!-- صلاحية إدارة القسائم -->
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_coupons">
+
+                        <span>
+                            <strong>إدارة القسائم</strong>
+                            <small>
+                                إنشاء وتعديل وحذف قسائم الخصم وإدارتها.
+                            </small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_manage_branch_staff">
+
+                        <span>
+                            <strong>إدارة موظفي الفرع</strong>
+                            <small>الوصول إلى قائمة موظفي الفرع.</small>
+                        </span>
+                    </label>
+
+                    <label class="permission-item">
+                        <input
+                            type="checkbox"
+                            data-permission="can_delete_staff">
+
+                        <span>
+                            <strong>حذف موظفي الفرع</strong>
+                            <small>حذف الموظفين التابعين لفرعه فقط.</small>
+                        </span>
+                    </label>
+
+                </div>
+
+                <div class="permissions-actions">
+
+                    <button
+                        type="button"
+                        class="button button-primary"
+                        id="savePermissionsButton">
+                        💾 حفظ الصلاحيات
+                    </button>
+
+                    <p
+                        id="permissionsMessage"
+                        class="form-message"
+                        role="status">
+                    </p>
+                </div>
+            </section>
+        </section>
+
+        <!-- الإحصائيات -->
+        <div class="stats-grid">
+
+            <article class="stat-card">
+                <span>كل المنتجات</span>
+                <strong id="statProducts">—</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>المتاحة للزبائن</span>
+                <strong id="statAvailable">—</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>التصنيفات</span>
+                <strong id="statCategories">—</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>العروض</span>
+                <strong id="statOffers">—</strong>
+            </article>
+
+        </div>
+
+        <!-- اختيار الفرع والبحث -->
+        <section class="panel filters-panel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>اختيار الفرع</h2>
+
+                    <p class="muted">
+                        تظهر منتجات الفرع المحدد فقط.
+                    </p>
+                </div>
+            </div>
+
+            <label class="branch-select-label">
+                الفرع
+                <select id="branchSelect"></select>
+            </label>
+
+            <div class="toolbar">
+
+                <label class="search-label">
+                    بحث عن منتج
+
+                    <input
+                        id="productSearch"
+                        type="search"
+                        placeholder="اكتب اسم الوجبة أو التصنيف">
+                </label>
+
+                <button
+                    id="newProductButton"
+                    class="button button-primary">
+                    ＋ إضافة منتج
+                </button>
+
+            </div>
+        </section>
+
+        <!-- المنتجات ومحرر المنتج -->
+        <div class="content-grid">
+
+            <!-- جدول المنتجات -->
+            <section class="panel products-panel">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>المنتجات</h2>
+
+                        <p class="muted">
+                            تعديل الاسم والسعر والوصف والصورة والتوفر.
+                        </p>
+                    </div>
+
+                    <span id="productCount" class="count-badge">0</span>
+                </div>
+
+                <div class="table-wrap">
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الصورة</th>
+                                <th>المنتج</th>
+                                <th>التصنيف</th>
+                                <th>السعر</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="productsTable">
+                            <tr>
+                                <td colspan="6" class="empty-cell">
+                                    حمّل المنتجات لعرضها هنا.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p
+                    id="productsMessage"
+                    class="form-message"
+                    role="status">
+                </p>
+            </section>
+
+            <!-- محرر المنتجات -->
+            <section
+                class="panel editor-panel"
+                id="productEditorPanel">
+
+                <div class="section-heading">
+
+                    <div>
+                        <h2 id="editorTitle">إضافة منتج</h2>
+
+                        <p class="muted">
+                            الحقول التي عليها نجمة مطلوبة.
+                        </p>
+                    </div>
+
+                    <button
+                        id="resetProductButton"
+                        class="button button-quiet"
+                        type="button">
+                        مسح
+                    </button>
+                </div>
+
+                <form id="productForm" class="form-stack">
+
+                    <input id="productId" type="hidden">
+
+                    <label>
+                        الفرع *
+                        <select id="productBranch" required></select>
+                    </label>
+
+                    <label>
+                        التصنيف *
+                        <select id="productCategory" required></select>
+                    </label>
+
+                    <label>
+                        اسم الوجبة *
+                        <input
+                            id="productName"
+                            maxlength="140"
+                            required
+                            placeholder="مثلاً: بركر لحم">
+                    </label>
+
+                    <label>
+                        الوصف / التفاصيل
+                        <textarea
+                            id="productDescription"
+                            rows="3"
+                            maxlength="600"
+                            placeholder="تفاصيل الوجبة أو المكونات"></textarea>
+                    </label>
+
+                    <label>
+                        السعر بالدينار العراقي *
+                        <input
+                            id="productPrice"
+                            type="number"
+                            min="0"
+                            step="250"
+                            required
+                            value="0">
+                    </label>
+
+                    <label>
+                        ترتيب الظهور
+                        <input
+                            id="productOrder"
+                            type="number"
+                            step="1"
+                            value="0">
+                    </label>
+
+                    <label class="upload-box">
+                        <span>صورة المنتج (PNG أو JPG أو WebP)</span>
+
+                        <input
+                            id="productImage"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp">
+
+                        <small>
+                            يمكن تركها فارغة للإبقاء على الصورة الحالية.
+                        </small>
+                    </label>
+
+                    <div
+                        id="imagePreviewWrap"
+                        class="image-preview-wrap"
+                        hidden>
+
+                        <img
+                            id="imagePreview"
+                            alt="معاينة صورة المنتج">
+
+                        <span id="imageFileLabel"></span>
+                    </div>
+
+                    <label class="switch-row">
+                        <input
+                            id="productAvailable"
+                            type="checkbox"
+                            checked>
+
+                        <span>
+                            <strong>متاح للطلب</strong>
+
+                            <small>
+                                ألغِ التحديد لإخفاء المنتج عن الزبائن دون حذفه.
+                            </small>
+                        </span>
+                    </label>
+
+                    <button
+                        id="saveProductButton"
+                        class="button button-primary"
+                        type="submit">
+                        حفظ المنتج
+                    </button>
+
+                    <p
+                        id="editorMessage"
+                        class="form-message"
+                        role="status">
+                    </p>
+
+                </form>
+            </section>
+        </div>
+
+        <!-- تصنيفات الفرع -->
+        <section class="panel categories-panel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>تصنيفات الفرع</h2>
+
+                    <p class="muted">
+                        أضف تصنيفًا جديدًا أو غيّر اسم تصنيف موجود.
+                    </p>
+                </div>
+            </div>
+
+            <form
+                id="categoryForm"
+                class="category-create-form">
+
+                <label>
+                    اسم التصنيف الجديد
+
+                    <input
+                        id="newCategoryName"
+                        required
+                        maxlength="100"
+                        placeholder="مثلاً: وجبات عائلية">
+                </label>
+
+                <button
+                    class="button button-secondary"
+                    type="submit">
+                    إضافة تصنيف
+                </button>
+            </form>
+
+            <div id="categoriesList" class="category-list"></div>
+
+            <p
+                id="categoryMessage"
+                class="form-message"
+                role="status">
+            </p>
+        </section>
+
+        <!-- العروض الخاصة -->
+        <section class="panel offers-panel" id="offersPanel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>العروض الخاصة</h2>
+
+                    <p class="muted">
+                        إدارة عروض الفروع والأسعار ومدة العرض.
+                    </p>
+                </div>
+
+                <button
+                    id="newOfferButton"
+                    class="button button-primary"
+                    type="button">
+                    ＋ إضافة عرض
+                </button>
+            </div>
+
+            <!-- جدول العروض -->
+            <div class="table-wrap">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>العرض</th>
+                            <th>الفرع</th>
+                            <th>السعر الأصلي</th>
+                            <th>سعر العرض</th>
+                            <th>المدة</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="offersTable">
+                        <tr>
+                            <td colspan="8" class="empty-cell">
+                                حمّل العروض لعرضها هنا.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <p
+                id="offersMessage"
+                class="form-message"
+                role="status">
+            </p>
+
+            <!-- محرر العروض -->
+            <section class="offer-editor" id="offerEditorPanel">
+
+                <div class="section-heading">
+                    <div>
+                        <h2 id="offerEditorTitle">إضافة عرض جديد</h2>
+
+                        <p class="muted">
+                            يمكنك تخصيص العرض لفرع أو لجميع الفروع.
+                        </p>
+                    </div>
+
+                    <button
+                        id="resetOfferButton"
+                        class="button button-quiet"
+                        type="button">
+                        مسح
+                    </button>
+                </div>
+
+                <form id="offerForm" class="form-stack">
+
+                    <input id="offerId" type="hidden">
+
+                    <div class="offer-form-grid">
+
+                        <label>
+                            اسم العرض *
+                            <input
+                                id="offerName"
+                                maxlength="140"
+                                required
+                                placeholder="مثلاً: وجبة بركر مع بطاطا">
+                        </label>
+
+                        <label>
+                            الفرع
+                            <select id="offerBranch">
+                                <option value="">كل الفروع</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            السعر الأصلي بالدينار *
+                            <input
+                                id="offerOriginalPrice"
+                                type="number"
+                                min="0"
+                                step="250"
+                                required
+                                value="0">
+                        </label>
+
+                        <label>
+                            سعر العرض بالدينار *
+                            <input
+                                id="offerPrice"
+                                type="number"
+                                min="0"
+                                step="250"
+                                required
+                                value="0">
+                        </label>
+
+                        <label>
+                            بداية العرض
+                            <input
+                                id="offerStartsAt"
+                                type="datetime-local">
+                        </label>
+
+                        <label>
+                            نهاية العرض
+                            <input
+                                id="offerEndsAt"
+                                type="datetime-local">
+                        </label>
+
+                        <label>
+                            ترتيب الظهور
+                            <input
+                                id="offerOrder"
+                                type="number"
+                                step="1"
+                                value="0">
+                        </label>
+
+                        <label class="offer-description-field">
+                            تفاصيل العرض
+                            <textarea
+                                id="offerDescription"
+                                rows="3"
+                                maxlength="600"
+                                placeholder="تفاصيل العرض أو المنتجات المشمولة"></textarea>
+                        </label>
+
+                        <label class="upload-box offer-image-field">
+                            <span>صورة العرض (PNG أو JPG أو WebP)</span>
+
+                            <input
+                                id="offerImage"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp">
+                            <small>
+                                يمكن تركها فارغة للإبقاء على الصورة الحالية.
+                            </small>
+                        </label>
+
+                        <div
+                            id="offerImagePreviewWrap"
+                            class="image-preview-wrap offer-image-field"
+                            hidden>
+
+                            <img
+                                id="offerImagePreview"
+                                alt="معاينة صورة العرض">
+
+                            <span id="offerImageFileLabel"></span>
+                        </div>
+
+                        <label class="switch-row offer-description-field">
+                            <input
+                                id="offerActive"
+                                type="checkbox"
+                                checked>
+
+                            <span>
+                                <strong>العرض فعّال</strong>
+                                <small>
+                                    ألغِ التحديد لإيقاف العرض مؤقتًا.
+                                </small>
+                            </span>
+                        </label>
+
+                        <div class="offer-form-actions">
+
+                            <button
+                                id="saveOfferButton"
+                                class="button button-primary"
+                                type="submit">
+                                حفظ العرض
+                            </button>
+
+                            <p
+                                id="offerEditorMessage"
+                                class="form-message"
+                                role="status">
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </section>
+
+        <!-- إدارة القسائم -->
+        <section class="panel coupons-panel" id="couponsPanel">
+
+            <div class="section-heading">
+
+                <div>
+                    <h2>إدارة القسائم</h2>
+
+                    <p class="muted">
+                        إنشاء قسائم الخصم وتحديد الفروع وشروط الاستخدام.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="button button-primary"
+                    id="newCouponButton">
+                    ＋ إنشاء قسيمة
+                </button>
+
+            </div>
+
+            <!-- محرر القسائم -->
+            <div class="coupon-editor" id="couponEditorPanel" hidden>
+
+                <div class="section-heading">
+
+                    <div>
+                        <h2 id="couponEditorTitle">
+                            إنشاء قسيمة جديدة
+                        </h2>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="button button-quiet"
+                        id="resetCouponButton">
+                        إلغاء
+                    </button>
+
+                </div>
+
+                <form id="couponForm" class="form-stack">
+
+                    <input type="hidden" id="couponId">
+
+                    <div class="coupon-form-grid">
+
+                        <label>
+                            كود القسيمة
+
+                            <input
+                                type="text"
+                                id="couponCode"
+                                maxlength="40"
+                                placeholder="مثال: GHANNAM15"
+                                required>
+                        </label>
+
+                        <label>
+                            وصف القسيمة
+
+                            <input
+                                type="text"
+                                id="couponDescription"
+                                placeholder="خصم خاص للزبائن">
+                        </label>
+
+                        <label>
+                            نوع الخصم
+
+                            <select id="couponDiscountType" required>
+                                <option value="percent">نسبة مئوية %</option>
+                                <option value="fixed">مبلغ ثابت بالدينار</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            قيمة الخصم
+
+                            <input
+                                type="number"
+                                id="couponDiscountValue"
+                                min="0.01"
+                                step="0.01"
+                                required>
+                        </label>
+
+                        <label>
+                            الحد الأعلى للخصم (اختياري)
+
+                            <input
+                                type="number"
+                                id="couponMaxDiscount"
+                                min="0"
+                                step="0.01"
+                                placeholder="اتركه فارغاً بدون حد">
+                        </label>
+
+                        <label>
+                            أقل مبلغ للطلب
+
+                            <input
+                                type="number"
+                                id="couponMinOrder"
+                                min="0"
+                                step="0.01"
+                                value="0">
+                        </label>
+
+                        <label>
+                            تاريخ بداية القسيمة
+
+                            <input
+                                type="datetime-local"
+                                id="couponStartsAt"
+                                required>
+                        </label>
+
+                        <label>
+                            تاريخ انتهاء القسيمة
+
+                            <input
+                                type="datetime-local"
+                                id="couponExpiresAt">
+                        </label>
+
+                        <label>
+                            الحد الأقصى للاستخدام
+
+                            <input
+                                type="number"
+                                id="couponUsageLimit"
+                                min="1"
+                                placeholder="بدون حد">
+                        </label>
+
+                        <label>
+                            الحد لكل زبون
+
+                            <input
+                                type="number"
+                                id="couponPerCustomerLimit"
+                                min="1"
+                                value="1"
+                                required>
+                        </label>
+
+                    </div>
+
+                    <!-- الفروع المسموح بها -->
+                    <div class="coupon-branches">
+
+                        <h4>
+                            الفروع المسموح لها باستخدام القسيمة
+                        </h4>
+
+                        <label class="coupon-branch-option">
+
+                            <input
+                                type="checkbox"
+                                id="couponAllBranches"
+                                checked>
+
+                            جميع الفروع
+
+                        </label>
+
+                        <div id="couponBranchesList"></div>
+
+                    </div>
+
+                    <!-- حالة القسيمة -->
+                    <label class="coupon-active-option">
+
+                        <input
+                            type="checkbox"
+                            id="couponActive"
+                            checked>
+
+                        <span>
+                            القسيمة مفعّلة
+                        </span>
+
+                    </label>
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="coupon-actions">
+
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                            id="saveCouponButton">
+                            حفظ القسيمة
+                        </button>
+
+                        <button
+                            type="button"
+                            class="button button-quiet"
+                            id="cancelCouponButton">
+                            إلغاء
+                        </button>
+
+                    </div>
+
+                    <p
+                        id="couponEditorMessage"
+                        class="form-message"
+                        role="status">
+                    </p>
+
+                </form>
+
+            </div>
+
+            <!-- جدول القسائم -->
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>نوع الخصم</th>
+                            <th>القيمة</th>
+                            <th>الفروع</th>
+                            <th>الانتهاء</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="couponsTable">
+
+                        <tr>
+                            <td colspan="7" class="empty-cell">
+                                لا توجد قسائم بعد.
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </section>
+
+    <!-- رسائل التنبيه -->
+    <div
+        id="toast"
+        class="toast"
+        role="status"
+        aria-live="polite"
+        hidden>
+    </div>
+
+    <!-- فريق الدعم الفني -->
+    <footer class="support-footer">
+
+        <div class="support-info">
+            <strong>تحتاج مساعدة؟</strong>
+
+            <span>
+                فريق الدعم الفني لمطعم الغنّام متواجد لمساعدتك.
+            </span>
+        </div>
+
+        <a
+            href="https://wa.me/9647715013593"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="support-whatsapp">
+
+            <span>💬</span>
+            التواصل مع فريق الدعم عبر واتساب
+        </a>
+
+        <small>واتساب الدعم: +964 771 501 3593</small>
+    </footer>
+
+</main>
+
+<!-- ملفات JavaScript -->
+<script type="module" src="admin.js"></script>
+<script src="./loader.js"></script>
+
+</body>
+</html>

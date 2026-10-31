@@ -1,0 +1,22 @@
+﻿# ملفات الأسرار
+.env
+.env.*
+!.env.example
+
+# مفاتيح وشهادات خاصة
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ملفات Supabase المؤقتة والمحلية
+supabase/.temp/
+supabase/.branches/
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+vscode/
+
+.idea/

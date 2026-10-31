@@ -1,0 +1,1826 @@
+
+/* =========================================================
+   1. الإعدادات العامة
+========================================================= */
+
+:root {
+    --orange: #7b1b0b;
+    --orange-dark: #c58d4d;
+    --orange-light: #fff0df;
+    --cream: #fffaf5;
+    --white: #ffffff;
+    --text: #292522;
+    --muted: #777777;
+    --border: #eee2d7;
+    --green: #23834b;
+    --shadow: 0 8px 24px rgba(50, 28, 14, 0.10);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 85px;
+}
+
+body {
+    margin: 0;
+    padding-bottom: 82px;
+    color: var(--text);
+    background: var(--white);
+    font-family: Tahoma, Arial, sans-serif;
+    line-height: 1.7;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+img {
+    max-width: 100%;
+}
+
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+/* =========================================================
+   2. شاشة التحميل
+========================================================= */
+
+.loader {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--white);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loader-content {
+    text-align: center;
+}
+
+.loader-logo {
+    display: block;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 12px;
+    object-fit: contain;
+}
+
+.loader h2 {
+    margin: 0;
+    color: var(--orange);
+}
+
+.loader p {
+    margin-top: 6px;
+    color: var(--muted);
+}
+
+.loader.hidden {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   3. رأس الموقع والشعار والسلة
+========================================================= */
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 72px;
+    margin: 0;
+    padding: 10px 80px;
+    background: var(--white);
+    border-bottom: 1px solid #f4eee8;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.brand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.brand-logo-img {
+    display: block;
+    flex-shrink: 0;
+    width: clamp(40px, 5vw, 56px);
+    height: clamp(40px, 5vw, 56px);
+    object-fit: contain;
+}
+
+.brand-info h1 {
+    margin: 0;
+    color: var(--orange);
+    font-size: clamp(18px, 2vw, 24px);
+    line-height: 1.35;
+}
+
+.brand-info p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.cart-button {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    padding: 9px 13px;
+    color: var(--white);
+    background: var(--orange);
+    border: 0;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.cart-button:hover {
+    background: var(--orange-dark);
+}
+
+#cartCount {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 23px;
+    height: 23px;
+    margin-right: 4px;
+    padding: 0 5px;
+    color: var(--orange);
+    background: var(--white);
+    border-radius: 50%;
+}
+
+
+/* =========================================================
+   4. الصفحة الرئيسية والبانر
+========================================================= */
+
+main {
+    width: 100%;
+    margin: 0 auto;
+}
+
+.home-page {
+    width: 100%;
+    padding: 0 0 40px;
+    background: var(--white);
+}
+
+.main-banner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    width: calc(100% - 24px);
+    min-height: 330px;
+    margin: 12px auto 28px;
+    padding: 30px 20px;
+    overflow: hidden;
+    color: var(--white);
+    text-align: center;
+    background: var(--orange);
+    border-radius: 28px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.main-banner-logo {
+    position: relative;
+    z-index: 2;
+    display: block;
+    flex-shrink: 0;
+    width: 125px;
+    height: 125px;
+    padding: 8px;
+    object-fit: contain;
+    background: var(--white);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.banner-text {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    color: var(--white);
+    text-align: center;
+}
+
+.banner-text .eyebrow {
+    margin: 0 0 8px;
+    color: #fff5e9;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.banner-text h2 {
+    margin: 0 0 10px;
+    color: var(--white);
+    font-size: clamp(25px, 4vw, 38px);
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.banner-text p {
+    margin: 0;
+    color: var(--white);
+    font-size: clamp(15px, 2vw, 19px);
+}
+
+.welcome-card {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 96px;
+    margin: 25px 30px 38px;
+    padding: 18px 24px;
+    color: #a63d0c;
+    text-align: right;
+    background: #ffecd2;
+    border: 1px solid #ffd29b;
+    border-radius: 25px;
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.08);
+}
+
+.welcome-card h2 {
+    margin: 0 0 3px;
+    font-size: clamp(18px, 2vw, 23px);
+}
+
+.welcome-card p {
+    margin: 0;
+    font-size: clamp(14px, 1.5vw, 17px);
+}
+
+
+/* =========================================================
+   5. بطاقات الفروع
+========================================================= */
+
+.branches-home {
+    width: min(1200px, 94%);
+    margin: 0 auto;
+}
+
+.branches-title {
+    margin: 0 0 70px;
+    text-align: center;
+    font-size: clamp(23px, 3vw, 30px);
+    font-weight: 800;
+}
+
+.branches-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 82px 40px;
+    width: 100%;
+    padding: 0 0 20px;
+}
+
+.branch-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    min-height: 225px;
+    margin: 0;
+    padding: 100px 20px 25px;
+    overflow: visible;
+    color: var(--white);
+    font: inherit;
+    text-align: center;
+    background: var(--orange);
+    border: 0;
+    border-radius: 28px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.branch-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 28px rgba(0, 0, 0, 0.17);
+}
+
+.branch-image {
+    position: absolute;
+    top: -55px;
+    left: 50%;
+    display: block;
+    width: 136px;
+    height: 136px;
+    padding: 4px;
+    transform: translateX(-50%);
+    object-fit: cover;
+    object-position: center;
+    background: var(--white);
+    border: 4px solid var(--white);
+    border-radius: 50%;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+}
+
+.branch-card-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+}
+
+.branch-card h3 {
+    margin: 8px 0 4px;
+    color: var(--white);
+    font-size: clamp(19px, 2vw, 27px);
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.branch-card p {
+    margin: 0 0 15px;
+    color: var(--white);
+    font-size: clamp(13px, 1.2vw, 16px);
+    line-height: 1.8;
+}
+
+.branch-link {
+    display: inline-block;
+    margin-top: auto;
+    padding: 9px 18px;
+    color: var(--orange);
+    background: var(--white);
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   6. صفحة منيو الفرع
+========================================================= */
+
+.branch-hero {
+    margin: 28px auto;
+    padding: 38px 20px;
+    color: var(--white);
+    text-align: center;
+    background: linear-gradient(135deg, #9e350d, var(--orange));
+    border-radius: 22px;
+}
+
+.branch-hero .eyebrow {
+    color: #ffe1c6;
+    font-weight: bold;
+}
+
+.branch-hero h2 {
+    margin: 8px 0;
+    font-size: clamp(25px, 4vw, 36px);
+}
+
+.branch-hero p {
+    margin-bottom: 0;
+}
+
+.back-button {
+    display: block;
+    margin: 22px auto;
+    padding: 11px 18px;
+    color: var(--orange);
+    font-weight: bold;
+    background: var(--white);
+    border: 1px solid var(--orange);
+    border-radius: 10px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.back-button:hover {
+    color: var(--white);
+    background: var(--orange);
+}
+
+.menu-section,
+.cart-section {
+    width: min(1120px, 92%);
+    margin: 32px auto;
+}
+
+.menu-section > h2,
+.cart-section > h2 {
+    margin-bottom: 20px;
+    font-size: 25px;
+}
+
+
+/* =========================================================
+   7. المنتجات والأسعار والخصومات
+========================================================= */
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.product-card {
+    overflow: hidden;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(50, 28, 14, 0.12);
+}
+
+.product-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 190px;
+    background: #f8e9dc;
+    font-size: 75px;
+}
+
+.product-info {
+    padding: 18px;
+}
+
+.product-info h3 {
+    margin: 0 0 6px;
+    font-size: 19px;
+}
+
+.product-description {
+    min-height: 45px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.product-price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+.current-price {
+    color: var(--orange-dark);
+    font-size: 21px;
+    font-weight: bold;
+}
+
+.old-price {
+    color: #888;
+    font-size: 14px;
+    font-weight: normal;
+    text-decoration: line-through;
+}
+
+.discount-badge {
+    display: inline-block;
+    padding: 4px 9px;
+    color: #a83212;
+    background: #ffebe3;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.saved-amount {
+    width: 100%;
+    margin-top: 4px;
+    color: var(--green);
+    font-size: 13px;
+}
+
+.add-button {
+    width: 100%;
+    padding: 11px;
+    color: var(--white);
+    background: var(--orange);
+    border: 0;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.add-button:hover {
+    background: var(--orange-dark);
+}
+
+.product-card.unavailable {
+    opacity: 0.55;
+}
+
+.product-card.unavailable .product-image {
+    filter: grayscale(1);
+}
+
+.add-button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   8. سلة الطلبات
+========================================================= */
+
+.cart-section {
+    padding: 24px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-controls button {
+    width: 32px;
+    height: 32px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.remove-button {
+    color: var(--orange-dark);
+    background: transparent;
+    border: 0;
+}
+
+.cart-total {
+    margin: 22px 0;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   9. نموذج الطلب
+========================================================= */
+
+#orderForm {
+    display: grid;
+    gap: 10px;
+    max-width: 600px;
+}
+
+#orderForm label {
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+#orderForm input,
+#orderForm textarea,
+#orderForm select {
+    width: 100%;
+    padding: 12px;
+    color: var(--text);
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+#orderForm input:focus,
+#orderForm textarea:focus,
+#orderForm select:focus {
+    border-color: var(--orange);
+}
+
+#orderForm textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.order-button {
+    margin-top: 12px;
+    padding: 12px 18px;
+    color: var(--white);
+    background: var(--green);
+    border: 0;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+.order-button:hover {
+    background: #176b39;
+}
+
+
+/* =========================================================
+   10. فوتر مطعم الغنام
+========================================================= */
+
+.footer {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin-top: 45px;
+    color: #fff8ef;
+    background: #241812;
+    font-family: inherit;
+    text-align: right;
+    direction: rtl;
+}
+
+.footer *,
+.footer *::before,
+.footer *::after {
+    box-sizing: border-box;
+}
+
+.footer-top {
+    padding: 35px 22px 30px;
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(221, 112, 36, 0.14),
+            transparent 35%
+        ),
+        #241812;
+}
+
+.footer-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 25px 30px;
+    align-items: start;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.footer-logo {
+    display: block;
+    flex-shrink: 0;
+    width: 62px;
+    height: 62px;
+    padding: 5px;
+    object-fit: contain;
+    background: #fff;
+    border: 2px solid rgba(255, 155, 69, 0.5);
+    border-radius: 15px;
+}
+
+.footer-brand-info {
+    min-width: 0;
+}
+
+.footer-brand-info h2 {
+    margin: 0 0 5px;
+    color: #ff9b45;
+    font-size: 21px;
+    font-weight: 800;
+}
+
+.footer-welcome {
+    margin: 0 0 6px;
+    color: #ffb36c;
+    font-weight: bold;
+}
+
+.footer-description {
+    margin: 0;
+    color: #ddcbbd;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.footer-section {
+    min-width: 0;
+}
+
+.footer-section > h3 {
+    position: relative;
+    margin: 0 0 14px;
+    padding-bottom: 9px;
+    color: #fff5e9;
+    font-size: 16px;
+    font-weight: 800;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.footer-section > h3::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    width: 38px;
+    height: 2px;
+    background: var(--orange);
+    content: "";
+}
+
+
+/* روابط مواقع الفروع */
+
+.footer-branch-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    margin-bottom: 9px;
+    padding: 9px;
+    color: #fff;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 155, 69, 0.22);
+    border-radius: 10px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.footer-branch-link:hover {
+    background: rgba(245, 102, 11, 0.12);
+    border-color: var(--orange);
+}
+
+.footer-branch-link:focus-visible {
+    outline: 2px solid #ff9a57;
+    outline-offset: 3px;
+}
+
+.footer-branch-logo {
+    display: block;
+    flex-shrink: 0;
+    width: 35px;
+    height: 35px;
+    padding: 3px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+}
+
+.footer-branch-details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.footer-branch-details strong {
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.footer-branch-details small {
+    color: #cbb8a8;
+    font-size: 10px;
+    line-height: 1.7;
+}
+
+.footer-map-action {
+    margin-top: 2px;
+    color: #ffb36c;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.footer-branch-arrow {
+    flex-shrink: 0;
+    color: #ff9b45;
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   التواصل: تصميم صغير بدون بطاقات أو خلفيات
+   كل فرع في صف مستقل، والرقمان متجاوران
+========================================================= */
+
+.footer-contact-note {
+    margin: -3px 0 10px;
+    color: #cbb8a8;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.footer-contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+}
+
+.footer-contact-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-contact-group:last-child {
+    border-bottom: 0;
+}
+
+.footer-contact-branch {
+    min-width: 0;
+    color: #fff5e9;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.footer-contact-links {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.footer-phone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    color: #e8ded7;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+    transition: color 0.2s ease;
+}
+
+.footer-phone:hover {
+    background: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.footer-phone.whatsapp-button,
+.footer-phone.whatsapp-button:visited {
+    color: #8ce0a5;
+}
+
+.footer-phone.whatsapp-button:hover {
+    color: #25d366;
+}
+
+.footer-phone.call-button,
+.footer-phone.call-button:visited {
+    color: #ffbd82;
+}
+
+.footer-phone.call-button:hover {
+    color: #ff8a35;
+}
+
+.footer-phone-number {
+    direction: ltr;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.footer-contact-separator {
+    color: #79675b;
+    font-size: 10px;
+}
+
+
+/* أوقات العمل */
+
+.footer-hours-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 13px 11px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 155, 69, 0.18);
+    border-radius: 10px;
+}
+
+.hours-dot {
+    flex-shrink: 0;
+    width: 9px;
+    height: 9px;
+    margin-top: 6px;
+    background: #53ce7b;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(83, 206, 123, 0.12);
+}
+
+.footer-hours-card strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #fff5e9;
+    font-size: 13px;
+}
+
+.footer-hours-card p {
+    margin: 3px 0 0;
+    color: #d6c1b0;
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+.footer-hours-note {
+    margin: 10px 0 0;
+    color: #cbb8a8;
+    font-size: 10px;
+    line-height: 1.8;
+}
+
+
+/* الشريط السفلي للفوتر */
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 5%;
+    background: #1b120e;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom p {
+    margin: 0;
+    color: #c6b2a1;
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+
+/* =========================================================
+   11. زر مساعد الغنام الذكي
+========================================================= */
+
+a.floating-help-button {
+    position: fixed !important;
+    top: auto !important;
+    right: 20px !important;
+    bottom: 88px !important;
+    left: auto !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px;
+    width: fit-content !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 50px !important;
+    margin: 0 !important;
+    padding: 11px 15px !important;
+    overflow: hidden;
+    color: #fff !important;
+    background: var(--orange) !important;
+    border: 0 !important;
+    border-radius: 30px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none !important;
+    white-space: nowrap;
+    z-index: 999;
+    box-sizing: border-box !important;
+}
+
+a.floating-help-button:hover {
+    background: var(--orange-dark) !important;
+    transform: translateY(-2px);
+}
+
+a.floating-help-button .floating-help-icon {
+    display: inline-block !important;
+    flex: 0 0 10px !important;
+    width: 10px !important;
+    min-width: 10px !important;
+    max-width: 10px !important;
+    height: 10px !important;
+    min-height: 10px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff;
+    border-radius: 50%;
+}
+
+a.floating-help-button .floating-help-text {
+    display: inline-block !important;
+    flex: 0 1 auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   12. الشريط السفلي للتنقل والبحث
+========================================================= */
+
+.bottom-nav {
+    position: fixed !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    display: flex !important;
+    align-items: stretch;
+    justify-content: space-around;
+    gap: 0;
+    width: 100%;
+    min-height: 66px;
+    margin: 0 !important;
+    padding: 6px 5px calc(6px + env(safe-area-inset-bottom));
+    direction: rtl;
+    background: #fff;
+    border-top: 2px solid var(--orange);
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.12);
+    z-index: 3000 !important;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 50px;
+    margin: 0;
+    padding: 5px 2px;
+    color: #75675e;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item:hover,
+.bottom-nav-item.active {
+    color: var(--orange);
+    background: #fff2e9;
+}
+
+.bottom-nav-icon {
+    display: block;
+    font-size: 23px;
+    font-weight: bold;
+    line-height: 1.1;
+}
+
+.bottom-nav-item span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#bottomSearchPanel:not([hidden]) {
+    position: fixed;
+    right: 12px;
+    bottom: 82px;
+    left: 12px;
+    display: block;
+    padding: 18px;
+    direction: rtl;
+    background: #fff;
+    border: 1px solid var(--orange);
+    border-radius: 16px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    z-index: 3001;
+}
+
+#bottomSearchPanel label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text);
+    font-weight: bold;
+}
+
+#bottomSearchInput {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid #ddd0c6;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+}
+
+#bottomSearchInput:focus {
+    border-color: var(--orange);
+}
+
+#bottomSearchMessage {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+#closeBottomSearch {
+    padding: 9px 15px;
+    color: #fff;
+    background: var(--orange);
+    border: 0;
+    border-radius: 8px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   13. الأجهزة اللوحية
+========================================================= */
+
+@media (max-width: 900px) {
+    .footer-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 25px;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+    }
+
+    .branches-grid {
+        gap: 76px 24px;
+    }
+
+    .branch-card {
+        min-height: 215px;
+        padding: 88px 15px 22px;
+    }
+
+    .branch-image {
+        top: -48px;
+        width: 115px;
+        height: 115px;
+    }
+
+    .menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .product-image {
+        height: 155px;
+    }
+
+    .main-banner {
+        min-height: 300px;
+    }
+
+    .main-banner-logo {
+        width: 110px;
+        height: 110px;
+    }
+
+    .footer-contact-group {
+        gap: 5px;
+    }
+
+    .footer-contact-links {
+        gap: 6px;
+    }
+
+    .footer-phone,
+    .footer-phone-number {
+        font-size: 10px;
+    }
+}
+
+
+/* =========================================================
+   14. الهواتف
+========================================================= */
+
+@media (max-width: 700px) {
+    .footer-container {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+
+    .footer-brand {
+        grid-column: auto;
+    }
+
+    .footer-contact-group {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .footer-contact-branch {
+        font-size: 12px;
+    }
+
+    .footer-phone,
+    .footer-phone-number {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 560px) {
+    body {
+        padding-bottom: 78px;
+    }
+
+    .header {
+        min-height: 60px;
+        padding: 8px 56px;
+    }
+
+    .brand {
+        gap: 7px;
+    }
+
+    .brand-logo-img {
+        width: 38px;
+        height: 38px;
+    }
+
+    .brand-info h1 {
+        font-size: 17px;
+    }
+
+    .brand-info p {
+        display: none;
+    }
+
+    .cart-button {
+        right: 5px;
+        padding: 8px 7px;
+        font-size: 12px;
+    }
+
+    .main-banner {
+        width: calc(100% - 16px);
+        min-height: 280px;
+        height: auto;
+        margin: 8px auto 24px;
+        padding: 24px 14px;
+        gap: 12px;
+        border-radius: 20px;
+    }
+
+    .main-banner-logo {
+        width: 100px;
+        height: 100px;
+    }
+
+    .banner-text .eyebrow {
+        font-size: 14px;
+    }
+
+    .banner-text h2 {
+        font-size: 26px;
+    }
+
+    .banner-text p {
+        font-size: 14px;
+    }
+
+    .welcome-card {
+        min-height: 80px;
+        margin: 20px 12px 30px;
+        padding: 14px 16px;
+        border-radius: 18px;
+    }
+
+    .branches-home {
+        width: 92%;
+    }
+
+    .branches-title {
+        margin-bottom: 68px;
+    }
+
+    .branches-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 75px;
+        padding: 0 3px 15px;
+    }
+
+    .branch-card {
+        min-height: 205px;
+        padding: 82px 15px 22px;
+        border-radius: 23px;
+    }
+
+    .branch-image {
+        top: -45px;
+        width: 105px;
+        height: 105px;
+    }
+
+    .branch-card h3 {
+        font-size: 21px;
+    }
+
+    .branch-card p {
+        font-size: 13px;
+    }
+
+    .menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .product-image {
+        height: 125px;
+        font-size: 55px;
+    }
+
+    .product-info {
+        padding: 12px;
+    }
+
+    .product-info h3 {
+        font-size: 16px;
+    }
+
+    .product-description {
+        min-height: 50px;
+        font-size: 12px;
+    }
+
+    .current-price {
+        font-size: 17px;
+    }
+
+    .cart-section {
+        padding: 16px;
+    }
+
+    .cart-item {
+        flex-wrap: wrap;
+    }
+
+    .footer {
+        margin-top: 30px;
+    }
+
+    .footer-top {
+        padding: 27px 14px 22px;
+    }
+
+    .footer-container {
+        width: 100%;
+        gap: 22px;
+    }
+
+    .footer-brand {
+        align-items: center;
+        gap: 11px;
+    }
+
+    .footer-logo {
+        width: 56px;
+        height: 56px;
+    }
+
+    .footer-brand-info h2 {
+        font-size: 19px;
+    }
+
+    .footer-description {
+        font-size: 11px;
+    }
+
+    .footer-section > h3 {
+        margin-bottom: 11px;
+        font-size: 15px;
+    }
+
+    .footer-branch-link {
+        gap: 8px;
+        padding: 9px;
+    }
+
+    .footer-branch-logo {
+        width: 34px;
+        height: 34px;
+    }
+
+    .footer-branch-details strong {
+        font-size: 11px;
+    }
+
+    .footer-branch-details small,
+    .footer-map-action {
+        font-size: 10px;
+    }
+
+    /* التواصل بحجم صغير وفي صفوف واضحة */
+
+    .footer-contact-note {
+        margin-bottom: 7px;
+        font-size: 10px;
+    }
+
+    .footer-contact-list {
+        gap: 4px;
+    }
+
+    .footer-contact-group {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px;
+        padding: 5px 0;
+    }
+
+    .footer-contact-branch {
+        font-size: 11px;
+    }
+
+    .footer-contact-links {
+        gap: 5px;
+    }
+
+    .footer-phone {
+        gap: 3px;
+        font-size: 9px;
+    }
+
+    .footer-phone-number {
+        font-size: 10px;
+    }
+
+    .footer-contact-separator {
+        font-size: 9px;
+    }
+
+    .footer-hours-card {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .footer-hours-card strong {
+        font-size: 12px;
+    }
+
+    .footer-hours-card p {
+        font-size: 11px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        padding: 15px 12px;
+        gap: 5px;
+    }
+
+    .bottom-nav {
+        min-height: 62px;
+        padding: 5px 3px calc(5px + env(safe-area-inset-bottom));
+    }
+
+    .bottom-nav-item {
+        min-height: 48px;
+        gap: 3px;
+        padding: 4px 1px;
+        font-size: 10px;
+    }
+
+    .bottom-nav-icon {
+        font-size: 21px;
+    }
+
+    #bottomSearchPanel:not([hidden]) {
+        bottom: 75px;
+    }
+
+    a.floating-help-button {
+        right: 12px !important;
+        bottom: 72px !important;
+        left: auto !important;
+        max-height: 45px !important;
+        padding: 9px 12px !important;
+        font-size: 11px;
+    }
+}
+
+
+/* =========================================================
+   15. الهواتف الضيقة جدًا
+========================================================= */
+
+@media (max-width: 390px) {
+    .header {
+        padding-right: 50px;
+        padding-left: 50px;
+    }
+
+    .brand-logo-img {
+        width: 34px;
+        height: 34px;
+    }
+
+    .brand-info h1 {
+        font-size: 15px;
+    }
+
+    .cart-button {
+        padding: 7px 5px;
+        font-size: 11px;
+    }
+
+    .main-banner {
+        min-height: 250px;
+        padding: 20px 10px;
+    }
+
+    .main-banner-logo {
+        width: 88px;
+        height: 88px;
+    }
+
+    .banner-text h2 {
+        font-size: 22px;
+    }
+
+    .product-info {
+        padding: 9px;
+    }
+
+    .footer-brand {
+        gap: 9px;
+    }
+
+    .footer-logo {
+        width: 50px;
+        height: 50px;
+    }
+
+    .footer-brand-info h2 {
+        font-size: 18px;
+    }
+
+    .footer-branch-link {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .footer-branch-logo {
+        width: 30px;
+        height: 30px;
+    }
+
+    .footer-branch-details strong {
+        font-size: 10px;
+    }
+
+    .footer-branch-details small,
+    .footer-map-action {
+        font-size: 9px;
+    }
+
+    /* تقليل المسافات والأحجام لمنع التفاف الأرقام */
+
+    .footer-contact-group {
+        gap: 3px;
+    }
+
+    .footer-contact-branch {
+        font-size: 10px;
+    }
+
+    .footer-contact-links {
+        gap: 4px;
+    }
+
+    .footer-phone {
+        font-size: 8px;
+    }
+
+    .footer-phone-number {
+        font-size: 9px;
+    }
+
+    .footer-contact-separator {
+        font-size: 8px;
+    }
+
+    .bottom-nav-item {
+        font-size: 9px;
+    }
+
+    .bottom-nav-icon {
+        font-size: 20px;
+    }
+
+    a.floating-help-button {
+        right: 8px !important;
+        bottom: 70px !important;
+        padding: 8px 10px !important;
+        font-size: 10px;
+    }
+}
+
+
+/* =========================================================
+   16. تقليل الحركة حسب إعدادات الجهاز
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+/* =========================================
+   هوية ألوان مطعم الغنّام — الصفحة الرئيسية
+========================================= */
+
+:root {
+    --orange: #7b1b0b;
+    --orange-dark: #4b1111;
+    --orange-light: #f5e2c4;
+    --cream: #fff5e9;
+    --white: #ffffff;
+    --text: #432016;
+    --muted: #866b5c;
+    --border: #e8c9a9;
+    --green: #23834b;
+    --shadow: 0 8px 24px rgba(59, 8, 5, 0.12);
+}
+
+/* البانر الرئيسي */
+.main-banner {
+    background:
+        radial-gradient(
+            circle at 85% 10%,
+            rgba(245, 193, 108, 0.2),
+            transparent 38%
+        ),
+        linear-gradient(135deg, #4b1111, #260604);
+    border: 1px solid rgba(245, 193, 108, 0.3);
+}
+
+/* بطاقات الفروع */
+.branch-card {
+    background: linear-gradient(135deg, #7b1b0b, #4b1111);
+    border: 1px solid rgba(245, 193, 108, 0.35);
+}
+
+.branch-link {
+    color: #4b1111;
+    background: #fff5e9;
+    border: 1px solid #f5c16c;
+}
+
+/* بانر صفحة الفرع */
+.branch-hero {
+    background: linear-gradient(135deg, #4b1111, #7b1b0b);
+}
+
+/* أزرار التنقل */
+.bottom-nav {
+    border-top-color: #f5c16c;
+}
+
+.bottom-nav-item:hover,
+.bottom-nav-item.active {
+    color: #7b1b0b;
+    background: #fff5e9;
+}
+
+/* توحيد الفوتر مع ألوان الفروع */
+.footer {
+    --footer-orange: #f5c16c !important;
+    border-top-color: #f5c16c !important;
+}
+
+.footer .footer-welcome,
+.footer .footer-brand-info h2,
+.footer .footer-section h3::after,
+.footer .footer-contact-group h4 {
+    color: #f5c16c !important;
+}
+
+.footer .footer-branch-link:hover {
+    border-color: #f5c16c;
+}
+
+.footer .footer-map-action,
+.footer .footer-branch-arrow {
+    color: #f5c16c;
+}
+
+/* زر المساعدة */
+a.floating-help-button {
+    background: #7b1b0b !important;
+}
+
+a.floating-help-button:hover {
+    background: #4b1111 !important;
+}
+/* إخفاء منيو الفروع من الصفحة الرئيسية */
+#branchPage {
+    display: none !important;
+}
+/* إخفاء الإيميل من جميع صفحات الموقع */
+.site-header a[href^="mailto:"],
+.site-header [class*="email"],
+.site-header [id*="email"] {
+    display: none !important;
+}

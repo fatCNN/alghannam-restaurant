@@ -1,0 +1,98 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الطلبات | مطعم الغنّام</title>
+  <link rel="stylesheet" href="/dashboard/orders.css">
+  <link rel="stylesheet" href="/dashboard/loader.css">
+  <link rel="icon" type="image/png" href="/image/logo.png">
+  <link rel="apple-touch-icon" href="/image/logo.png">
+</head>
+<body>
+  <div id="pageLoader" class="page-loader">
+    <div class="loader-content">
+      <img src="/image/logo.png" alt="مطعم الغنّام">
+      <div class="loader-spinner"></div>
+      <p>مطعم الغنّام</p>
+      <span>يرجى الانتظار...</span>
+    </div>
+  </div>
+  <header class="topbar">
+    <div>
+      <strong>مطعم الغنّام</strong>
+      <span>إدارة الطلبات</span>
+    </div>
+    <div class="top-actions">
+      <span id="userRole">جارٍ التحقق...</span>
+      <a href="./admin.html" class="back-link">لوحة التحكم</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-heading">
+      <div>
+        <h1>الطلبات</h1>
+        <p>متابعة وإدارة طلبات زبائن المطعم</p>
+      </div>
+      <button id="refreshButton" class="button">تحديث الطلبات</button>
+    </section>
+
+    <div id="message" class="message" hidden></div>
+
+    <section class="stats">
+      <article class="stat-card">
+        <span>كل الطلبات</span>
+        <strong id="totalCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>طلبات جديدة</span>
+        <strong id="newCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>قيد التحضير</span>
+        <strong id="preparingCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>جاهزة</span>
+        <strong id="readyCount">0</strong>
+      </article>
+    </section>
+
+    <section class="filters">
+      <div class="filter-field">
+        <label for="branchFilter">الفرع</label>
+        <select id="branchFilter">
+          <option value="">كل الفروع</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="statusFilter">حالة الطلب</label>
+        <select id="statusFilter">
+          <option value="">كل الحالات</option>
+          <option value="new">جديد</option>
+          <option value="preparing">قيد التحضير</option>
+          <option value="ready">جاهز</option>
+          <option value="delivered">تم التوصيل</option>
+          <option value="cancelled">ملغي</option>
+        </select>
+      </div>
+
+      <div class="filter-field search-field">
+        <label for="searchInput">بحث</label>
+        <input id="searchInput" type="search"
+          placeholder="رقم الطلب أو اسم الزبون أو الهاتف">
+      </div>
+    </section>
+
+    <section id="ordersList" class="orders-list">
+      <div class="loading">جارٍ تحميل الطلبات...</div>
+    </section>
+  </main>
+
+  <script type="module" src="./orders.js"></script>
+  <script src="./loader.js"></script>
+</body>
+</html>
