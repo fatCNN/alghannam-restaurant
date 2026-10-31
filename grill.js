@@ -1441,9 +1441,16 @@ async function syncGrillMenuFromDatabase() {
 
                     // image_url يتغير إلى رابط Storage عند رفع صورة جديدة من الداش بورد.
                     // وإذا لم توجد صورة مرفوعة، نستخدم المسار المحلي القديم.
-                    const image = product.image_url ||
+
+                    let image = product.image_url ||
                         product.extra?.local_image_path || "";
 
+                    image = String(image).trim();
+
+                    // تصحيح مسارات الصور المحلية على GitHub Pages
+                    if (/^\/image\//i.test(image)) {
+                        image = image.replace(/^\/+/, "");
+                    }
                     return [
                         product.name,
                         options,
