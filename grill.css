@@ -317,7 +317,7 @@ textarea:focus-visible {
     background-color: #482016;
     background-image:
         linear-gradient(rgba(25, 12, 8, .18), rgba(25, 12, 8, .28)),
-        url("../image/falafel-banner.png");
+        url("./falafel/imagefalafel/falafel-banner.png");
     background-position: center top;
     background-size: cover;
     background-repeat: no-repeat;
