@@ -86,7 +86,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   align-items:center; justify-content:center; width:100%; min-height:clamp(250px,30vw,420px);
   margin:0; padding:calc(var(--header-height) + 35px) 22px 35px; border:0; border-radius:0;
   background-color:#48251a;
-  background-image:linear-gradient(rgba(25,12,8,.18),rgba(25,12,8,.28)),url("./falafel/imagefalafel/falafel-banner.png");
+  background-image:linear-gradient(rgba(25,12,8,.18),rgba(25,12,8,.28)),url("falafel/imagefalafel/falafel-banner.png");
   background-position:center; background-size:cover; background-repeat:no-repeat; color:#fff; text-align:center;
 }
 .hero::after { display:none; }
@@ -1899,7 +1899,7 @@ body {
   margin: 0;
   overflow: hidden;
   background-color: #f4d9a4;
-  background-image: url("/falafel/imagefalafel/falafel-banner.png") !important;
+  background-image: url("falafel/imagefalafel/falafel-banner.png") !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: 100% 100% !important;

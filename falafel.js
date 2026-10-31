@@ -26,7 +26,7 @@
   const WHATSAPP_NUMBERS = ["07760000552", "07860000556"];
   const COUPON_CODE = "GHANNAM15";
   const COUPON_RATE = 0.15;
-  const IMAGE_FOLDER = "imagefalafel/";
+  const IMAGE_FOLDER = "falafel/imagefalafel/";
 
   const CATEGORY = Object.freeze({
     FALAFEL: "الفلافل",
@@ -526,7 +526,7 @@
 
   /* 8. الصور: رابط قاعدة البيانات أولاً، ثم الصورة المحلية كاحتياط */
   function localProductImage(product) {
-    return IMAGE_FOLDER + (product.image || "");
+    return normalizeDatabaseImage(product.image);
   }
 
   function productImageSource(product) {
@@ -894,21 +894,32 @@
      لا نستبدل أسماء المنتجات أو أسعارها أو تصنيفاتها أو بيانات السلة. */
   function normalizeDatabaseImage(value) {
     if (typeof value !== "string" || !value.trim()) return "";
+
     const raw = value.trim();
 
     // روابط عامة كاملة من Supabase Storage أو أي مصدر صور آخر.
     if (/^https?:\/\//i.test(raw)) return raw;
 
-    // مسار محلي واضح يبدأ من جذر الموقع.
-    if (raw.startsWith("/")) return raw;
+    // تنظيف المسار وإزالة الشرطة المائلة من البداية.
+    const clean = raw
+      .split("?")[0]
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "");
 
-    const clean = raw.split("?")[0].replace(/\\/g, "/");
-    if (clean.startsWith("imagefalafel/")) return clean;
+    // مسار صور فرع الفلافل الصحيح.
+    if (clean.startsWith("falafel/imagefalafel/")) return clean;
 
-    // إذا خزّنت قاعدة البيانات اسم الملف فقط، نبحث عنه داخل مجلد صور الفلافل.
-    if (!clean.includes("/")) return IMAGE_FOLDER + clean;
+    // تحويل المسار القديم إلى المسار الصحيح.
+    if (clean.startsWith("imagefalafel/")) {
+      return "falafel/" + clean;
+    }
 
-    // مسار نسبي آخر غير معروف (مثل مسار Bucket خاص) لا نخمن رابطه.
+    // إذا كانت قاعدة البيانات تخزن اسم الصورة فقط.
+    if (!clean.includes("/")) {
+      return IMAGE_FOLDER + clean;
+    }
+
+    // أي مسار آخر غير معروف لا نستخدمه.
     return "";
   }
 
