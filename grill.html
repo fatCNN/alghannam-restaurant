@@ -10,21 +10,25 @@
     <title>مطعم الغنام | فرع المشاوي</title>
 
     <link rel="stylesheet" href="grill.css">
-    <script type="module" src="grill.js"></script>
     <link rel="stylesheet" href="site-theme.css">
     <link rel="stylesheet" href="dashboard/loader.css">
+
     <link rel="icon" type="image/png" href="image/logo.png">
     <link rel="apple-touch-icon" href="image/logo.png">
+
+    <script type="module" src="grill.js"></script>
 </head>
 
 <body>
+
+    <!-- شاشة التحميل -->
     <div id="pageLoader" class="page-loader">
-      <div class="loader-content">
-        <img src="/image/logo.png" alt="مطعم الغنّام">
-        <div class="loader-spinner"></div>
-        <p>مطعم الغنّام</p>
-        <span>يرجى الانتظار...</span>
-      </div>
+        <div class="loader-content">
+            <img src="image/logo.png" alt="مطعم الغنّام">
+            <div class="loader-spinner"></div>
+            <p>مطعم الغنّام</p>
+            <span>يرجى الانتظار...</span>
+        </div>
     </div>
 
     <!-- الهيدر -->
@@ -79,7 +83,6 @@
         </nav>
     </header>
 
-
     <!-- معلومات المطعم والتوصيل -->
     <section class="top-info-bar"
              aria-label="معلومات المطعم والتوصيل">
@@ -104,7 +107,7 @@
             <span class="delivery-icon" aria-hidden="true"></span>
 
             <div class="delivery-text">
-                <strong>التوصيل </strong>
+                <strong>التوصيل</strong>
                 <span>عبر الموقع</span>
             </div>
 
@@ -112,7 +115,6 @@
 
         </div>
     </section>
-
 
     <!-- المحتوى الرئيسي -->
     <main class="container">
@@ -126,12 +128,9 @@
                 onerror="this.style.display='none'"
             >
 
-            <div class="hero-content">
-
-            </div>
+            <div class="hero-content"></div>
 
         </section>
-
 
         <!-- البحث والتصنيفات -->
         <section class="menu-tools" aria-label="البحث في المنيو">
@@ -148,29 +147,51 @@
 
         </section>
 
-
         <!-- التحكم بطريقة عرض المنتجات -->
         <section class="menu-heading-row" aria-label="طريقة عرض المنتجات">
-            <div class="menu-heading-text">
-            </div>
 
-            <div class="menu-view-controls" role="group" aria-label="طريقة عرض المنتجات">
-                <button type="button" class="view-icon" id="grillGridView" aria-label="عرض شبكي" title="عرض شبكي" aria-pressed="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+            <div class="menu-heading-text"></div>
+
+            <div class="menu-view-controls"
+                 role="group"
+                 aria-label="طريقة عرض المنتجات">
+
+                <button type="button"
+                        class="view-icon"
+                        id="grillGridView"
+                        aria-label="عرض شبكي"
+                        title="عرض شبكي"
+                        aria-pressed="true">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
                         <rect x="3" y="3" width="7" height="7" rx="1"></rect>
                         <rect x="14" y="3" width="7" height="7" rx="1"></rect>
                         <rect x="3" y="14" width="7" height="7" rx="1"></rect>
                         <rect x="14" y="14" width="7" height="7" rx="1"></rect>
                     </svg>
+
                 </button>
-                <button type="button" class="view-icon" id="grillListView" aria-label="عرض أفقي" title="عرض أفقي" aria-pressed="false">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+
+                <button type="button"
+                        class="view-icon"
+                        id="grillListView"
+                        aria-label="عرض أفقي"
+                        title="عرض أفقي"
+                        aria-pressed="false">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
                         <rect x="3" y="4" width="5" height="5" rx="1"></rect>
                         <path d="M12 5h9M12 8h9"></path>
                         <rect x="3" y="15" width="5" height="5" rx="1"></rect>
                         <path d="M12 16h9M12 19h9"></path>
                     </svg>
+
                 </button>
+
             </div>
         </section>
 
@@ -182,7 +203,6 @@
             </div>
 
         </section>
-
 
         <!-- عناصر التوافق مع JavaScript -->
         <section id="cart"
@@ -208,7 +228,6 @@
 
     </main>
 
-
     <!-- شريط السلة الثابت -->
     <button type="button"
             class="fixed-cart-bar"
@@ -230,7 +249,6 @@
         <span class="fixed-cart-arrow" aria-hidden="true">←</span>
 
     </button>
-
 
     <!-- نافذة السلة -->
     <div class="cart-modal-overlay" id="cartModalOverlay" hidden>
@@ -256,7 +274,6 @@
 
             </header>
 
-
             <div class="cart-modal-body">
 
                 <!-- المنتجات -->
@@ -268,7 +285,6 @@
                     <div id="popupCartItems"></div>
 
                 </section>
-
 
                 <!-- الإضافات -->
                 <section class="cart-addons-section"
@@ -291,11 +307,12 @@
                     <div id="cartAddonsList"
                          class="cart-addons-list"
                          aria-label="اقتراحات الإضافات">
+
                         <p class="addons-loading">جارٍ تحميل الإضافات...</p>
+
                     </div>
 
                 </section>
-
 
                 <!-- كود الخصم -->
                 <section class="coupon-box">
@@ -323,7 +340,6 @@
 
                 </section>
 
-
                 <!-- ملخص الحساب -->
                 <section class="coupon-summary"
                          aria-label="ملخص الحساب">
@@ -344,7 +360,6 @@
                     </div>
 
                 </section>
-
 
                 <!-- معلومات الزبون -->
                 <form id="popupOrderForm" class="popup-order-form">
@@ -403,7 +418,6 @@
 
             </div>
 
-
             <footer class="cart-modal-footer">
 
                 <button type="button"
@@ -423,13 +437,11 @@
 
     </div>
 
-
     <!-- خلفية القائمة الجانبية -->
     <div class="settings-overlay"
          id="settingsOverlay"
          hidden>
     </div>
-
 
     <!-- القائمة الجانبية -->
     <aside class="settings-panel"
@@ -464,7 +476,6 @@
 
         </header>
 
-
         <div class="settings-panel-content">
 
             <h3 class="settings-section-title">التنقل</h3>
@@ -482,7 +493,6 @@
 
             </a>
 
-
             <a class="settings-menu-item"
                href="#menu"
                id="settingsGoToMenu">
@@ -497,7 +507,6 @@
                 <span class="settings-item-arrow" aria-hidden="true">←</span>
 
             </a>
-
 
             <button type="button"
                     class="settings-menu-item settings-menu-button"
@@ -514,11 +523,9 @@
 
             </button>
 
-
             <div class="settings-divider"></div>
 
             <h3 class="settings-section-title">معلومات المطعم</h3>
-
 
             <div class="settings-info-card">
 
@@ -531,7 +538,6 @@
 
             </div>
 
-
             <div class="settings-info-card">
 
                 <span aria-hidden="true">💰</span>
@@ -543,21 +549,19 @@
 
             </div>
 
-
             <!-- المساعدة والشكاوى -->
             <a class="settings-menu-item" href="support/support.html">
-            <span class="settings-item-icon" aria-hidden="true">💬</span>
 
-            <span>
-                <strong>المساعدة والشكاوى</strong>
-                <small>للاستفسارات وتقديم الشكاوى</small>
-            </span>
+                <span class="settings-item-icon" aria-hidden="true">💬</span>
 
-            <span class="settings-item-arrow" aria-hidden="true">←</span>
+                <span>
+                    <strong>المساعدة والشكاوى</strong>
+                    <small>للاستفسارات وتقديم الشكاوى</small>
+                </span>
+
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
+
             </a>
-
-
-
 
             <!-- أرقام الفرع -->
             <div class="settings-compact-card">
@@ -568,14 +572,12 @@
 
                     <strong>أرقام الفرع</strong>
 
-                    <a href="tel:07XXXXXXXXX">07740000062</a>
-
-                    <a href="tel:07YYYYYYYYY">07840000062</a>
+                    <a href="tel:07740000062">07740000062</a>
+                    <a href="tel:07840000062">07840000062</a>
 
                 </div>
 
             </div>
-
 
             <!-- موقع الفرع -->
             <a class="settings-compact-card settings-location-link"
@@ -596,7 +598,6 @@
 
         </div>
 
-
         <footer class="settings-panel-footer">
 
             <button type="button"
@@ -609,7 +610,6 @@
 
     </aside>
 
-
     <!-- تذييل الموقع -->
     <footer class="site-footer">
 
@@ -620,7 +620,6 @@
         <a href="index.html">العودة إلى الصفحة الرئيسية</a>
 
     </footer>
-
 
     <!-- وظائف القائمة الجانبية -->
     <script>
@@ -702,7 +701,10 @@
         }
     })();
     </script>
-    <script src="/dashboard/loader.js"></script>
+
+    <!-- ملفات الموقع -->
+    <script src="dashboard/loader.js"></script>
     <script type="module" src="customer-auth.js"></script>
+
 </body>
 </html>

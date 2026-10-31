@@ -1,24 +1,29 @@
+"use strict";
+
 function hidePageLoader() {
-  const loader = document.getElementById('pageLoader');
+    const loader = document.getElementById("pageLoader");
 
-  if (!loader) return;
+    if (!loader || loader.dataset.hidden === "true") return;
 
-  loader.classList.add('hidden');
+    loader.dataset.hidden = "true";
+    loader.classList.add("hidden");
 
-  setTimeout(() => {
-    loader.remove();
-  }, 450);
+    setTimeout(() => {
+        loader.remove();
+    }, 450);
 }
 
-// إتاحة دالة إخفاء الشعار لملفات الصفحات
+// إتاحة الدالة لملفات الصفحات
 window.hidePageLoader = hidePageLoader;
 
-// الصفحات العادية تخفي الشعار بعد التحميل
-// أما صفحة الإدارة فتتحكم بالتوقيت من admin.js
-const loader = document.getElementById('pageLoader');
+// الصفحات العادية تخفي شاشة التحميل بعد اكتمال التحميل
+const loader = document.getElementById("pageLoader");
 
-if (loader && loader.dataset.manual !== 'true') {
-  window.addEventListener('load', hidePageLoader, {
-    once: true
-  });
+if (loader && loader.dataset.manual !== "true") {
+    window.addEventListener("load", hidePageLoader, {
+        once: true
+    });
+
+    // حماية إضافية إذا تأخر تحميل أحد الموارد
+    setTimeout(hidePageLoader, 8000);
 }
