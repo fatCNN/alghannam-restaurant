@@ -5,6 +5,19 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = (selector) => document.querySelector(selector);
 
+/* =====================================================
+   معرّفات مالك السيرفر الثابتة
+===================================================== */
+
+const SERVER_OWNER_IDS = [
+  '489c60eb-5ae5-4611-96d6-b1d911e2686c',
+  '1488410c-39a5-417b-92f6-c68ee55c886d'
+];
+
+/* =====================================================
+   عناصر الصفحة
+===================================================== */
+
 const elements = {
   userRole: $('#userRole'),
   message: $('#message'),
@@ -19,6 +32,10 @@ const elements = {
   ordersList: $('#ordersList')
 };
 
+/* =====================================================
+   حالات الطلبات
+===================================================== */
+
 const STATUS_LABELS = {
   new: 'جديد',
   preparing: 'قيد التحضير',
@@ -27,6 +44,10 @@ const STATUS_LABELS = {
   cancelled: 'ملغي'
 };
 
+/* =====================================================
+   متغيرات النظام
+===================================================== */
+
 let currentUser = null;
 let currentProfile = null;
 let allOrders = [];
@@ -34,7 +55,17 @@ let allOrders = [];
 let isOwner = false;
 let isServerOwner = false;
 
-const canViewAllBranches = () => isOwner || isServerOwner;
+/*
+  مالك السيرفر وصاحب المطعم يستطيعان
+  مشاهدة جميع الفروع.
+*/
+const canViewAllBranches = () => {
+  return isOwner || isServerOwner;
+};
+
+/* =====================================================
+   حماية النصوص المعروضة
+===================================================== */
 
 function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -46,22 +77,36 @@ function escapeHTML(value) {
   })[char]);
 }
 
+/* =====================================================
+   الرسائل
+===================================================== */
+
 function showMessage(message, type = 'success') {
+  if (!elements.message) return;
+
   elements.message.textContent = message;
   elements.message.className = `message ${type}`;
   elements.message.hidden = false;
 }
 
 function hideMessage() {
+  if (!elements.message) return;
+
   elements.message.hidden = true;
 }
+
+/* =====================================================
+   تنسيق التاريخ
+===================================================== */
 
 function formatDate(value) {
   if (!value) return 'غير محدد';
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return 'غير محدد';
+  if (Number.isNaN(date.getTime())) {
+    return 'غير محدد';
+  }
 
   return date.toLocaleString('ar-IQ', {
     year: 'numeric',
@@ -72,9 +117,17 @@ function formatDate(value) {
   });
 }
 
+/* =====================================================
+   تنسيق الأسعار
+===================================================== */
+
 function formatPrice(value) {
   return `${Number(value || 0).toLocaleString('en-US')} د.ع`;
 }
+
+/* =====================================================
+   عرض منتجات الطلب
+===================================================== */
 
 function getItemsHTML(items) {
   if (!Array.isArray(items) || items.length === 0) {
@@ -84,20 +137,34 @@ function getItemsHTML(items) {
   return `
     <div class="order-items">
       ${items.map((item) => {
-        const name = item.name || item.title || item.product_name || 'منتج';
+        const name =
+          item.name ||
+          item.title ||
+          item.product_name ||
+          'منتج';
+
         const quantity = item.quantity ?? item.qty ?? 1;
         const price = item.price ?? item.unit_price ?? 0;
 
         return `
           <div class="order-item">
-            <span>${escapeHTML(name)} × ${escapeHTML(quantity)}</span>
-            <strong>${formatPrice(Number(price) * Number(quantity))}</strong>
+            <span>
+              ${escapeHTML(name)} × ${escapeHTML(quantity)}
+            </span>
+
+            <strong>
+              ${formatPrice(Number(price) * Number(quantity))}
+            </strong>
           </div>
         `;
       }).join('')}
     </div>
   `;
 }
+
+/* =====================================================
+   خيارات حالة الطلب
+===================================================== */
 
 function getStatusOptions(selectedStatus) {
   return Object.entries(STATUS_LABELS).map(([value, label]) => `
@@ -106,6 +173,10 @@ function getStatusOptions(selectedStatus) {
     </option>
   `).join('');
 }
+
+/* =====================================================
+   إحصائيات الطلبات
+===================================================== */
 
 function updateStatistics(orders) {
   elements.totalCount.textContent = orders.length;
@@ -120,10 +191,15 @@ function updateStatistics(orders) {
     orders.filter(order => order.status === 'ready').length;
 }
 
+/* =====================================================
+   فلتر الفروع
+===================================================== */
+
 function fillBranchFilter(orders) {
   if (!canViewAllBranches()) {
-    elements.branchFilter.innerHTML =
-      '<option value="">فرعي</option>';
+    elements.branchFilter.innerHTML = `
+      <option value="">فرعي</option>
+    `;
 
     elements.branchFilter.disabled = true;
     return;
@@ -133,9 +209,13 @@ function fillBranchFilter(orders) {
 
   const selectedValue = elements.branchFilter.value;
 
-  const branches = [...new Set(
-    orders.map(order => order.branch_id).filter(Boolean)
-  )];
+  const branches = [
+    ...new Set(
+      orders
+        .map(order => order.branch_id)
+        .filter(Boolean)
+    )
+  ];
 
   elements.branchFilter.innerHTML = `
     <option value="">كل الفروع</option>
@@ -151,6 +231,10 @@ function fillBranchFilter(orders) {
     elements.branchFilter.value = selectedValue;
   }
 }
+
+/* =====================================================
+   عرض الطلبات
+===================================================== */
 
 function renderOrders() {
   const status = elements.statusFilter.value;
@@ -181,6 +265,7 @@ function renderOrders() {
     elements.ordersList.innerHTML = `
       <div class="loading">لا توجد طلبات مطابقة.</div>
     `;
+
     return;
   }
 
@@ -205,32 +290,61 @@ function renderOrders() {
         </div>
 
         <div class="order-customer">
-          <p><strong>الزبون:</strong> ${escapeHTML(order.customer_name)}</p>
-          <p><strong>الهاتف:</strong> ${escapeHTML(order.customer_phone)}</p>
-          <p><strong>العنوان:</strong> ${escapeHTML(order.customer_address)}</p>
+
+          <p>
+            <strong>الزبون:</strong>
+            ${escapeHTML(order.customer_name)}
+          </p>
+
+          <p>
+            <strong>الهاتف:</strong>
+            ${escapeHTML(order.customer_phone)}
+          </p>
+
+          <p>
+            <strong>العنوان:</strong>
+            ${escapeHTML(order.customer_address)}
+          </p>
 
           ${order.customer_notes ? `
-            <p><strong>ملاحظات:</strong> ${escapeHTML(order.customer_notes)}</p>
+            <p>
+              <strong>ملاحظات:</strong>
+              ${escapeHTML(order.customer_notes)}
+            </p>
           ` : ''}
 
-          <p><strong>الفرع:</strong> ${escapeHTML(order.branch_id)}</p>
+          <p>
+            <strong>الفرع:</strong>
+            ${escapeHTML(order.branch_id)}
+          </p>
+
         </div>
 
         ${getItemsHTML(order.items)}
 
         <div class="order-total">
+
           <span>
-            المجموع قبل الخصم: ${formatPrice(order.subtotal)}
+            المجموع قبل الخصم:
+            ${formatPrice(order.subtotal)}
           </span>
 
           ${Number(order.discount_amount) > 0 ? `
-            <span>الخصم: ${formatPrice(order.discount_amount)}</span>
+            <span>
+              الخصم:
+              ${formatPrice(order.discount_amount)}
+            </span>
           ` : ''}
 
-          <strong>الإجمالي: ${formatPrice(order.total)}</strong>
+          <strong>
+            الإجمالي:
+            ${formatPrice(order.total)}
+          </strong>
+
         </div>
 
         <div class="order-actions">
+
           <label>
             تحديث حالة الطلب
 
@@ -242,6 +356,7 @@ function renderOrders() {
           <button class="button save-status-button" type="button">
             حفظ الحالة
           </button>
+
         </div>
 
       </article>
@@ -249,11 +364,19 @@ function renderOrders() {
   }).join('');
 }
 
-async function authorizeUser() {
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
+/* =====================================================
+   التحقق من الحساب والصلاحيات
+===================================================== */
 
-  if (sessionError) throw sessionError;
+async function authorizeUser() {
+  const {
+    data: sessionData,
+    error: sessionError
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
 
   currentUser = sessionData.session?.user;
 
@@ -262,17 +385,48 @@ async function authorizeUser() {
     return false;
   }
 
-  const { data: profile, error } = await supabase
+  /*
+    التحقق من هوية مالك السيرفر باستخدام UUID
+    قبل الاعتماد على الدور المخزن في profiles.
+  */
+  isServerOwner = SERVER_OWNER_IDS.includes(currentUser.id);
+
+  const {
+    data: profile,
+    error
+  } = await supabase
     .from('profiles')
     .select('id,email,full_name,role,branch_id')
     .eq('id', currentUser.id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
+
+  if (!profile) {
+    showMessage(
+      'لم يتم العثور على بيانات الحساب.',
+      'error'
+    );
+
+    elements.ordersList.innerHTML = '';
+    return false;
+  }
+
+  /*
+    مالك السيرفر يتجاوز فحص الأدوار.
+    بقية الحسابات يجب أن تكون ضمن الأدوار المسموحة.
+  */
+  const allowedRoles = [
+    'owner',
+    'manager',
+    'staff'
+  ];
 
   if (
-    !profile ||
-    !['server_owner', 'owner', 'manager', 'staff'].includes(profile.role)
+    !isServerOwner &&
+    !allowedRoles.includes(profile.role)
   ) {
     showMessage(
       'ليس لديك صلاحية الدخول إلى إدارة الطلبات.',
@@ -285,8 +439,11 @@ async function authorizeUser() {
 
   currentProfile = profile;
 
-  isOwner = profile.role === 'owner';
-  isServerOwner = profile.role === 'server_owner';
+  /*
+    لا نعامل مالك السيرفر كصاحب مطعم عادي،
+    حتى لو كانت قيمة role في قاعدة البيانات owner.
+  */
+  isOwner = profile.role === 'owner' && !isServerOwner;
 
   elements.userRole.textContent =
     isServerOwner ? 'مالك السيرفر' :
@@ -294,20 +451,30 @@ async function authorizeUser() {
     profile.role === 'manager' ? 'مدير الفرع' :
     'موظف الفرع';
 
+  /*
+    مالك السيرفر وصاحب المطعم لا يحتاجان
+    إلى ربط الحساب بفرع محدد.
+  */
   if (!canViewAllBranches() && !profile.branch_id) {
     showMessage(
       'حسابك غير مرتبط بفرع. راجع إعدادات الحساب.',
       'error'
     );
 
+    elements.ordersList.innerHTML = '';
     return false;
   }
 
   return true;
 }
 
+/* =====================================================
+   جلب الطلبات
+===================================================== */
+
 async function fetchAllOrders() {
   const pageSize = 1000;
+
   let from = 0;
   let results = [];
 
@@ -318,6 +485,10 @@ async function fetchAllOrders() {
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1);
 
+    /*
+      مالك السيرفر وصاحب المطعم يشاهدان كل الفروع.
+      المدير والموظف يشاهدان طلبات فرعهما فقط.
+    */
     if (!canViewAllBranches()) {
       query = query.eq(
         'branch_id',
@@ -325,15 +496,22 @@ async function fetchAllOrders() {
       );
     }
 
-    const { data, error } = await query;
+    const {
+      data,
+      error
+    } = await query;
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const page = data || [];
 
     results = results.concat(page);
 
-    if (page.length < pageSize) break;
+    if (page.length < pageSize) {
+      break;
+    }
 
     from += pageSize;
   }
@@ -341,13 +519,18 @@ async function fetchAllOrders() {
   return results;
 }
 
+/* =====================================================
+   تحميل الطلبات
+===================================================== */
+
 async function loadOrders() {
   hideMessage();
 
   elements.refreshButton.disabled = true;
 
-  elements.ordersList.innerHTML =
-    '<div class="loading">جارٍ تحميل الطلبات...</div>';
+  elements.ordersList.innerHTML = `
+    <div class="loading">جارٍ تحميل الطلبات...</div>
+  `;
 
   try {
     allOrders = await fetchAllOrders();
@@ -371,9 +554,17 @@ async function loadOrders() {
   }
 }
 
+/* =====================================================
+   تحديث حالة الطلب
+===================================================== */
+
 async function updateOrderStatus(orderId, newStatus, button) {
   if (!Object.hasOwn(STATUS_LABELS, newStatus)) {
-    showMessage('حالة الطلب غير صحيحة.', 'error');
+    showMessage(
+      'حالة الطلب غير صحيحة.',
+      'error'
+    );
+
     return;
   }
 
@@ -383,9 +574,15 @@ async function updateOrderStatus(orderId, newStatus, button) {
   try {
     let query = supabase
       .from('orders')
-      .update({ status: newStatus })
+      .update({
+        status: newStatus
+      })
       .eq('id', orderId);
 
+    /*
+      مالك السيرفر وصاحب المطعم يستطيعان
+      تحديث الطلبات في جميع الفروع.
+    */
     if (!canViewAllBranches()) {
       query = query.eq(
         'branch_id',
@@ -393,9 +590,14 @@ async function updateOrderStatus(orderId, newStatus, button) {
       );
     }
 
-    const { data, error } = await query.select('id');
+    const {
+      data,
+      error
+    } = await query.select('id');
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     if (!data || data.length === 0) {
       throw new Error(
@@ -403,7 +605,9 @@ async function updateOrderStatus(orderId, newStatus, button) {
       );
     }
 
-    showMessage('تم تحديث حالة الطلب بنجاح.');
+    showMessage(
+      'تم تحديث حالة الطلب بنجاح.'
+    );
 
     await loadOrders();
 
@@ -421,33 +625,66 @@ async function updateOrderStatus(orderId, newStatus, button) {
   }
 }
 
-elements.refreshButton.addEventListener('click', loadOrders);
+/* =====================================================
+   ربط أحداث الصفحة
+===================================================== */
 
-elements.statusFilter.addEventListener('change', renderOrders);
+function wireEvents() {
+  elements.refreshButton.addEventListener(
+    'click',
+    loadOrders
+  );
 
-elements.branchFilter.addEventListener('change', renderOrders);
+  elements.statusFilter.addEventListener(
+    'change',
+    renderOrders
+  );
 
-elements.searchInput.addEventListener('input', renderOrders);
+  elements.branchFilter.addEventListener(
+    'change',
+    renderOrders
+  );
 
-elements.ordersList.addEventListener('click', async (event) => {
-  const button = event.target.closest('.save-status-button');
+  elements.searchInput.addEventListener(
+    'input',
+    renderOrders
+  );
 
-  if (!button) return;
+  elements.ordersList.addEventListener(
+    'click',
+    async (event) => {
+      const button = event.target.closest(
+        '.save-status-button'
+      );
 
-  const card = button.closest('.order-card');
+      if (!button) return;
 
-  const orderId = card?.dataset.orderId;
+      const card = button.closest('.order-card');
 
-  const newStatus =
-    card?.querySelector('.status-select')?.value;
+      const orderId = card?.dataset.orderId;
 
-  if (!orderId || !newStatus) return;
+      const newStatus =
+        card?.querySelector('.status-select')?.value;
 
-  await updateOrderStatus(orderId, newStatus, button);
-});
+      if (!orderId || !newStatus) return;
+
+      await updateOrderStatus(
+        orderId,
+        newStatus,
+        button
+      );
+    }
+  );
+}
+
+/* =====================================================
+   تشغيل صفحة إدارة الطلبات
+===================================================== */
 
 async function startOrdersPage() {
   try {
+    wireEvents();
+
     const allowed = await authorizeUser();
 
     if (allowed) {
@@ -463,5 +700,9 @@ async function startOrdersPage() {
     );
   }
 }
+
+/* =====================================================
+   بدء التشغيل
+===================================================== */
 
 startOrdersPage();
