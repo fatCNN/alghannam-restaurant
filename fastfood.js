@@ -389,11 +389,26 @@ import {
   }
 
   function imageSource(product) {
-    const candidate = product.image_url || product.image || "";
+    const candidate = String(
+    product.image_url || product.image || ""
+    ).trim();
+
     if (!candidate) return "";
-    if (/^https?:\/\//i.test(candidate) || candidate.startsWith("/")) return candidate;
-    if (candidate.includes("/")) return candidate;
-    return IMAGE_FOLDER + candidate;
+
+    // الصور ذات الروابط الخارجية
+    if (/^(https?:\/\/|data:|blob:)/i.test(candidate)) {
+      return candidate;
+    }
+
+    // إزالة / من بداية المسار حتى لا يخرج من مجلد المشروع
+    const cleanPath = candidate.replace(/^\/+/, "");
+
+    // إذا كان الاسم مثل pro21.png نضيف مجلد صور الوجبات السريعة
+    const imagePath = cleanPath.includes("/")
+      ? cleanPath
+      : IMAGE_FOLDER + cleanPath;
+    // إنشاء رابط صحيح يعمل محلياً وعلى GitHub Pages
+    return new URL(imagePath, new URL(".", window.location.href)).href;
   }
 
   function productCardHTML(product) {

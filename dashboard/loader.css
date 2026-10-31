@@ -1,46 +1,70 @@
-/* شاشة تحميل مطعم الغنّام */
+
+/* =====================================================
+   مطعم الغنّام — شاشة التحميل
+   ملف: dashboard/loader.css
+===================================================== */
+
+/* شاشة التحميل الرئيسية */
 .page-loader {
   position: fixed;
   inset: 0;
   z-index: 999999;
   background: #fffaf4;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.4s ease, visibility 0.4s ease;
+
+  transition:
+    opacity 0.4s ease,
+    visibility 0.4s ease;
 }
 
+/* إخفاء شاشة التحميل */
 .page-loader.hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
 
+/* محتوى شاشة التحميل */
 .loader-content {
   text-align: center;
+  padding: 20px;
 }
 
+/* صورة اللوغو */
 .loader-content img {
-  width: 145px;
-  height: 145px;
+  width: 75px;
+  height: 75px;
+
+  max-width: 75px;
   object-fit: contain;
+
   display: block;
-  margin: 0 auto 20px;
+  margin: 0 auto 12px;
+
   animation: logoPulse 1.5s infinite ease-in-out;
 }
 
+/* دائرة التحميل */
 .loader-spinner {
   width: 35px;
   height: 35px;
+
   border: 3px solid #ead9d0;
   border-top-color: #741f1f;
   border-radius: 50%;
+
   margin: 0 auto 15px;
+
   animation: loaderSpin 0.8s linear infinite;
 }
 
+/* اسم المطعم */
 .loader-content p {
   color: #741f1f;
   font-size: 21px;
@@ -48,19 +72,34 @@
   margin: 8px 0;
 }
 
+/* عبارة الانتظار */
 .loader-content span {
   color: #777;
   font-size: 13px;
 }
 
+/* حركة دوران دائرة التحميل */
 @keyframes loaderSpin {
   to {
     transform: rotate(360deg);
   }
 }
 
+/* حركة اللوغو */
 @keyframes logoPulse {
   50% {
     transform: scale(1.06);
+  }
+}
+
+/* ضبط شاشة التحميل على الهاتف */
+@media (max-width: 480px) {
+  .loader-content img {
+    width: 75px;
+    height: 75px;
+  }
+
+  .loader-content p {
+    font-size: 19px;
   }
 }

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -8,21 +9,36 @@
 
     <title data-i18n-title="pageTitle">مطعم الغنّام | فرع الوجبات السريعة</title>
 
+    <link rel="icon" type="image/png" href="image/logo.png?v=2">
+    <link rel="apple-touch-icon" href="image/logo.png?v=2">
+
+    <link rel="stylesheet" href="dashboard/loader.css">
     <link rel="stylesheet" href="fastfood.css">
+
     <script type="module" src="fastfood.js"></script>
-    <link rel="icon" type="image/png" href="image/logo.png">
-    <link rel="apple-touch-icon" href="image/logo.png">
 </head>
 
 <body>
+
+    <!-- شاشة تحميل الموقع -->
+    <div id="pageLoader" class="page-loader">
+        <div class="loader-content">
+            <img src="image/logo.png" alt="مطعم الغنّام">
+            <div class="loader-spinner"></div>
+            <p>مطعم الغنّام</p>
+            <span>يرجى الانتظار...</span>
+        </div>
+    </div>
+
 
     <!-- رأس الموقع -->
     <header class="site-header">
 
         <a class="brand" href="./index.html" aria-label="العودة إلى مطعم الغنام" data-i18n-aria="brandAria">
             <img
-                src="./image/logo.png"
-                alt="شعار مطعم الغنام" data-i18n-alt="logoAlt"
+                src="image/logo.png"
+                alt="شعار مطعم الغنام"
+                data-i18n-alt="logoAlt"
                 onerror="this.style.display='none'"
             >
 
@@ -43,7 +59,8 @@
                 type="button"
                 class="language-toggle"
                 id="languageToggle"
-                aria-label="تغيير اللغة" data-i18n-aria="languageToggleAria"
+                aria-label="تغيير اللغة"
+                data-i18n-aria="languageToggleAria"
             >
                 EN
             </button>
@@ -54,7 +71,8 @@
                 id="openSettingsPanel"
                 aria-controls="settingsPanel"
                 aria-expanded="false"
-                aria-label="فتح القائمة" data-i18n-aria="openMenuAria"
+                aria-label="فتح القائمة"
+                data-i18n-aria="openMenuAria"
             >
                 <svg
                     class="menu-lines-icon"
@@ -84,9 +102,7 @@
             id="home"
             aria-labelledby="heroTitle"
         >
-            <div class="hero-content">
-
-            </div>
+            <div class="hero-content"></div>
         </section>
 
 
@@ -94,128 +110,118 @@
         <div class="container">
 
             <!-- البحث والأقسام -->
-            <section class="menu-tools" aria-label="البحث في المنيو" data-i18n-aria="searchSectionAria">
+            <section
+                class="menu-tools"
+                aria-label="البحث في المنيو"
+                data-i18n-aria="searchSectionAria"
+            >
 
                 <input
                     id="fastfoodSearch"
                     type="search"
-                    placeholder="ابحث عن شاورما أو بركر أو بيتزا..." data-i18n-placeholder="searchPagePlaceholder"
-                    aria-label="ابحث عن منتجات الوجبات السريعة" data-i18n-aria="searchInputAria"
+                    placeholder="ابحث عن شاورما أو بركر أو بيتزا..."
+                    data-i18n-placeholder="searchPagePlaceholder"
+                    aria-label="ابحث عن منتجات الوجبات السريعة"
+                    data-i18n-aria="searchInputAria"
                 >
 
                 <nav
                     id="categoryNav"
                     class="category-nav"
-                    aria-label="أقسام المنيو" data-i18n-aria="categoriesAria"
+                    aria-label="أقسام المنيو"
+                    data-i18n-aria="categoriesAria"
                 ></nav>
 
             </section>
 
 
+            <!-- عنوان المنيو والتحكم بطريقة العرض -->
+            <section
+                class="menu-heading-row glass-panel"
+                aria-label="إعدادات عرض المنيو"
+                data-i18n-aria="viewSettingsAria"
+            >
+                <div class="menu-view-controls">
 
-<!-- =========================================
-     عنوان المنيو والتحكم بطريقة العرض
-========================================= -->
+                    <button
+                        type="button"
+                        id="toggleProductView"
+                        class="view-toggle-btn glass-effect"
+                        aria-label="التبديل إلى العرض الأفقي"
+                        data-i18n-aria="switchList"
+                        aria-pressed="false"
+                        title="العرض الأفقي"
+                        data-i18n-title="switchList"
+                    >
+                        <svg
+                            id="viewToggleIcon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            width="22"
+                            height="22"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                        </svg>
+                    </button>
 
-<section
-    class="menu-heading-row glass-panel"
-    aria-label="إعدادات عرض المنيو" data-i18n-aria="viewSettingsAria"
->
-    <div class="menu-view-controls">
+                </div>
+            </section>
 
-        <button
-            type="button"
-            id="toggleProductView"
-            class="view-toggle-btn glass-effect"
-            aria-label="التبديل إلى العرض الأفقي" data-i18n-aria="switchList"
-            aria-pressed="false"
-            title="العرض الأفقي" data-i18n-title="switchList"
-        >
-            <svg
-                id="viewToggleIcon"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+
+            <!-- منطقة المنتجات -->
+            <section
+                id="menu"
+                class="menu-area"
+                aria-label="المنتجات"
+                data-i18n-aria="productsAria"
+            >
+                <div id="fastfoodMenu">
+                    <p class="empty-message" data-i18n="loadingMenu">
+                        جارٍ تحميل قائمة الوجبات السريعة...
+                    </p>
+                </div>
+            </section>
+
+
+            <!-- السلة — عناصر داخلية يستخدمها JavaScript -->
+            <section
+                id="cart"
+                class="cart-section"
+                hidden
                 aria-hidden="true"
             >
-                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-            </svg>
-        </button>
+                <span id="cartCount">0 صنف</span>
 
-    </div>
-</section>
+                <div id="fastfoodCartItems"></div>
 
+                <span id="fastfoodTotal">0</span>
 
-<!-- =========================================
-     منطقة المنتجات
-========================================= -->
+                <form id="fastfoodOrderForm">
 
-    <section
-        id="menu"
-        class="menu-area"
-        aria-label="المنتجات" data-i18n-aria="productsAria"
-    >
-        <div id="fastfoodMenu">
-            <p class="empty-message" data-i18n="loadingMenu">جارٍ تحميل قائمة الوجبات السريعة...</p>
+                    <input id="customerName" name="customerName" type="text">
+
+                    <input id="customerPhone" name="customerPhone" type="tel">
+
+                    <input id="customerAddress" name="customerAddress" type="text">
+
+                    <textarea id="customerNotes" name="customerNotes"></textarea>
+
+                    <p id="orderStatus"></p>
+
+                </form>
+            </section>
+
         </div>
-    </section>
-
-
-    <!-- =========================================
-         السلة — عناصر داخلية يستخدمها JavaScript
-    ========================================= -->
-
-    <section
-        id="cart"
-        class="cart-section"
-        hidden
-        aria-hidden="true"
-    >
-        <span id="cartCount">0 صنف</span>
-
-        <div id="fastfoodCartItems"></div>
-
-        <span id="fastfoodTotal">0</span>
-
-        <form id="fastfoodOrderForm">
-
-            <input
-                id="customerName"
-                name="customerName"
-                type="text"
-            >
-
-            <input
-                id="customerPhone"
-                name="customerPhone"
-                type="tel"
-            >
-
-            <input
-                id="customerAddress"
-                name="customerAddress"
-                type="text"
-            >
-
-            <textarea
-                id="customerNotes"
-                name="customerNotes"
-            ></textarea>
-
-            <p id="orderStatus"></p>
-
-        </form>
-    </section>
-
+    </main>
 
 
     <!-- شريط السلة الثابت -->
@@ -223,7 +229,8 @@
         type="button"
         class="fixed-cart-bar"
         id="fixedCartBar"
-        aria-label="فتح سلة المشتريات" data-i18n-aria="openCartAria"
+        aria-label="فتح سلة المشتريات"
+        data-i18n-aria="openCartAria"
     >
 
         <span class="fixed-cart-icon">
@@ -266,7 +273,8 @@
                     type="button"
                     id="closeCartModal"
                     class="cart-modal-close"
-                    aria-label="إغلاق السلة" data-i18n-aria="closeCartAria"
+                    aria-label="إغلاق السلة"
+                    data-i18n-aria="closeCartAria"
                 >
                     ×
                 </button>
@@ -279,7 +287,9 @@
                 <!-- المنتجات داخل السلة -->
                 <section class="popup-cart-products">
 
-                    <h3 class="popup-section-title" data-i18n="currentOrder">طلبك الحالي</h3>
+                    <h3 class="popup-section-title" data-i18n="currentOrder">
+                        طلبك الحالي
+                    </h3>
 
                     <div id="popupCartItems"></div>
 
@@ -296,7 +306,9 @@
                     <div class="cart-addons-heading">
 
                         <div>
-                            <h3 id="cartAddonsTitle" data-i18n="addToOrder">أضف إلى طلبك</h3>
+                            <h3 id="cartAddonsTitle" data-i18n="addToOrder">
+                                أضف إلى طلبك
+                            </h3>
                             <p data-i18n="menuAddons">إضافات من المنيو</p>
                         </div>
 
@@ -307,7 +319,9 @@
                     </div>
 
                     <div id="cartAddonsList" class="cart-addons-list">
-                        <p class="addons-loading" data-i18n="loadingAddons">جارٍ تحميل الإضافات...</p>
+                        <p class="addons-loading" data-i18n="loadingAddons">
+                            جارٍ تحميل الإضافات...
+                        </p>
                     </div>
 
                 </section>
@@ -316,19 +330,26 @@
                 <!-- كود الخصم -->
                 <section class="coupon-box">
 
-                    <label for="couponCode" data-i18n="couponCode">🎟️ كود الخصم</label>
+                    <label for="couponCode" data-i18n="couponCode">
+                        🎟️ كود الخصم
+                    </label>
 
                     <div class="coupon-input-row">
 
                         <input
                             id="couponCode"
                             type="text"
-                            placeholder="أدخل كود الخصم" data-i18n-placeholder="enterCouponPlaceholder"
+                            placeholder="أدخل كود الخصم"
+                            data-i18n-placeholder="enterCouponPlaceholder"
                             autocomplete="off"
                             maxlength="40"
                         >
 
-                        <button type="button" id="applyCouponButton" data-i18n="applyCoupon">
+                        <button
+                            type="button"
+                            id="applyCouponButton"
+                            data-i18n="applyCoupon"
+                        >
                             تطبيق
                         </button>
 
@@ -344,7 +365,11 @@
 
 
                 <!-- ملخص الحساب -->
-                <section class="coupon-summary" aria-label="ملخص الحساب" data-i18n-aria="summaryAria">
+                <section
+                    class="coupon-summary"
+                    aria-label="ملخص الحساب"
+                    data-i18n-aria="summaryAria"
+                >
 
                     <div>
                         <span data-i18n="subtotalLabel">المجموع الفرعي</span>
@@ -369,7 +394,9 @@
 
                     <h3 data-i18n="customerInfo">معلومات الزبون</h3>
 
-                    <label for="popupCustomerName" data-i18n="nameLabel">الاسم</label>
+                    <label for="popupCustomerName" data-i18n="nameLabel">
+                        الاسم
+                    </label>
 
                     <input
                         id="popupCustomerName"
@@ -378,10 +405,13 @@
                         required
                         maxlength="100"
                         autocomplete="name"
-                        placeholder="الاسم الكامل" data-i18n-placeholder="namePlaceholder"
+                        placeholder="الاسم الكامل"
+                        data-i18n-placeholder="namePlaceholder"
                     >
 
-                    <label for="popupCustomerPhone" data-i18n="phoneLabel">رقم الهاتف</label>
+                    <label for="popupCustomerPhone" data-i18n="phoneLabel">
+                        رقم الهاتف
+                    </label>
 
                     <input
                         id="popupCustomerPhone"
@@ -390,10 +420,13 @@
                         required
                         maxlength="25"
                         autocomplete="tel"
-                        placeholder="رقم الهاتف" data-i18n-placeholder="phonePlaceholder"
+                        placeholder="رقم الهاتف"
+                        data-i18n-placeholder="phonePlaceholder"
                     >
 
-                    <label for="popupCustomerAddress" data-i18n="addressLabel">العنوان</label>
+                    <label for="popupCustomerAddress" data-i18n="addressLabel">
+                        العنوان
+                    </label>
 
                     <input
                         id="popupCustomerAddress"
@@ -402,20 +435,28 @@
                         required
                         maxlength="250"
                         autocomplete="street-address"
-                        placeholder="منطقة السكن وأقرب نقطة دالة" data-i18n-placeholder="addressPlaceholder"
+                        placeholder="منطقة السكن وأقرب نقطة دالة"
+                        data-i18n-placeholder="addressPlaceholder"
                     >
 
-                    <label for="popupCustomerNotes" data-i18n="notesLabel">ملاحظات إضافية</label>
+                    <label for="popupCustomerNotes" data-i18n="notesLabel">
+                        ملاحظات إضافية
+                    </label>
 
                     <textarea
                         id="popupCustomerNotes"
                         name="notes"
                         rows="2"
                         maxlength="500"
-                        placeholder="أي ملاحظات على الطلب" data-i18n-placeholder="notesPlaceholder"
+                        placeholder="أي ملاحظات على الطلب"
+                        data-i18n-placeholder="notesPlaceholder"
                     ></textarea>
 
-                    <button type="submit" class="popup-submit-button" data-i18n="sendWhatsApp">
+                    <button
+                        type="submit"
+                        class="popup-submit-button"
+                        data-i18n="sendWhatsApp"
+                    >
                         إرسال الطلب عبر واتساب
                     </button>
 
@@ -474,9 +515,7 @@
 
             <div class="settings-heading">
 
-                <span class="settings-heading-icon" aria-hidden="true">
-                    ☰
-                </span>
+                <span class="settings-heading-icon" aria-hidden="true">☰</span>
 
                 <div>
                     <h2 id="settingsPanelTitle" data-i18n="sideMenuTitle">القائمة</h2>
@@ -489,7 +528,8 @@
                 type="button"
                 class="settings-close"
                 id="closeSettingsPanel"
-                aria-label="إغلاق القائمة" data-i18n-aria="closeMenuAria"
+                aria-label="إغلاق القائمة"
+                data-i18n-aria="closeMenuAria"
             >
                 ×
             </button>
@@ -499,7 +539,9 @@
 
         <div class="settings-panel-content">
 
-            <h3 class="settings-section-title" data-i18n="navigationTitle">التنقل</h3>
+            <h3 class="settings-section-title" data-i18n="navigationTitle">
+                التنقل
+            </h3>
 
             <a class="settings-menu-item" href="./index.html">
 
@@ -553,7 +595,9 @@
 
             <div class="settings-divider"></div>
 
-            <h3 class="settings-section-title" data-i18n="restaurantInfo">معلومات المطعم</h3>
+            <h3 class="settings-section-title" data-i18n="restaurantInfo">
+                معلومات المطعم
+            </h3>
 
 
             <div class="settings-info-card">
@@ -664,7 +708,9 @@
 
         <p data-i18n="allPricesIQD">جميع الأسعار بالدينار العراقي</p>
 
-        <a href="./index.html" data-i18n="backHomePage">العودة إلى الصفحة الرئيسية</a>
+        <a href="./index.html" data-i18n="backHomePage">
+            العودة إلى الصفحة الرئيسية
+        </a>
 
     </footer>
 
@@ -695,21 +741,16 @@
 
         let previousFocus = null;
 
-
         function openSettings() {
-            if (!overlay.hidden) {
-                return;
-            }
+            if (!overlay.hidden) return;
 
             previousFocus = document.activeElement;
-
             overlay.hidden = false;
 
             panel.inert = false;
             panel.setAttribute("aria-hidden", "false");
 
             openButton.setAttribute("aria-expanded", "true");
-
             document.body.classList.add("settings-panel-open");
 
             requestAnimationFrame(() => {
@@ -718,11 +759,8 @@
             });
         }
 
-
         function closeSettings() {
-            if (overlay.hidden) {
-                return;
-            }
+            if (overlay.hidden) return;
 
             panel.classList.remove("is-open");
 
@@ -730,7 +768,6 @@
             panel.inert = true;
 
             openButton.setAttribute("aria-expanded", "false");
-
             document.body.classList.remove("settings-panel-open");
 
             overlay.hidden = true;
@@ -742,15 +779,10 @@
             }
         }
 
-
         openButton.addEventListener("click", openSettings);
-
         closeButton.addEventListener("click", closeSettings);
-
         doneButton.addEventListener("click", closeSettings);
-
         overlay.addEventListener("click", closeSettings);
-
 
         document.addEventListener("keydown", event => {
             if (event.key === "Escape" && !overlay.hidden) {
@@ -758,11 +790,9 @@
             }
         });
 
-
         if (menuLink) {
             menuLink.addEventListener("click", closeSettings);
         }
-
 
         if (cartButton) {
             cartButton.addEventListener("click", () => {
@@ -773,9 +803,11 @@
                 }
             });
         }
-
     })();
     </script>
+
     <script type="module" src="customer-auth.js"></script>
+    <script src="dashboard/loader.js"></script>
+
 </body>
 </html>
