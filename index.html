@@ -1,14 +1,80 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <!-- إثبات ملكية الموقع في Google Search Console: لا تحذف هذا الوسم -->
     <meta name="google-site-verification" content="e2ptuENHDHUdnzGtmQ5rtuvThrG3Id7-msqG94FTtRs" />
+
+    <!-- إعدادات أساسية وتهيئة محركات البحث -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="مطعم الغنام - اكتشف فروعنا واختر وجبتك المفضلة، واستمتع بالطعم العراقي الأصيل.">
+    <meta name="description" content="مطعم الغنّام في بغداد: اكتشف كباب الغنّام والمشاوي العراقية والوجبات السريعة وفلافل الغنّام. تصفّح منيو الفروع، وتعرّف على العناوين وطرق الاتصال والطلب عبر واتساب.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="theme-color" content="#4b1111">
+    <meta name="author" content="مطعم الغنّام">
+
+    <!-- العنوان الأساسي المفضّل للصفحة الرئيسية -->
+    <link rel="canonical" href="https://fatcnn.github.io/alghannam-restaurant/">
+
+    <!-- أيقونات الموقع -->
     <link rel="icon" type="image/png" href="image/logo.png?v=2">
     <link rel="apple-touch-icon" href="image/logo.png?v=2">
-    <title>مطعم الغنام | الفروع</title>
+
+    <!-- معاينة الرابط عند مشاركته -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ar_IQ">
+    <meta property="og:site_name" content="مطعم الغنّام">
+    <meta property="og:title" content="مطعم كباب الغنّام | الفروع والمنيو في بغداد">
+    <meta property="og:description" content="تصفّح فروع مطعم الغنّام في بغداد: الكباب والمشاوي والوجبات السريعة والفلافل. شاهد المنيو وتواصل للطلب.">
+    <meta property="og:url" content="https://fatcnn.github.io/alghannam-restaurant/">
+    <meta property="og:image" content="https://fatcnn.github.io/alghannam-restaurant/image/logo.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="مطعم كباب الغنّام | الفروع والمنيو في بغداد">
+    <meta name="twitter:description" content="الكباب والمشاوي والوجبات السريعة والفلافل من فروع مطعم الغنّام في بغداد.">
+
+    <title>مطعم كباب الغنّام | الفروع والمنيو في بغداد</title>
+
+    <!-- تعريف الموقع وفروعه لمحركات البحث دون اختلاق بيانات غير مؤكدة -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://fatcnn.github.io/alghannam-restaurant/#website",
+          "url": "https://fatcnn.github.io/alghannam-restaurant/",
+          "name": "مطعم الغنّام",
+          "inLanguage": "ar-IQ",
+          "publisher": { "@id": "https://fatcnn.github.io/alghannam-restaurant/#organization" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://fatcnn.github.io/alghannam-restaurant/#organization",
+          "name": "مطعم الغنّام",
+          "url": "https://fatcnn.github.io/alghannam-restaurant/",
+          "logo": "https://fatcnn.github.io/alghannam-restaurant/image/logo.png"
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://fatcnn.github.io/alghannam-restaurant/#webpage",
+          "url": "https://fatcnn.github.io/alghannam-restaurant/",
+          "name": "مطعم كباب الغنّام | الفروع والمنيو في بغداد",
+          "description": "مطعم الغنّام في بغداد: كباب ومشاوي عراقية ووجبات سريعة وفلافل. تعرّف على الفروع والمنيو وطرق الطلب.",
+          "inLanguage": "ar-IQ",
+          "isPartOf": { "@id": "https://fatcnn.github.io/alghannam-restaurant/#website" },
+          "about": { "@id": "https://fatcnn.github.io/alghannam-restaurant/#organization" }
+        },
+        {
+          "@type": "ItemList",
+          "name": "فروع مطعم الغنّام في بغداد",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "فرع الكباب والمشاوي", "url": "https://fatcnn.github.io/alghannam-restaurant/grill.html" },
+            { "@type": "ListItem", "position": 2, "name": "فرع الوجبات السريعة", "url": "https://fatcnn.github.io/alghannam-restaurant/fastfood.html" },
+            { "@type": "ListItem", "position": 3, "name": "فرع الفلافل", "url": "https://fatcnn.github.io/alghannam-restaurant/falafel.html" }
+          ]
+        }
+      ]
+    }
+    </script>
 
 
     <style>
@@ -55,6 +121,15 @@
         .banner-text .eyebrow { margin: 0 0 4px; color: #f5c16c; font-weight: 800; font-size: 14px; }
         .banner-text h2 { margin: 0; color: #fff; font-size: clamp(26px,4vw,40px); line-height: 1.45; }
         .banner-text > p:last-child { margin: 5px 0 0; color: #f5e2c4; }
+        .home-description {
+            max-width: 850px;
+            margin: 18px auto 4px;
+            padding: 0 8px;
+            color: #765b4d;
+            font-size: 14px;
+            line-height: 2;
+            text-align: center;
+        }
         .branches-home { padding: 25px 0 10px; }
         .branches-title { position: relative; margin: 0 0 18px; color: #4b1111; font-size: clamp(23px,3vw,30px); }
         .branches-title::after { content: ""; display: block; width: 58px; height: 4px; margin-top: 7px; border-radius: 4px; background: #c8994f; }
@@ -614,7 +689,7 @@
         <div class="brand">
             <img src="image/logo.png" alt="شعار مطعم الغنام" class="brand-logo-img">
             <div class="brand-info">
-                <h1>مطعم الغنام</h1>
+                <h1>مطعم الغنّام</h1>
                 <p data-i18n="tagline">جرب الطعم العراقي الأصيل</p>
             </div>
         </div>
@@ -666,20 +741,25 @@
             <section class="hero main-banner">
                 <img src="image/logo.png" alt="شعار مطعم الغنام" class="main-banner-logo">
                 <div class="banner-text">
-                    <p class="eyebrow">مطعم الغنام</p>
+                    <p class="eyebrow">مطعم الغنّام في بغداد</p>
                     <h2>هلا يابه نورتونا</h2>
                     <p>اطلب من الفرع الأقرب عليك</p>
                 </div>
             </section>
+
+            <p class="home-description">
+                مطعم الغنّام في بغداد يقدّم الكباب والمشاوي العراقية والوجبات السريعة والفلافل.
+                اختَر الفرع المناسب، تصفّح قائمة الطعام، وتواصل ويانا لمعرفة تفاصيل الطلب.
+            </p>
 
             <section class="branches-home" aria-labelledby="branchesTitle">
                 <h2 class="branches-title" id="branchesTitle">فروعنا</h2>
                 <div class="branches-grid">
                     <!-- فرع المشاوي -->
                     <a class="branch-card" href="grill.html" aria-label="فتح منيو فرع المشاوي">
-                        <img src="image/alghnam kbab .png" alt="أكلات ومشاوي الغنام" class="branch-image" loading="lazy">
+                        <img src="image/alghnam kbab .png" alt="كباب الغنّام والمشاوي العراقية في بغداد" class="branch-image" loading="lazy">
                         <div class="branch-card-content">
-                            <h3>الغنام فرع المشاوي</h3>
+                            <h3>كباب ومشاوي الغنّام</h3>
                             <p>الدورة، شارع المصافي، مجاور مصرف الرشيد</p>
                             <span class="branch-link">عرض المنيو ←</span>
                         </div>
@@ -689,7 +769,7 @@
                     <a class="branch-card" href="fastfood.html" aria-label="فتح منيو فرع الوجبات السريعة">
                         <img src="image/Fast food.png" alt="الوجبات السريعة من مطعم الغنام" class="branch-image" loading="lazy">
                         <div class="branch-card-content">
-                            <h3>الغنام فرع الوجبات السريعة</h3>
+                            <h3>الوجبات السريعة من الغنّام</h3>
                             <p>الدورة، شارع المصافي</p>
                             <span class="branch-link">عرض المنيو ←</span>
                         </div>
@@ -699,7 +779,7 @@
                     <a class="branch-card" href="falafel.html" aria-label="فتح منيو فرع الفلافل">
                         <img src="image/flafl.png" alt="فلافل الغنام" class="branch-image" loading="lazy">
                         <div class="branch-card-content">
-                            <h3>فلافل الغنام</h3>
+                            <h3>فلافل الغنّام</h3>
                             <p>الإعلام، سوق أميمة، مقابل جامع المصطفى</p>
                             <span class="branch-link">عرض المنيو ←</span>
                         </div>
