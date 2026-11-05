@@ -9,12 +9,12 @@
     --grill-primary: #e85d0f;
     --grill-primary-dark: #7b1b0b;
     --grill-primary-light: #f5a14c;
-    --grill-gold: #f5c16c;
+    --grill-gold: #f5c66b;
     --grill-gold-light: #fff0df;
-    --grill-background: #3b0805;
+    --grill-background: #32130f;
     --grill-card: #fff5e9;
-    --grill-text: #432016;
-    --grill-muted: #866b5c;
+    --grill-text: #f5c66b;
+    --grill-muted: #f5c66b;
     --grill-border: #e8c9a9;
     --grill-success: #187943;
     --grill-danger: #d93636;
@@ -2576,9 +2576,7 @@ body.cart-modal-open {
     z-index: 20000;
 }
 
-#cartModalOverlay[hidden] {
-    display: none !important;
-}
+
 
 #cartModalOverlay:not([hidden]) {
     display: grid !important;

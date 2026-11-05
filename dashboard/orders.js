@@ -1,9 +1,23 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// =====================================================
+// مطعم الغنّام — إدارة الطلبات
+// استخدام اتصال Supabase المشترك
+// =====================================================
+
+import {
+  supabaseClient as supabase,
+  isSupabaseConfigured as configured
+} from './supabase-client.js';
 
 const $ = (selector) => document.querySelector(selector);
+
+/* =====================================================
+   التحقق من إعدادات الاتصال
+===================================================== */
+
+if (!configured || !supabase) {
+  throw new Error('إعدادات Supabase غير مكتملة.');
+}
 
 /* =====================================================
    معرّفات مالك السيرفر الثابتة
@@ -55,10 +69,6 @@ let allOrders = [];
 let isOwner = false;
 let isServerOwner = false;
 
-/*
-  مالك السيرفر وصاحب المطعم يستطيعان
-  مشاهدة جميع الفروع.
-*/
 const canViewAllBranches = () => {
   return isOwner || isServerOwner;
 };
@@ -385,10 +395,6 @@ async function authorizeUser() {
     return false;
   }
 
-  /*
-    التحقق من هوية مالك السيرفر باستخدام UUID
-    قبل الاعتماد على الدور المخزن في profiles.
-  */
   isServerOwner = SERVER_OWNER_IDS.includes(currentUser.id);
 
   const {
@@ -414,10 +420,6 @@ async function authorizeUser() {
     return false;
   }
 
-  /*
-    مالك السيرفر يتجاوز فحص الأدوار.
-    بقية الحسابات يجب أن تكون ضمن الأدوار المسموحة.
-  */
   const allowedRoles = [
     'owner',
     'manager',
@@ -439,10 +441,6 @@ async function authorizeUser() {
 
   currentProfile = profile;
 
-  /*
-    لا نعامل مالك السيرفر كصاحب مطعم عادي،
-    حتى لو كانت قيمة role في قاعدة البيانات owner.
-  */
   isOwner = profile.role === 'owner' && !isServerOwner;
 
   elements.userRole.textContent =
@@ -451,10 +449,6 @@ async function authorizeUser() {
     profile.role === 'manager' ? 'مدير الفرع' :
     'موظف الفرع';
 
-  /*
-    مالك السيرفر وصاحب المطعم لا يحتاجان
-    إلى ربط الحساب بفرع محدد.
-  */
   if (!canViewAllBranches() && !profile.branch_id) {
     showMessage(
       'حسابك غير مرتبط بفرع. راجع إعدادات الحساب.',
@@ -485,10 +479,6 @@ async function fetchAllOrders() {
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1);
 
-    /*
-      مالك السيرفر وصاحب المطعم يشاهدان كل الفروع.
-      المدير والموظف يشاهدان طلبات فرعهما فقط.
-    */
     if (!canViewAllBranches()) {
       query = query.eq(
         'branch_id',
@@ -579,10 +569,6 @@ async function updateOrderStatus(orderId, newStatus, button) {
       })
       .eq('id', orderId);
 
-    /*
-      مالك السيرفر وصاحب المطعم يستطيعان
-      تحديث الطلبات في جميع الفروع.
-    */
     if (!canViewAllBranches()) {
       query = query.eq(
         'branch_id',

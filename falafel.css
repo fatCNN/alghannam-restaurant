@@ -7,14 +7,14 @@
 /* 1) الإعدادات العامة — غيّر القيم هنا لتعديل ألوان وأحجام الموقع */
 :root {
   --grill-primary: #3b0805;          /* اللون الأساسي للأزرار */
-  --grill-primary-dark: #842d1e;     /* اللون الداكن عند المرور */
-  --grill-primary-light: #fc2c01;    /* لون التركيز والتمييز */
+  --grill-primary-dark: #4b0a06;     /* اللون الداكن عند المرور */
+  --grill-primary-light: #482016;    /* لون التركيز والتمييز */
   --grill-gold: #f5c66b;             /* اللون الذهبي */
   --grill-gold-light: #f3ddc7;        /* الذهبي الفاتح */
   --grill-background: #32130f;        /* خلفية الصفحة */
   --grill-card: #fff8f1;              /* خلفية البطاقات */
-  --grill-text: #c58d4d;              /* لون النص الأساسي */
-  --grill-muted: #80685b;             /* النص الثانوي */
+  --grill-text: #f5c66b;              /* لون النص الأساسي */
+  --grill-muted: #f5c66b;             /* النص الثانوي */
   --grill-light-text: #fff4e9;        /* النص الفاتح */
   --grill-border: #c58d4d;            /* لون الحدود */
   --grill-success: #24764a;           /* لون النجاح/إرسال الطلب */
@@ -1419,9 +1419,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 
 /* العرض الشبكي: نحافظ على التخطيط والحجم الحاليين */
-#falafelMenu:not(.list-view) .product-card {
-  border-radius: var(--grill-radius);
-}
+
 
 /* العرض الأفقي: نحافظ على حجمه الصغير وترتيب الصورة والزر */
 #falafelMenu.list-view .product-card {
@@ -2572,7 +2570,7 @@ body {
   min-width: 280px;
   overflow-x: clip;
 }
-*, *::before, *::after { box-sizing: border-box; }
+
 img, svg, video { max-width: 100%; }
 
 /* الهيدر — نفس ارتفاعات فرع المشاوي */
@@ -3253,4 +3251,73 @@ html {
     html {
         scroll-padding-top: 135px;
     }
+}
+/* تحسين ظهور البنر والهيدر على الهاتف */
+@media (max-width: 600px) {
+
+  .site-header {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+
+    height: 48px !important;
+    min-height: 48px !important;
+
+    padding: 4px 10px !important;
+
+    background: rgba(45, 10, 6, 0.35) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+
+    z-index: 2100 !important;
+  }
+
+  .hero {
+    margin: 0 !important;
+    padding-top: 58px !important;
+
+    min-height: 220px !important;
+
+    background-position: center center !important;
+    background-size: cover !important;
+  }
+}
+
+/* هيدر ثابت مع تقليل المساحة المحجوزة للبنر */
+@media (max-width: 600px) {
+
+  .site-header {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 3px 10px !important;
+
+    background: rgba(45, 10, 6, 0.55) !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px) !important;
+
+    z-index: 2100 !important;
+  }
+
+  .hero {
+    margin-top: 0 !important;
+    padding-top: 48px !important;
+    min-height: 200px !important;
+
+    background-position: center center !important;
+    background-size: cover !important;
+  }
+
+  .menu-tools {
+    top: 44px !important;
+  }
+
+  html {
+    scroll-padding-top: 110px !important;
+  }
 }

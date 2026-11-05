@@ -1,17 +1,20 @@
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+// =====================================================
+// مطعم الغنّام — صندوق محادثات ليلى
+// استخدام اتصال Supabase المشترك
+// إدارة المحادثات والموظفين والإعدادات والتنبيهات
+// =====================================================
+
+import {
+  supabaseClient as supabase,
+  isSupabaseConfigured as configured
+} from './supabase-client.js';
+
+// =====================================================
+// العناصر والمتغيرات العامة
+// =====================================================
 
 const $ = (selector) => document.querySelector(selector);
-
-const configured =
-  /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/.test(SUPABASE_URL) &&
-  SUPABASE_ANON_KEY.length > 25 &&
-  !SUPABASE_ANON_KEY.includes('YOUR_');
-
-const supabase = configured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
 
 const loginPanel = $('#loginPanel');
 const accessPanel = $('#accessPanel');
@@ -19,11 +22,13 @@ const workspace = $('#workspace');
 
 let staffUser = null;
 let staffProfile = null;
+
 let conversations = [];
 let latestByConversation = new Map();
 
 let staffDirectory = [];
 let branches = [];
+
 let activeConversationId = null;
 let activeMessages = [];
 
@@ -33,6 +38,10 @@ let loadingThread = false;
 let toastHandle = null;
 let hasLoadedList = false;
 
+// =====================================================
+// الإعدادات والثوابت
+// =====================================================
+
 const statusLabels = {
   open: 'جديدة',
   waiting_staff: 'بانتظار موظف',
@@ -40,63 +49,95 @@ const statusLabels = {
   closed: 'مكتملة'
 };
 
-// الأدوار الإدارية
-const ADMIN_ROLES = ['server_owner', 'owner', 'manager'];
+const ADMIN_ROLES = [
+  'server_owner',
+  'owner',
+  'manager'
+];
+
+const STAFF_ROLES = [
+  ...ADMIN_ROLES,
+  'staff'
+];
+
+// =====================================================
+// الصلاحيات
+// =====================================================
 
 function isAdmin() {
   return ADMIN_ROLES.includes(staffProfile?.role);
 }
 
+function isStaff() {
+  return staffProfile?.role === 'staff';
+}
+
+// =====================================================
+// أدوات مساعدة
+// =====================================================
+
 function escapeHTML(value) {
-  return String(value ?? '').replace(/[&<>"']/g, c => ({
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;'
-  }[c]));
+  }[char]));
 }
 
 function showToast(text, type = 'success') {
-  const t = $('#toast');
-  t.textContent = text;
-  t.className = `toast ${type}`;
-  t.hidden = false;
+  const toast = $('#toast');
+
+  if (!toast) return;
+
+  toast.textContent = text;
+  toast.className = `toast ${type}`;
+  toast.hidden = false;
 
   clearTimeout(toastHandle);
 
   toastHandle = setTimeout(() => {
-    t.hidden = true;
+    toast.hidden = true;
   }, 4500);
 }
 
-function setFormMessage(el, text, type = '') {
-  el.textContent = text || '';
-  el.className = `status-message ${type}`.trim();
+function setFormMessage(element, text, type = '') {
+  if (!element) return;
+
+  element.textContent = text || '';
+  element.className = `status-message ${type}`.trim();
 }
 
 function setBusy(button, busy, busyText = 'جارٍ الحفظ...') {
+  if (!button) return;
+
   if (!button.dataset.originalText) {
     button.dataset.originalText = button.textContent;
   }
 
   button.disabled = busy;
-  button.textContent = busy ? busyText : button.dataset.originalText;
+
+  button.textContent = busy
+    ? busyText
+    : button.dataset.originalText;
 }
 
 function formatDate(value) {
   if (!value) return '—';
 
-  const d = new Date(value);
+  const date = new Date(value);
 
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleString('ar-IQ', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  return date.toLocaleString('ar-IQ', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function shortConversationId(id) {
@@ -104,48 +145,82 @@ function shortConversationId(id) {
 }
 
 function roleLabel(role) {
-  return role === 'server_owner'
-    ? 'مالك السيرفر'
-    : role === 'owner'
-      ? 'صاحب المطعم'
-      : role === 'manager'
-        ? 'قائد الفريق'
-        : 'موظف';
+  switch (role) {
+    case 'server_owner':
+      return 'مالك السيرفر';
+
+    case 'owner':
+      return 'صاحب المطعم';
+
+    case 'manager':
+      return 'قائد الفريق';
+
+    default:
+      return 'موظف';
+  }
 }
 
-function showLogin() {
-  loginPanel.hidden = false;
-  accessPanel.hidden = true;
-  workspace.hidden = true;
+// =====================================================
+// عرض الواجهات
+// =====================================================
 
-  $('#staffEmail').textContent = '';
-  $('#logoutButton').hidden = true;
+function showLogin() {
+  if (loginPanel) loginPanel.hidden = false;
+  if (accessPanel) accessPanel.hidden = true;
+  if (workspace) workspace.hidden = true;
+
+  if ($('#staffEmail')) {
+    $('#staffEmail').textContent = '';
+  }
+
+  if ($('#logoutButton')) {
+    $('#logoutButton').hidden = true;
+  }
 }
 
 function showWorkspace() {
-  loginPanel.hidden = true;
-  accessPanel.hidden = true;
-  workspace.hidden = false;
+  if (loginPanel) loginPanel.hidden = true;
+  if (accessPanel) accessPanel.hidden = true;
+  if (workspace) workspace.hidden = false;
 
   $('#staffEmail').textContent = staffUser?.email || '';
-  $('#staffRoleLabel').textContent = roleLabel(staffProfile?.role);
+
+  $('#staffRoleLabel').textContent =
+    roleLabel(staffProfile?.role);
+
   $('#logoutButton').hidden = false;
 }
 
-// التحقق من صلاحية المستخدم
+// =====================================================
+// التحقق من تسجيل الدخول وصلاحية الموظف
+// =====================================================
+
 async function verifyStaff() {
-  const { data: userData, error: userError } =
-    await supabase.auth.getUser();
+  if (!configured || !supabase) {
+    showLogin();
+    return false;
+  }
+
+  const {
+    data: userData,
+    error: userError
+  } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {
     staffUser = null;
+    staffProfile = null;
+
     showLogin();
+
     return false;
   }
 
   staffUser = userData.user;
 
-  const { data: profile, error } = await supabase
+  const {
+    data: profile,
+    error
+  } = await supabase
     .from('profiles')
     .select('id,email,role')
     .eq('id', staffUser.id)
@@ -154,10 +229,14 @@ async function verifyStaff() {
   if (
     error ||
     !profile ||
-    !['server_owner', 'owner', 'manager', 'staff'].includes(profile.role)
+    !STAFF_ROLES.includes(profile.role)
   ) {
+    staffProfile = null;
+
     showLogin();
+
     accessPanel.hidden = false;
+
     return false;
   }
 
@@ -168,51 +247,66 @@ async function verifyStaff() {
   return true;
 }
 
+// =====================================================
+// تسجيل دخول الموظف
+// =====================================================
+
 async function signIn(event) {
   event.preventDefault();
 
-  if (!supabase) {
+  if (!configured || !supabase) {
     setFormMessage(
       $('#loginMessage'),
-      'إعدادات Supabase غير مكتملة في supabase-config.js.',
+      'إعدادات Supabase غير مكتملة في ملف الاتصال المشترك.',
       'error'
     );
+
     return;
   }
 
   const button = $('#loginForm button[type="submit"]');
 
   setBusy(button, true, 'جارٍ التحقق...');
+
   setFormMessage($('#loginMessage'), '');
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: $('#loginEmail').value.trim(),
-    password: $('#loginPassword').value
-  });
+  try {
+    const {
+      data,
+      error
+    } = await supabase.auth.signInWithPassword({
+      email: $('#loginEmail').value.trim(),
+      password: $('#loginPassword').value
+    });
 
-  setBusy(button, false);
+    if (error) throw error;
 
-  if (error) {
+    staffUser = data.user;
+
+    if (await verifyStaff()) {
+      await startWorkspace();
+    }
+
+  } catch (error) {
     setFormMessage(
       $('#loginMessage'),
       `تعذر تسجيل الدخول: ${error.message}`,
       'error'
     );
-    return;
-  }
 
-  staffUser = data.user;
-
-  if (await verifyStaff()) {
-    await startWorkspace();
+  } finally {
+    setBusy(button, false);
   }
 }
 
+// =====================================================
 // تحميل الفروع والموظفين
+// =====================================================
+
 async function loadReferenceData() {
   const [
-    { data: branchRows, error: branchError },
-    { data: staffRows, error: staffError }
+    branchResult,
+    staffResult
   ] = await Promise.all([
     supabase
       .from('branches')
@@ -223,61 +317,89 @@ async function loadReferenceData() {
     supabase.rpc('laila_list_staff')
   ]);
 
-  if (branchError) throw branchError;
-  if (staffError) throw staffError;
+  if (branchResult.error) {
+    throw branchResult.error;
+  }
 
-  branches = branchRows || [];
-  staffDirectory = staffRows || [];
+  if (staffResult.error) {
+    throw staffResult.error;
+  }
+
+  branches = branchResult.data || [];
+  staffDirectory = staffResult.data || [];
 
   $('#branchFilter').innerHTML =
     '<option value="all">كل الفروع</option>' +
-    branches.map(b =>
-      `<option value="${escapeHTML(b.id)}">${escapeHTML(b.name)}</option>`
-    ).join('');
+    branches.map(branch => `
+      <option value="${escapeHTML(branch.id)}">
+        ${escapeHTML(branch.name)}
+      </option>
+    `).join('');
 
   renderAssigneeControls();
 }
 
-// إعداد صلاحيات إسناد المحادثات
+// =====================================================
+// إعداد قائمة إسناد المحادثات
+// =====================================================
+
 function renderAssigneeControls() {
-  const current = $('#assigneeSelect').value;
+  const assigneeSelect = $('#assigneeSelect');
+  const assigneeFilter = $('#assigneeFilter');
+
+  if (!assigneeSelect || !assigneeFilter) return;
+
+  const current = assigneeSelect.value;
+  const currentFilter = assigneeFilter.value;
+
   const canAssign = isAdmin();
 
-  const rows = staffDirectory.map(s =>
-    `<option value="${escapeHTML(s.id)}">${
-      canAssign
-        ? escapeHTML(s.email || s.id)
-        : 'استلام المحادثة لنفسي'
-    } — ${roleLabel(s.role)}</option>`
-  ).join('');
+  const rows = staffDirectory.map(staff => `
+    <option value="${escapeHTML(staff.id)}">
+      ${
+        canAssign
+          ? escapeHTML(staff.email || staff.id)
+          : 'استلام المحادثة لنفسي'
+      }
+      — ${roleLabel(staff.role)}
+    </option>
+  `).join('');
 
-  $('#assigneeSelect').innerHTML =
-    `<option value="">${canAssign ? 'غير مسندة' : 'تحرير إسنادي (عند الحاجة)'}</option>${rows}`;
+  assigneeSelect.innerHTML = `
+    <option value="">
+      ${canAssign ? 'غير مسندة' : 'تحرير إسنادي (عند الحاجة)'}
+    </option>
+    ${rows}
+  `;
 
-  $('#assigneeSelect').disabled = false;
+  assigneeSelect.disabled = false;
 
   if (current) {
-    $('#assigneeSelect').value = current;
+    assigneeSelect.value = current;
   }
 
-  const filter = $('#assigneeFilter').value;
+  assigneeFilter.innerHTML = `
+    <option value="all">كل الموظفين</option>
+    <option value="unassigned">غير مسندة</option>
+    <option value="mine">المسندة إليّ</option>
+    ${rows}
+  `;
 
-  $('#assigneeFilter').innerHTML =
-    `<option value="all">كل الموظفين</option>
-     <option value="unassigned">غير مسندة</option>
-     <option value="mine">المسندة إليّ</option>${rows}`;
-
-  if (filter) {
-    $('#assigneeFilter').value = filter;
-  }
+  assigneeFilter.value = currentFilter || 'all';
 }
+
+// =====================================================
+// التنبيهات عند وصول رسالة جديدة
+// =====================================================
 
 function notifyIncoming(item, message) {
   const visitorName =
     item.visitor_name || shortConversationId(item.id);
 
+  const content = String(message.content || '');
+
   showToast(
-    `رسالة جديدة من ${visitorName}: ${String(message.content || '').slice(0, 90)}`,
+    `رسالة جديدة من ${visitorName}: ${content.slice(0, 90)}`,
     'success'
   );
 
@@ -287,56 +409,86 @@ function notifyIncoming(item, message) {
   ) {
     try {
       new Notification('رسالة جديدة — ليلى', {
-        body: `${visitorName}: ${String(message.content || '').slice(0, 110)}`,
+        body: `${visitorName}: ${content.slice(0, 110)}`,
         tag: `laila-${item.id}`,
         renotify: false
       });
-    } catch {}
+    } catch (error) {
+      console.warn('تعذر عرض إشعار المتصفح:', error);
+    }
   }
 }
 
+// =====================================================
 // تحميل قائمة المحادثات
+// =====================================================
+
 async function loadConversationList({ notify = false } = {}) {
   if (!supabase || loadingList) return;
 
   loadingList = true;
 
   try {
-    const { data, error } = await supabase
+    const {
+      data,
+      error
+    } = await supabase
       .from('laila_conversations')
-      .select(
-        'id,visitor_name,visitor_phone,branch_id,status,needs_staff,assigned_to,last_message_at,created_at,branches(name)'
-      )
-      .order('last_message_at', { ascending: false })
+      .select(`
+        id,
+        visitor_name,
+        visitor_phone,
+        branch_id,
+        status,
+        needs_staff,
+        assigned_to,
+        last_message_at,
+        created_at,
+        branches(name)
+      `)
+      .order('last_message_at', {
+        ascending: false
+      })
       .limit(300);
 
     if (error) throw error;
 
     const previous = latestByConversation;
     const nextConversations = data || [];
-    const ids = nextConversations.map(x => x.id);
+
+    const ids = nextConversations.map(item => item.id);
+
     const nextLatest = new Map();
 
     if (ids.length) {
       const {
-        data: msgs,
-        error: msgError
+        data: messages,
+        error: messageError
       } = await supabase
         .from('laila_messages')
-        .select('id,conversation_id,content,sender_role,created_at')
+        .select(`
+          id,
+          conversation_id,
+          content,
+          sender_role,
+          created_at
+        `)
         .in('conversation_id', ids)
-        .order('created_at', { ascending: false })
+        .order('created_at', {
+          ascending: false
+        })
         .limit(Math.min(1500, ids.length * 8));
 
-      if (msgError) throw msgError;
+      if (messageError) throw messageError;
 
-      for (const msg of msgs || []) {
-        if (!nextLatest.has(msg.conversation_id)) {
-          nextLatest.set(msg.conversation_id, msg);
+      for (const message of messages || []) {
+        if (!nextLatest.has(message.conversation_id)) {
+          nextLatest.set(message.conversation_id, message);
         }
       }
     }
 
+    // فحص الرسائل الجديدة
     if (notify && hasLoadedList) {
       for (const item of nextConversations) {
         const latest = nextLatest.get(item.id);
@@ -361,28 +513,38 @@ async function loadConversationList({ notify = false } = {}) {
 
     if (activeConversationId) {
       const active = conversations.find(
-        x => x.id === activeConversationId
+        item => item.id === activeConversationId
       );
 
       if (active) {
         syncThreadHeader(active);
       }
     }
+
   } catch (error) {
     showToast(
       `تعذر تحميل المحادثات: ${error.message}`,
       'error'
     );
 
-    $('#conversationList').innerHTML =
-      '<div class="empty-state">تعذر تحميل المحادثات. تأكد من تشغيل ترقية SQL والصلاحيات.</div>';
+    $('#conversationList').innerHTML = `
+      <div class="empty-state">
+        تعذر تحميل المحادثات. تأكد من تشغيل ترقية SQL والصلاحيات.
+      </div>
+    `;
+
   } finally {
     loadingList = false;
   }
 }
 
+// =====================================================
+// عرض قائمة المحادثات
+// =====================================================
+
 function renderConversationList() {
-  const query = $('#conversationSearch').value
+  const query = $('#conversationSearch')
+    .value
     .trim()
     .toLocaleLowerCase('ar');
 
@@ -391,13 +553,31 @@ function renderConversationList() {
   const assignee = $('#assigneeFilter').value;
 
   const shown = conversations.filter(item => {
-    if (status !== 'all' && item.status !== status) return false;
+    if (
+      status !== 'all' &&
+      item.status !== status
+    ) {
+      return false;
+    }
 
-    if (branch !== 'all' && item.branch_id !== branch) return false;
+    if (
+      branch !== 'all' &&
+      item.branch_id !== branch
+    ) {
+      return false;
+    }
 
-    if (assignee === 'unassigned' && item.assigned_to) return false;
+    if (
+      assignee === 'unassigned' &&
+      item.assigned_to
+    ) {
+      return false;
+    }
 
-    if (assignee === 'mine' && item.assigned_to !== staffUser?.id) {
+    if (
+      assignee === 'mine' &&
+      item.assigned_to !== staffUser?.id
+    ) {
       return false;
     }
 
@@ -411,8 +591,9 @@ function renderConversationList() {
     }
 
     const last = latestByConversation.get(item.id);
+
     const assigned = staffDirectory.find(
-      s => s.id === item.assigned_to
+      staff => staff.id === item.assigned_to
     );
 
     const searchable = [
@@ -422,14 +603,20 @@ function renderConversationList() {
       last?.content,
       item.branches?.name,
       assigned?.email
-    ].join(' ').toLocaleLowerCase('ar');
+    ]
+      .join(' ')
+      .toLocaleLowerCase('ar');
 
     return !query || searchable.includes(query);
   });
 
   if (!shown.length) {
-    $('#conversationList').innerHTML =
-      '<div class="empty-state">ماكو محادثات مطابقة حاليًا.</div>';
+    $('#conversationList').innerHTML = `
+      <div class="empty-state">
+        ماكو محادثات مطابقة حاليًا.
+      </div>
+    `;
+
     return;
   }
 
@@ -442,7 +629,7 @@ function renderConversationList() {
     const preview = last?.content || 'بدأت المحادثة';
 
     const assigned = staffDirectory.find(
-      s => s.id === item.assigned_to
+      staff => staff.id === item.assigned_to
     );
 
     const unassignedLabel = item.assigned_to
@@ -452,11 +639,14 @@ function renderConversationList() {
     return `
       <button
         type="button"
-        class="conversation-item ${activeConversationId === item.id ? 'active' : ''}"
+        class="conversation-item ${
+          activeConversationId === item.id ? 'active' : ''
+        }"
         data-open-conversation="${escapeHTML(item.id)}"
       >
         <span class="conversation-item-top">
           <strong>${escapeHTML(name)}</strong>
+
           <span class="status-pill status-${escapeHTML(item.status)}">
             ${escapeHTML(statusLabels[item.status] || item.status)}
           </span>
@@ -481,18 +671,32 @@ function renderConversationList() {
   }).join('');
 }
 
+// =====================================================
+// تحديث الإحصائيات
+// =====================================================
+
 function updateCounts() {
   $('#totalCount').textContent = conversations.length;
 
   $('#waitingCount').textContent =
-    conversations.filter(x => x.status === 'waiting_staff').length;
+    conversations.filter(
+      item => item.status === 'waiting_staff'
+    ).length;
 
   $('#activeCount').textContent =
-    conversations.filter(x => x.status === 'in_progress').length;
+    conversations.filter(
+      item => item.status === 'in_progress'
+    ).length;
 
   $('#unassignedCount').textContent =
-    conversations.filter(x => !x.assigned_to && x.status !== 'closed').length;
+    conversations.filter(
+      item => !item.assigned_to && item.status !== 'closed'
+    ).length;
 }
+
+// =====================================================
+// بيانات رأس المحادثة
+// =====================================================
 
 function syncThreadHeader(item) {
   $('#threadTitle').textContent =
@@ -505,13 +709,21 @@ function syncThreadHeader(item) {
   ].filter(Boolean).join(' • ');
 
   $('#threadStatus').value = item.status;
-  $('#assigneeSelect').value = item.assigned_to || '';
+
+  $('#assigneeSelect').value =
+    item.assigned_to || '';
 }
+
+// =====================================================
+// فتح محادثة
+// =====================================================
 
 async function openConversation(id) {
   activeConversationId = id;
 
-  const item = conversations.find(x => x.id === id);
+  const item = conversations.find(
+    conversation => conversation.id === id
+  );
 
   if (!item) return;
 
@@ -524,18 +736,32 @@ async function openConversation(id) {
   await loadThreadMessages();
 }
 
+// =====================================================
 // تحميل رسائل المحادثة
+// =====================================================
+
 async function loadThreadMessages() {
-  if (!activeConversationId || loadingThread) return;
+  if (
+    !supabase ||
+    !activeConversationId ||
+    loadingThread
+  ) {
+    return;
+  }
 
   loadingThread = true;
 
   try {
-    const { data, error } = await supabase
+    const {
+      data,
+      error
+    } = await supabase
       .from('laila_messages')
       .select('*')
       .eq('conversation_id', activeConversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', {
+        ascending: true
+      })
       .limit(1500);
 
     if (error) throw error;
@@ -545,46 +771,61 @@ async function loadThreadMessages() {
     const box = $('#threadMessages');
 
     const nearBottom =
-      box.scrollHeight - box.scrollTop - box.clientHeight < 70;
+      box.scrollHeight -
+      box.scrollTop -
+      box.clientHeight < 70;
 
-    box.innerHTML = activeMessages.map(msg => {
+    box.innerHTML = activeMessages.map(message => {
       const cls =
-        msg.sender_role === 'visitor'
+        message.sender_role === 'visitor'
           ? 'visitor'
-          : msg.sender_role === 'staff'
+          : message.sender_role === 'staff'
             ? 'staff'
             : 'assistant';
 
       const label =
-        msg.sender_role === 'visitor'
+        message.sender_role === 'visitor'
           ? 'الزبون'
-          : msg.sender_role === 'staff'
-            ? msg.sender_name || 'الموظف'
+          : message.sender_role === 'staff'
+            ? message.sender_name || 'الموظف'
             : 'ليلى';
 
       return `
         <div class="thread-message ${cls}">
           <strong>${escapeHTML(label)}</strong>
-          <div>${escapeHTML(msg.content)}</div>
-          <small>${escapeHTML(formatDate(msg.created_at))}</small>
+
+          <div>${escapeHTML(message.content)}</div>
+
+          <small>
+            ${escapeHTML(formatDate(message.created_at))}
+          </small>
         </div>
       `;
-    }).join('') ||
-      '<div class="empty-state">لا توجد رسائل في هذه المحادثة.</div>';
+    }).join('') || `
+      <div class="empty-state">
+        لا توجد رسائل في هذه المحادثة.
+      </div>
+    `;
 
     if (nearBottom || activeMessages.length <= 1) {
       box.scrollTop = box.scrollHeight;
     }
+
   } catch (error) {
     setFormMessage(
       $('#threadMessage'),
       `تعذر تحميل الرسائل: ${error.message}`,
       'error'
     );
+
   } finally {
     loadingThread = false;
   }
 }
+
+// =====================================================
+// إرسال رد الموظف
+// =====================================================
 
 async function sendStaffReply(event) {
   event.preventDefault();
@@ -596,10 +837,13 @@ async function sendStaffReply(event) {
   const button = $('#replyForm button[type="submit"]');
 
   setBusy(button, true, 'جارٍ إرسال الرد...');
+
   setFormMessage($('#threadMessage'), '');
 
   try {
-    const { error: insertError } = await supabase
+    const {
+      error: insertError
+    } = await supabase
       .from('laila_messages')
       .insert({
         conversation_id: activeConversationId,
@@ -610,7 +854,9 @@ async function sendStaffReply(event) {
 
     if (insertError) throw insertError;
 
-    const { error: updateError } = await supabase
+    const {
+      error: updateError
+    } = await supabase
       .from('laila_conversations')
       .update({
         status: 'in_progress',
@@ -632,18 +878,23 @@ async function sendStaffReply(event) {
 
     await loadThreadMessages();
     await loadConversationList();
+
   } catch (error) {
     setFormMessage(
       $('#threadMessage'),
       `تعذر إرسال الرد: ${error.message}`,
       'error'
     );
+
   } finally {
     setBusy(button, false);
   }
 }
 
-// إسناد المحادثات
+// =====================================================
+// إسناد المحادثة إلى موظف
+// =====================================================
+
 async function assignConversation() {
   if (!activeConversationId) return;
 
@@ -653,7 +904,9 @@ async function assignConversation() {
   button.disabled = true;
 
   try {
-    const { error } = await supabase.rpc(
+    const {
+      error
+    } = await supabase.rpc(
       'laila_assign_conversation',
       {
         p_conversation_id: activeConversationId,
@@ -670,6 +923,7 @@ async function assignConversation() {
         ? 'تم إسناد المحادثة إلى الموظف.'
         : 'تم إلغاء إسناد المحادثة.'
     );
+
   } catch (error) {
     showToast(
       `تعذر إسناد المحادثة: ${error.message}`,
@@ -677,16 +931,22 @@ async function assignConversation() {
     );
 
     const item = conversations.find(
-      x => x.id === activeConversationId
+      conversation => conversation.id === activeConversationId
     );
 
     if (item) {
-      $('#assigneeSelect').value = item.assigned_to || '';
+      $('#assigneeSelect').value =
+        item.assigned_to || '';
     }
+
   } finally {
-    button.disabled = staffProfile?.role === 'staff';
+    button.disabled = isStaff();
   }
 }
+
+// =====================================================
+// تغيير حالة المحادثة
+// =====================================================
 
 async function updateConversationStatus() {
   if (!activeConversationId) return;
@@ -694,25 +954,32 @@ async function updateConversationStatus() {
   const status = $('#threadStatus').value;
 
   const activeItem = conversations.find(
-    x => x.id === activeConversationId
+    item => item.id === activeConversationId
   );
 
   if (
-    staffProfile?.role === 'staff' &&
+    isStaff() &&
     activeItem?.assigned_to &&
     activeItem.assigned_to !== staffUser.id
   ) {
-    showToast('هذه المحادثة مسندة إلى موظف آخر.', 'error');
+    showToast(
+      'هذه المحادثة مسندة إلى موظف آخر.',
+      'error'
+    );
 
     $('#threadStatus').value = activeItem.status;
+
     return;
   }
 
-  const { error } = await supabase
+  const {
+    error
+  } = await supabase
     .from('laila_conversations')
     .update({
       status,
       needs_staff: status === 'waiting_staff',
+
       ...(status === 'in_progress'
         ? { assigned_to: staffUser.id }
         : {})
@@ -720,7 +987,11 @@ async function updateConversationStatus() {
     .eq('id', activeConversationId);
 
   if (error) {
-    showToast(`تعذر تغيير الحالة: ${error.message}`, 'error');
+    showToast(
+      `تعذر تغيير الحالة: ${error.message}`,
+      'error'
+    );
+
     return;
   }
 
@@ -729,7 +1000,10 @@ async function updateConversationStatus() {
   showToast('تم تحديث حالة المحادثة.');
 }
 
+// =====================================================
 // إحصائيات الفريق
+// =====================================================
+
 async function loadTeamStats() {
   if (!isAdmin()) {
     setFormMessage(
@@ -737,6 +1011,7 @@ async function loadTeamStats() {
       'متابعة أداء الفريق متاحة للإدارة فقط.',
       'error'
     );
+
     return;
   }
 
@@ -746,9 +1021,14 @@ async function loadTeamStats() {
   );
 
   try {
-    const { data, error } = await supabase.rpc(
+    const {
+      data,
+      error
+    } = await supabase.rpc(
       'laila_get_team_stats',
-      { p_days: 30 }
+      {
+        p_days: 30
+      }
     );
 
     if (error) throw error;
@@ -764,13 +1044,20 @@ async function loadTeamStats() {
             <td>${Number(row.closed_count || 0)}</td>
           </tr>
         `).join('')
-      : '<tr><td colspan="4" class="empty-state">لا توجد بيانات للفريق خلال آخر 30 يومًا.</td></tr>';
+      : `
+          <tr>
+            <td colspan="4" class="empty-state">
+              لا توجد بيانات للفريق خلال آخر 30 يومًا.
+            </td>
+          </tr>
+        `;
 
     setFormMessage(
       $('#teamStatsMessage'),
       'الإحصائيات لآخر 30 يومًا.',
       'success'
     );
+
   } catch (error) {
     setFormMessage(
       $('#teamStatsMessage'),
@@ -780,9 +1067,15 @@ async function loadTeamStats() {
   }
 }
 
-// إعدادات ليلى
+// =====================================================
+// تحميل إعدادات ليلى
+// =====================================================
+
 async function loadSettings() {
-  const { data, error } = await supabase
+  const {
+    data,
+    error
+  } = await supabase
     .from('laila_settings')
     .select('*')
     .eq('id', true)
@@ -790,12 +1083,25 @@ async function loadSettings() {
 
   if (error) throw error;
 
-  $('#assistantName').value = data.assistant_name || 'ليلى';
-  $('#welcomeMessage').value = data.welcome_message || '';
-  $('#workingHours').value = data.working_hours_text || '';
-  $('#fallbackMessage').value = data.fallback_message || '';
-  $('#assistantEnabled').checked = Boolean(data.assistant_enabled);
+  $('#assistantName').value =
+    data.assistant_name || 'ليلى';
+
+  $('#welcomeMessage').value =
+    data.welcome_message || '';
+
+  $('#workingHours').value =
+    data.working_hours_text || '';
+
+  $('#fallbackMessage').value =
+    data.fallback_message || '';
+
+  $('#assistantEnabled').checked =
+    Boolean(data.assistant_enabled);
 }
+
+// =====================================================
+// حفظ إعدادات ليلى
+// =====================================================
 
 async function saveSettings(event) {
   event.preventDefault();
@@ -803,6 +1109,7 @@ async function saveSettings(event) {
   const button = $('#saveSettingsButton');
 
   setBusy(button, true);
+
   setFormMessage($('#settingsMessage'), '');
 
   try {
@@ -823,7 +1130,9 @@ async function saveSettings(event) {
       throw new Error('املأ جميع الحقول المطلوبة.');
     }
 
-    const { error } = await supabase
+    const {
+      error
+    } = await supabase
       .from('laila_settings')
       .update(payload)
       .eq('id', true);
@@ -837,16 +1146,22 @@ async function saveSettings(event) {
     );
 
     showToast('تم تحديث إعدادات ليلى.');
+
   } catch (error) {
     setFormMessage(
       $('#settingsMessage'),
       `تعذر حفظ الإعدادات: ${error.message}`,
       'error'
     );
+
   } finally {
     setBusy(button, false);
   }
 }
+
+// =====================================================
+// تفعيل إشعارات المتصفح
+// =====================================================
 
 async function enableNotifications() {
   if (!('Notification' in window)) {
@@ -854,21 +1169,27 @@ async function enableNotifications() {
       'هذا المتصفح لا يدعم إشعارات سطح المكتب.',
       'error'
     );
+
     return;
   }
 
   try {
-    const permission = await Notification.requestPermission();
+    const permission =
+      await Notification.requestPermission();
 
     if (permission === 'granted') {
       showToast('تم تفعيل إشعارات الرسائل الجديدة.');
-      $('#notificationButton').textContent = 'التنبيهات مفعّلة';
+
+      $('#notificationButton').textContent =
+        'التنبيهات مفعّلة';
+
     } else {
       showToast(
         'لم يتم السماح بالإشعارات. ستبقى التنبيهات داخل اللوحة.',
         'error'
       );
     }
+
   } catch (error) {
     showToast(
       `تعذر تفعيل الإشعارات: ${error.message}`,
@@ -877,43 +1198,60 @@ async function enableNotifications() {
   }
 }
 
+// =====================================================
 // التنقل بين تبويبات لوحة التحكم
+// =====================================================
+
 function wireTabs() {
   document.querySelectorAll('[data-tab]').forEach(button => {
     button.addEventListener('click', () => {
       document.querySelectorAll('[data-tab]').forEach(tab => {
-        tab.classList.toggle('active', tab === button);
+        tab.classList.toggle(
+          'active',
+          tab === button
+        );
       });
 
       const selected = button.dataset.tab;
 
-      $('#inboxTab').hidden = selected !== 'inbox';
-      $('#teamTab').hidden = selected !== 'team';
-      $('#settingsTab').hidden = selected !== 'settings';
+      $('#inboxTab').hidden =
+        selected !== 'inbox';
+
+      $('#teamTab').hidden =
+        selected !== 'team';
+
+      $('#settingsTab').hidden =
+        selected !== 'settings';
 
       if (selected === 'team') {
         void loadTeamStats();
       }
 
       if (selected === 'settings') {
-        loadSettings().catch(error =>
+        loadSettings().catch(error => {
           setFormMessage(
             $('#settingsMessage'),
             `تعذر تحميل إعدادات ليلى: ${error.message}`,
             'error'
-          )
-        );
+          );
+        });
       }
     });
   });
 }
 
+// =====================================================
 // تشغيل مساحة العمل
+// =====================================================
+
 async function startWorkspace() {
-  if (!supabase || !await verifyStaff()) return;
+  if (!supabase || !await verifyStaff()) {
+    return;
+  }
 
   try {
     await loadReferenceData();
+
   } catch (error) {
     showToast(
       `تعذر تحميل بيانات الموظفين والفروع: ${error.message}`,
@@ -921,26 +1259,30 @@ async function startWorkspace() {
     );
   }
 
-  // إخفاء تبويب الفريق عن الموظف العادي فقط
-  $('#teamTabButton').hidden = staffProfile?.role === 'staff';
+  // إخفاء تبويب الفريق عن الموظف العادي
+  $('#teamTabButton').hidden = isStaff();
 
   await Promise.all([
     loadConversationList(),
-    loadSettings().catch(error =>
+
+    loadSettings().catch(error => {
       setFormMessage(
         $('#settingsMessage'),
         `تعذر تحميل إعدادات ليلى: ${error.message}`,
         'error'
-      )
-    )
+      );
+    })
   ]);
 
   if (pollHandle) {
     clearInterval(pollHandle);
   }
 
+  // تحديث المحادثات كل 15 ثانية
   pollHandle = setInterval(async () => {
-    await loadConversationList({ notify: true });
+    await loadConversationList({
+      notify: true
+    });
 
     if (activeConversationId) {
       await loadThreadMessages();
@@ -951,18 +1293,76 @@ async function startWorkspace() {
     'Notification' in window &&
     Notification.permission === 'granted'
   ) {
-    $('#notificationButton').textContent = 'التنبيهات مفعّلة';
+    $('#notificationButton').textContent =
+      'التنبيهات مفعّلة';
   }
 }
 
+// =====================================================
+// إيقاف التحديث الدوري
+// =====================================================
+
+function stopWorkspacePolling() {
+  if (pollHandle) {
+    clearInterval(pollHandle);
+    pollHandle = null;
+  }
+}
+
+// =====================================================
+// تسجيل الخروج
+// =====================================================
+
+async function signOut() {
+  stopWorkspacePolling();
+
+  try {
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) throw error;
+    }
+
+  } catch (error) {
+    showToast(
+      `تعذر تسجيل الخروج: ${error.message}`,
+      'error'
+    );
+  }
+
+  staffUser = null;
+  staffProfile = null;
+
+  conversations = [];
+  latestByConversation.clear();
+
+  activeConversationId = null;
+  activeMessages = [];
+
+  hasLoadedList = false;
+
+  showLogin();
+}
+
+// =====================================================
+// ربط أحداث الصفحة
+// =====================================================
+
 function wireEvents() {
-  $('#loginForm').addEventListener('submit', signIn);
+  $('#loginForm').addEventListener(
+    'submit',
+    signIn
+  );
 
   $('#conversationList').addEventListener('click', event => {
-    const button = event.target.closest('[data-open-conversation]');
+    const button = event.target.closest(
+      '[data-open-conversation]'
+    );
 
     if (button) {
-      void openConversation(button.dataset.openConversation);
+      void openConversation(
+        button.dataset.openConversation
+      );
     }
   });
 
@@ -972,8 +1372,12 @@ function wireEvents() {
     'branchFilter',
     'assigneeFilter'
   ].forEach(id => {
-    $('#' + id).addEventListener(
-      id === 'conversationSearch' ? 'input' : 'change',
+    const element = $('#' + id);
+
+    element.addEventListener(
+      id === 'conversationSearch'
+        ? 'input'
+        : 'change',
       renderConversationList
     );
   });
@@ -993,7 +1397,10 @@ function wireEvents() {
     loadTeamStats
   );
 
-  $('#replyForm').addEventListener('submit', sendStaffReply);
+  $('#replyForm').addEventListener(
+    'submit',
+    sendStaffReply
+  );
 
   $('#threadStatus').addEventListener(
     'change',
@@ -1015,61 +1422,81 @@ function wireEvents() {
     enableNotifications
   );
 
-  $('#logoutButton').addEventListener('click', async () => {
-    await supabase?.auth.signOut();
-
-    if (pollHandle) {
-      clearInterval(pollHandle);
-    }
-
-    staffUser = null;
-    staffProfile = null;
-
-    showLogin();
-  });
+  $('#logoutButton').addEventListener(
+    'click',
+    signOut
+  );
 
   wireTabs();
 }
 
+// =====================================================
+// تشغيل الملف والتحقق من الجلسة
+// =====================================================
+
 async function boot() {
   wireEvents();
 
-  if (!configured) {
+  if (!configured || !supabase) {
     showLogin();
 
     setFormMessage(
       $('#loginMessage'),
-      'إعدادات Supabase غير مكتملة في dashboard/supabase-config.js.',
+      'إعدادات Supabase غير مكتملة في ملف supabase-client.js.',
       'error'
     );
 
     return;
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data,
+    error
+  } = await supabase.auth.getSession();
 
-  if (session) {
+  if (error) {
+    throw error;
+  }
+
+  if (data.session) {
     await startWorkspace();
+
   } else {
     showLogin();
   }
 
-  supabase.auth.onAuthStateChange((_event, sessionNow) => {
-    if (!sessionNow) {
-      if (pollHandle) {
-        clearInterval(pollHandle);
+  // متابعة تغيّر حالة تسجيل الدخول
+  supabase.auth.onAuthStateChange(
+    (_event, sessionNow) => {
+      if (!sessionNow) {
+        stopWorkspacePolling();
+
+        staffUser = null;
+        staffProfile = null;
+
+        conversations = [];
+        latestByConversation.clear();
+
+        activeConversationId = null;
+        activeMessages = [];
+
+        hasLoadedList = false;
+
+        showLogin();
       }
-
-      staffUser = null;
-      staffProfile = null;
-
-      showLogin();
     }
-  });
+  );
 }
 
+// =====================================================
+// بدء التشغيل
+// =====================================================
+
 boot().catch(error => {
-  console.error(error);
+  console.error(
+    'خطأ أثناء تشغيل صندوق محادثات ليلى:',
+    error
+  );
 
   showToast(
     `حدث خطأ أثناء تشغيل صندوق ليلى: ${error.message}`,

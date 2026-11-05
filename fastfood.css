@@ -16,13 +16,13 @@
     --grill-primary-dark: #4b0a06;
     --grill-primary-light: #482016;
 
-    --grill-gold: #ffcf82;
+    --grill-gold: #f5c66b;
     --grill-gold-light: #eed0bb;
 
-    --grill-background: #3b0805;
+    --grill-background: #32130f;
     --grill-card: #fff5e9;
-    --grill-text: #c58d4d;
-    --grill-muted: #866b5c;
+    --grill-text: #f5c66b;
+    --grill-muted: #f5c66b;
     --grill-light-text: #fff0df;
     --grill-border: #e8c9a9;
 
@@ -2970,50 +2970,13 @@ input[type="number"],
    30. زر تغيير طريقة العرض
 ========================================================= */
 
-.view-toggle-btn.glass-effect {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
 
-    width: 46px;
-    height: 46px;
-    padding: 0;
 
-    color: #741f1f;
-    background: rgba(255, 255, 255, .16);
 
-    border: 1px solid rgba(255, 255, 255, .35);
-    border-radius: 14px;
 
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 
-    box-shadow:
-        0 6px 18px rgba(0, 0, 0, .08),
-        inset 0 1px 0 rgba(255, 255, 255, .35);
 
-    cursor: pointer;
 
-    transition:
-        background .25s ease,
-        transform .25s ease,
-        box-shadow .25s ease;
-}
-
-.view-toggle-btn.glass-effect:hover {
-    background: rgba(255, 255, 255, .3);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
-}
-
-.view-toggle-btn.glass-effect:active {
-    transform: scale(.96);
-}
-
-.view-toggle-btn.glass-effect svg {
-    width: 22px;
-    height: 22px;
-}
 
 
 /* =========================================================
