@@ -1,978 +1,2117 @@
-/* =====================================================
-   مطعم الغنّام — فرع الفلافل
-   الملف الرئيسي: falafel.js
 
-   الوظائف:
-   1. عرض المنتجات والتصنيفات والبحث
-   2. توحيد التصنيفات ومنع تكرار الأقسام
-   3. تبديل عرض المنتجات بين البطاقات والأفقي
-   4. حفظ طريقة العرض المختارة
-   5. إدارة السلة والكميات
-   6. اقتراح الإضافات والمشروبات
-   7. كود الخصم GHANNAM15
-   8. إرسال الطلب عبر واتساب
-   9. تشغيل صوت عند إضافة منتج
-===================================================== */
+/* =========================================================
+   مطعم الغنّام — فرع الفلافل
+   FALAFEL BRANCH — DATABASE DRIVEN
+
+   FEATURES:
+   - Supabase categories / products / offers
+   - Full Arabic / English interface
+   - RTL / LTR automatic direction
+   - Static page translation
+   - Settings panel translation
+   - Search and category navigation
+   - Grid / horizontal product view
+   - Cart and quantity management
+   - Suggested add-ons
+   - Coupon GHANNAM15
+   - WhatsApp ordering
+   - Add-to-cart bell sound
+========================================================= */
 
 (() => {
-  "use strict";
+    "use strict";
 
-  /* 1. الإعدادات العامة */
-  const STORAGE_KEY = "alghannam_falafel_cart_v1";
-  const COUPON_KEY = "alghannam_falafel_coupon_v1";
-  const PRODUCT_VIEW_KEY = "alghannam_falafel_product_view";
-  const LANGUAGE_KEY = "alghannam_fastfood_language";
+    /* =====================================================
+       01 — SETTINGS
+    ===================================================== */
 
-  const WHATSAPP_NUMBERS = ["07760000552", "07860000556"];
-  const COUPON_CODE = "GHANNAM15";
-  const COUPON_RATE = 0.15;
-  const IMAGE_FOLDER = "falafel/imagefalafel/";
+    const BRANCH_ID = "falafel";
 
-  const CATEGORY = Object.freeze({
-    FALAFEL: "الفلافل",
-    BURGER: "البركر",
-    EXTRAS: "الإضافات",
-    DRINKS: "المشروبات"
-  });
+    const STORAGE_KEY = "alghannam_falafel_cart_v2";
+    const COUPON_KEY = "alghannam_falafel_coupon_v1";
+    const PRODUCT_VIEW_KEY = "alghannam_falafel_product_view";
+    const LANGUAGE_KEY = "alghannam_fastfood_language";
 
-  /* 2. المنتجات */
-  const products = [
-    { id: "falafel-wrap", name: "لفة فلافل", price: 1000, category: CATEGORY.FALAFEL, image: "falafel1.png" },
-    { id: "falafel-saj", name: "صاج فلافل", price: 1500, category: CATEGORY.FALAFEL, image: "falafel2.png" },
-    { id: "falafel-12", name: "حب فلافل 12", price: 1000, category: CATEGORY.FALAFEL, image: "falafel3.png" },
-    { id: "falafel-meal-medium", name: "وجبة فلافل وسط", price: 3000, category: CATEGORY.FALAFEL, image: "falafel4.png" },
-    { id: "falafel-meal-double", name: "وجبة فلافل دبل", price: 5000, category: CATEGORY.FALAFEL, image: "falafel5.png" },
-    { id: "falafel-dough", name: "عجين فلافل", price: 1500, category: CATEGORY.FALAFEL, image: "falafel6.png" },
-
-    { id: "burger-beef", name: "بركر لحم", price: 2500, category: CATEGORY.BURGER, image: "berger1.png" },
-    { id: "burger-chicken", name: "بركر دجاج", price: 2500, category: CATEGORY.BURGER, image: "pro1.png" },
-    { id: "burger-super-beef", name: "بركر سوبر لحم", price: 3500, category: CATEGORY.BURGER, image: "pro2.png" },
-    { id: "burger-super-chicken", name: "بركر سوبر دجاج", price: 3500, category: CATEGORY.BURGER, image: "pro3.png" },
-    { id: "burger-meal-beef", name: "وجبة بركر لحم", price: 4000, category: CATEGORY.BURGER, image: "pro4.png" },
-    { id: "burger-meal-chicken", name: "وجبة بركر دجاج", price: 4000, category: CATEGORY.BURGER, image: "pro5.png" },
-
-    { id: "fries-cup", name: "قدح بطاطا", price: 1000, category: CATEGORY.EXTRAS, image: "pro6.png" },
-    { id: "fries-box", name: "معون بطاطا", price: 2500, category: CATEGORY.EXTRAS, image: "pro7.png" },
-    { id: "salad-box", name: "معون زلاطة", price: 1000, category: CATEGORY.EXTRAS, image: "pro8.png" },
-    { id: "eggplant-box", name: "معون بيتتجان", price: 1500, category: CATEGORY.EXTRAS, image: "pro9.png" },
-    { id: "stone-bread-8", name: "صمون حجري 8", price: 1000, category: CATEGORY.EXTRAS, image: "pro10.png" },
-    { id: "stone-bread-4", name: "صمون حجري 4", price: 500, category: CATEGORY.EXTRAS, image: "pro11.png" },
-    { id: "stone-bread-2", name: "صمون حجري 2", price: 250, category: CATEGORY.EXTRAS, image: "pro12.png" },
-
-    { id: "pepsi", name: "بيسي", price: 500, category: CATEGORY.DRINKS, image: "pro13.png" },
-    { id: "seven", name: "سفن", price: 500, category: CATEGORY.DRINKS, image: "pro14.png" },
-    { id: "lemon", name: "لين", price: 500, category: CATEGORY.DRINKS, image: "pro15.png" },
-    { id: "water", name: "ماء", price: 250, category: CATEGORY.DRINKS, image: "pro16.png" }
-  ];
-
-  /* 3. الأدوات العامة */
-  const $ = (selector, root = document) => root.querySelector(selector);
-  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
-  const money = value => {
-    const amount = Math.max(0, Math.round(Number(value) || 0));
-    return currentLanguage === "en"
-      ? `${amount.toLocaleString("en-US")} IQD`
-      : `${amount.toLocaleString("en-US")} د.ع`;
-  };
-
-  const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  })[char]);
-
-  // تحديد اللغة قبل بناء قاموس النصوص حتى لا يتوقف الملف عند بدء التشغيل.
-  let currentLanguage = safeStorageGet(LANGUAGE_KEY, "ar") === "en" ? "en" : "ar";
-
-  const ui = {
-    ar: {
-      pageTitle: "مطعم الغنّام | فرع الفلافل",
-      pageDescription: "منيو مطعم الغنّام - فرع الفلافل، وجبات طازجة وطلبات عبر واتساب",
-      search: "ابحث عن وجبتك المفضلة...", searchAria: "ابحث عن وجبتك المفضلة",
-      backHome: "العودة إلى الرئيسية", menu: "المنيو", mainNav: "التنقل الرئيسي",
-      headerActions: "إعدادات الموقع", changeLanguage: "تغيير اللغة", openMenu: "فتح القائمة",
-      menuSearch: "البحث في المنيو", categories: "أقسام المنيو", viewSettings: "إعدادات عرض المنيو",
-      switchList: "التبديل إلى العرض الأفقي", switchGrid: "التبديل إلى عرض البطاقات",
-      list: "العرض الأفقي", grid: "عرض البطاقات", products: "المنتجات", loadingMenu: "جارٍ تحميل المنيو...",
-      add: "أضف إلى السلة", addAgain: "إضافة أخرى", emptySearch: "ما لقينا منتجات تطابق بحثك.",
-      item: "صنف", items: "أصناف", inCart: "في السلة", emptyCart: "لا توجد منتجات في السلة",
-      cartButton: "عرض السلة", cartTitle: "سلة مشترياتك 🛒", currentOrder: "طلبك الحالي",
-      addToOrder: "أضف إلى طلبك", menuExtras: "إضافات من المنيو", swipe: "اسحب للتصفح ←",
-      addAddon: "أضف للسلة", noAddons: "أضفتِ كل الإضافات والمشروبات المتاحة.",
-      empty: "السلة فارغة، اختاري المنتجات اللي تحبينها.", decrease: "تقليل الكمية",
-      increase: "زيادة الكمية", remove: "حذف المنتج", coupon: "كود الخصم", couponPlaceholder: "أدخل كود الخصم",
-      apply: "تطبيق", enterCoupon: "أدخلي كود الخصم أولاً.", invalidCoupon: "الكود غير صحيح.",
-      applied: "تم تطبيق خصم 15% بنجاح.", addFirst: "أضيفي منتجات إلى السلة أولاً.",
-      subtotal: "المجموع الفرعي", discount: "الخصم", grandTotal: "الإجمالي النهائي", total: "الإجمالي",
-      customerInfo: "معلومات الزبون", name: "الاسم", fullName: "الاسم الكامل", phone: "رقم الهاتف",
-      address: "العنوان", addressPlaceholder: "منطقة السكن وأقرب نقطة دالة", extraNotes: "ملاحظات إضافية",
-      notesPlaceholder: "أي ملاحظات على الطلب", sendWhatsApp: "إرسال الطلب عبر واتساب",
-      continueShopping: "مواصلة التسوق", closeCart: "إغلاق السلة",
-      cartEmptyOrder: "أضيفي منتجاً واحداً على الأقل قبل إرسال الطلب.",
-      openingWhatsApp: "سيتم فتح واتساب لإكمال إرسال الطلب.",
-      whatsappError: "تعذر فتح واتساب. اسمحي بفتح النوافذ المنبثقة ثم حاولي مجدداً.",
-      savedCoupon: "كود GHANNAM15 محفوظ: خصم 15%.", couponNeedItems: "أضيفي منتجات إلى السلة أولاً.",
-      orderTitle: "طلب جديد — مطعم الغنّام / فرع الفلافل", details: "تفاصيل الطلب", noCoupon: "لا يوجد",
-      noNotes: "لا توجد", branchNumbers: "أرقام الفرع", menuPanel: "القائمة", navigation: "التنقل",
-      homePage: "الصفحة الرئيسية", backBranches: "العودة إلى صفحة الفروع", foodMenu: "قائمة الطعام",
-      goMenu: "الانتقال إلى المنيو", shoppingCart: "سلة المشتريات", showItemsTotal: "عرض المنتجات والإجمالي",
-      restaurantInfo: "معلومات المطعم", restaurant: "مطعم الغنّام", branch: "فرع الفلافل",
-      currency: "العملة", currencyName: "الدينار العراقي (د.ع)", help: "المساعدة والشكاوى",
-      helpDesc: "للاستفسارات وتقديم الشكاوى", branchPhones: "أرقام الفرع", location: "موقع الفرع",
-      locationAddress: "الإعلام، سوق أميمة، مقابل جامع المصطفى", closeMenu: "إغلاق القائمة",
-      allPrices: "جميع الأسعار بالدينار العراقي", contactUs: "تواصل معنا",
-      orderName: "الاسم", orderPhone: "الهاتف", orderAddress: "العنوان", discountCode: "كود الخصم",
-      notes: "ملاحظات", noItems: "لا توجد", noCouponText: "لا يوجد",
-      logoAlt: "شعار مطعم الغنّام", closeSideMenu: "إغلاق القائمة",
-      locationPrefix: "الإعلام، سوق أميمة، مقابل جامع المصطفى",
-      footerHome: "العودة إلى الصفحة الرئيسية", couponApplied: "تم تطبيق الخصم",
-      loadingAddons: "جارٍ تحميل الإضافات...", searchProducts: "ابحث عن وجبتك المفضلة..."
-    },
-    en: {
-      pageTitle: "Al Ghannam Restaurant | Falafel Branch",
-      pageDescription: "Al Ghannam Restaurant menu – Falafel Branch. Fresh meals and WhatsApp orders.",
-      search: "Search for your favorite meal...", searchAria: "Search for your favorite meal",
-      backHome: "Back to Home", menu: "Menu", mainNav: "Main navigation",
-      headerActions: "Site settings", changeLanguage: "Change language", openMenu: "Open menu",
-      menuSearch: "Search the menu", categories: "Menu categories", viewSettings: "Menu display settings",
-      switchList: "Switch to horizontal view", switchGrid: "Switch to grid view",
-      list: "Horizontal view", grid: "Grid view", products: "Products", loadingMenu: "Loading menu...",
-      add: "Add to Cart", addAgain: "Add another", emptySearch: "No products match your search.",
-      item: "item", items: "items", inCart: "in cart", emptyCart: "Your cart is empty",
-      cartButton: "View Cart", cartTitle: "Your Shopping Cart 🛒", currentOrder: "Your Order",
-      addToOrder: "Add to Your Order", menuExtras: "Menu add-ons", swipe: "Swipe to browse →",
-      addAddon: "Add to Cart", noAddons: "You have added all available extras and drinks.",
-      empty: "Your cart is empty. Choose the items you like.", decrease: "Decrease quantity",
-      increase: "Increase quantity", remove: "Remove item", coupon: "Discount Code", couponPlaceholder: "Enter discount code",
-      apply: "Apply", enterCoupon: "Please enter the discount code first.", invalidCoupon: "Invalid discount code.",
-      applied: "15% discount applied successfully.", addFirst: "Add products to your cart first.",
-      subtotal: "Subtotal", discount: "Discount", grandTotal: "Grand Total", total: "Total",
-      customerInfo: "Customer Information", name: "Name", fullName: "Full name", phone: "Phone Number",
-      address: "Address", addressPlaceholder: "Your area and nearest landmark", extraNotes: "Additional Notes",
-      notesPlaceholder: "Any notes about your order", sendWhatsApp: "Send Order via WhatsApp",
-      continueShopping: "Continue Shopping", closeCart: "Close cart", cartEmptyOrder: "Add at least one item before submitting your order.",
-      openingWhatsApp: "Opening WhatsApp to complete your order.",
-      whatsappError: "Could not open WhatsApp. Allow pop-ups and try again.",
-      savedCoupon: "GHANNAM15 saved: 15% discount.", couponNeedItems: "Add products to your cart first.",
-      orderTitle: "New Order — Al Ghannam Restaurant / Falafel Branch", details: "Order Details", noCoupon: "None",
-      noNotes: "None", branchNumbers: "Branch Numbers", menuPanel: "Menu", navigation: "Navigation",
-      homePage: "Home Page", backBranches: "Back to branches", foodMenu: "Food Menu",
-      goMenu: "Go to Menu", shoppingCart: "Shopping Cart", showItemsTotal: "View items and total",
-      restaurantInfo: "Restaurant Information", restaurant: "Al Ghannam Restaurant", branch: "Falafel Branch",
-      currency: "Currency", currencyName: "Iraqi Dinar (IQD)", help: "Help & Complaints",
-      helpDesc: "For inquiries and complaints", branchPhones: "Branch Phone Numbers", location: "Branch Location",
-      locationAddress: "Al-I'lam, Umayma Market, opposite Al-Mustafa Mosque", closeMenu: "Close Menu",
-      allPrices: "All prices are in Iraqi dinars", contactUs: "Contact Us",
-      orderName: "Name", orderPhone: "Phone", orderAddress: "Address", discountCode: "Discount Code",
-      notes: "Notes", noItems: "None", noCouponText: "None",
-      logoAlt: "Al Ghannam Restaurant logo", closeSideMenu: "Close menu",
-      locationPrefix: "Al-I'lam, Umayma Market, opposite Al-Mustafa Mosque",
-      footerHome: "Back to the Home Page", couponApplied: "Discount applied",
-      loadingAddons: "Loading add-ons...", searchProducts: "Search for your favorite meal..."
-    }
-  };
-  const t = key => ui[currentLanguage][key] ?? ui.ar[key] ?? key;
-  const localEnglishProducts = {
-    "falafel-wrap": ["Falafel Wrap", "Fresh falafel wrapped with vegetables and sauce"],
-    "falafel-saj": ["Falafel Saj", "Fresh falafel saj sandwich"],
-    "falafel-12": ["12 Falafel Pieces", "Twelve pieces of falafel"],
-    "falafel-meal-medium": ["Medium Falafel Meal", "Medium falafel meal"],
-    "falafel-meal-double": ["Double Falafel Meal", "Double falafel meal"],
-    "falafel-dough": ["Falafel Dough", "Fresh falafel mixture"],
-    "burger-beef": ["Beef Burger", "Beef burger with vegetables and sauce"],
-    "burger-chicken": ["Chicken Burger", "Chicken burger with vegetables and sauce"],
-    "burger-super-beef": ["Super Beef Burger", "Large beef burger with extra toppings"],
-    "burger-super-chicken": ["Super Chicken Burger", "Large chicken burger with extra toppings"],
-    "burger-meal-beef": ["Beef Burger Meal", "Beef burger meal"],
-    "burger-meal-chicken": ["Chicken Burger Meal", "Chicken burger meal"],
-    "fries-cup": ["Cup of Fries", "Fresh potato fries"],
-    "fries-box": ["Box of Fries", "A large box of potato fries"],
-    "salad-box": ["Salad Box", "Fresh salad"],
-    "eggplant-box": ["Eggplant Side", "Eggplant side dish"],
-    "stone-bread-8": ["Stone Bread (8 pieces)", "Eight pieces of stone bread"],
-    "stone-bread-4": ["Stone Bread (4 pieces)", "Four pieces of stone bread"],
-    "stone-bread-2": ["Stone Bread (2 pieces)", "Two pieces of stone bread"],
-    "pepsi": ["Pepsi", "Pepsi soft drink"],
-    "seven": ["7UP", "7UP soft drink"],
-    "lemon": ["Lemon Drink", "Lemon-flavoured soft drink"],
-    "water": ["Water", "Bottled water"]
-  };
-  const localEnglishCategories = {
-    [CATEGORY.FALAFEL]: "Falafel",
-    [CATEGORY.BURGER]: "Burgers",
-    [CATEGORY.EXTRAS]: "Sides & Extras",
-    [CATEGORY.DRINKS]: "Drinks"
-  };
-  const productName = product => currentLanguage === "en"
-    ? (product.name_en || localEnglishProducts[product.id]?.[0] || product.name_ar || product.name || "")
-    : (product.name_ar || product.name || "");
-  const productDescription = product => currentLanguage === "en"
-    ? (product.description_en || localEnglishProducts[product.id]?.[1] || product.description_ar || product.description || "")
-    : (product.description_ar || product.description || "");
-  const categoryName = category => currentLanguage === "en"
-    ? (categoryEnglish.get(category) || localEnglishCategories[category] || category)
-    : category;
-
-  function applyStaticTranslations() {
-    const isEnglish = currentLanguage === "en";
-    document.documentElement.lang = currentLanguage;
-    document.documentElement.dir = isEnglish ? "ltr" : "rtl";
-    document.body.classList.toggle("language-en", isEnglish);
-
-    // اتجاهات ومحاذاة العناصر الرئيسية تتبدل مع اللغة أيضاً.
-    let directionStyle = document.getElementById("falafelLanguageDirectionStyle");
-    if (!directionStyle) {
-      directionStyle = document.createElement("style");
-      directionStyle.id = "falafelLanguageDirectionStyle";
-      document.head.appendChild(directionStyle);
-    }
-    directionStyle.textContent = isEnglish ? `
-      html[dir="ltr"] body.language-en { direction: ltr; }
-      html[dir="ltr"] .site-header,
-      html[dir="ltr"] .main-nav,
-      html[dir="ltr"] .header-actions,
-      html[dir="ltr"] .settings-panel,
-      html[dir="ltr"] .settings-panel-content,
-      html[dir="ltr"] .cart-modal,
-      html[dir="ltr"] .site-footer { direction: ltr; }
-      html[dir="ltr"] .site-footer,
-      html[dir="ltr"] .settings-panel-content { text-align: left; }
-      html[dir="ltr"] .settings-menu-item,
-      html[dir="ltr"] .settings-info-card,
-      html[dir="ltr"] .settings-compact-card { direction: ltr; }
-    ` : "";
-
-    document.title = t("pageTitle");
-
-    const description = $('meta[name="description"]');
-    if (description) description.content = t("pageDescription");
-
-    const set = (selector, key) => {
-      const el = $(selector);
-      if (el) el.textContent = t(key);
-    };
-    const attr = (selector, name, key) => {
-      const el = $(selector);
-      if (el) el.setAttribute(name, t(key));
-    };
-
-    // Header and page loader
-    const langButton = $("#languageToggle");
-    if (langButton) {
-      langButton.textContent = isEnglish ? "AR" : "EN";
-      langButton.setAttribute("aria-label", isEnglish ? "Switch to Arabic" : "تغيير اللغة");
-      langButton.title = isEnglish ? "Switch to Arabic" : "تغيير اللغة";
-    }
-    set(".brand-copy strong", "restaurant");
-    set(".brand-copy small", "branch");
-    attr(".brand", "aria-label", "backHome");
-    const logo = $(".brand img");
-    if (logo) logo.alt = t("logoAlt");
-    attr(".main-nav", "aria-label", "mainNav");
-    attr(".header-actions", "aria-label", "headerActions");
-    attr("#openSettingsPanel", "aria-label", "openMenu");
-    attr("#closeSettingsPanel", "aria-label", "closeSideMenu");
-    set("#pageLoader .loader-content p", "restaurant");
-    const loaderHint = $("#pageLoader .loader-content span");
-    if (loaderHint) loaderHint.textContent = isEnglish ? "Please wait..." : "يرجى الانتظار...";
-
-    const navLinks = $$(".main-nav-link");
-    if (navLinks[0]) navLinks[0].textContent = t("backHome");
-    if (navLinks[1]) navLinks[1].textContent = t("menu");
-
-    // Search, categories and product view controls
-    attr(".menu-tools", "aria-label", "menuSearch");
-    attr("#falafelSearch", "aria-label", "searchAria");
-    if (searchInput) searchInput.placeholder = t("search");
-    attr("#categoryNav", "aria-label", "categories");
-    attr(".menu-heading-row", "aria-label", "viewSettings");
-    attr("#menu", "aria-label", "products");
-    if (viewToggleButton) updateProductView(getSavedProductView());
-
-    // Cart bar and cart dialog
-    attr("#fixedCartBar", "aria-label", "cartButton");
-    attr("#closeCartModal", "aria-label", "closeCart");
-    set(".fixed-cart-label strong", "cartButton");
-    set("#cartModalTitle", "cartTitle");
-    set(".cart-modal-header p", "branch");
-    set(".popup-section-title", "currentOrder");
-    set("#cartAddonsTitle", "addToOrder");
-    set(".cart-addons-heading p", "menuExtras");
-    set(".cart-addons-hint", "swipe");
-    set(".coupon-box label", "coupon");
-    if (couponInput) couponInput.placeholder = t("couponPlaceholder");
-    set("#applyCouponButton", "apply");
-    attr(".coupon-summary", "aria-label", "coupon");
-    const summary = $$(".coupon-summary > div > span");
-    ["subtotal", "discount", "grandTotal"].forEach((key, i) => {
-      if (summary[i]) summary[i].textContent = t(key);
-    });
-    set(".popup-order-form h3", "customerInfo");
-    const labels = $$(".popup-order-form label");
-    ["name", "phone", "address", "extraNotes"].forEach((key, i) => {
-      if (labels[i]) labels[i].textContent = t(key);
-    });
-    const fields = [
-      ["#popupCustomerName", "fullName"],
-      ["#popupCustomerPhone", "phone"],
-      ["#popupCustomerAddress", "addressPlaceholder"],
-      ["#popupCustomerNotes", "notesPlaceholder"]
+    const WHATSAPP_NUMBERS = [
+        "07760000552",
+        "07860000556"
     ];
-    fields.forEach(([selector, key]) => {
-      const el = $(selector);
-      if (el) el.placeholder = t(key);
-    });
-    set(".popup-submit-button", "sendWhatsApp");
-    set("#continueShoppingButton", "continueShopping");
-    set(".popup-footer-total span", "total");
 
-    // Side menu: every visible heading, link, information card and footer button
-    set("#settingsPanelTitle", "menuPanel");
-    set(".settings-panel-header p", "branch");
-    const headings = $$(".settings-section-title");
-    if (headings[0]) headings[0].textContent = t("navigation");
-    if (headings[1]) headings[1].textContent = t("restaurantInfo");
-    const menuStrong = $$(".settings-menu-item strong");
-    const menuSmall = $$(".settings-menu-item small");
-    [["homePage", "backBranches"], ["foodMenu", "goMenu"], ["shoppingCart", "showItemsTotal"], ["help", "helpDesc"]]
-      .forEach(([titleKey, descKey], i) => {
-        if (menuStrong[i]) menuStrong[i].textContent = t(titleKey);
-        if (menuSmall[i]) menuSmall[i].textContent = t(descKey);
-      });
-    const infoStrong = $$(".settings-info-card strong");
-    const infoP = $$(".settings-info-card p");
-    if (infoStrong[0]) infoStrong[0].textContent = t("restaurant");
-    if (infoP[0]) infoP[0].textContent = t("branch");
-    if (infoStrong[1]) infoStrong[1].textContent = t("currency");
-    if (infoP[1]) infoP[1].textContent = t("currencyName");
-    const compactStrong = $$(".settings-compact-content > strong");
-    if (compactStrong[0]) compactStrong[0].textContent = t("branchPhones");
-    if (compactStrong[1]) compactStrong[1].textContent = t("location");
-    set(".settings-location-link small", "locationAddress");
-    set("#settingsDoneButton", "closeMenu");
+    const COUPON_CODE = "GHANNAM15";
+    const COUPON_RATE = 0.15;
 
-    // Main site footer
-    const footer = $(".site-footer");
-    if (footer) {
-      const footerPs = $$(".site-footer p");
-      if (footerPs[0]) footerPs[0].textContent = `${t("restaurant")} — ${t("branch")}`;
-      if (footerPs[1]) footerPs[1].textContent = t("locationAddress");
-      if (footerPs[2]) {
-        footerPs[2].innerHTML = `${escapeHTML(t("branchPhones"))}: <a href="tel:07760000552">07760000552</a> — <a href="tel:07860000556">07860000556</a>`;
-      }
-      if (footerPs[3]) footerPs[3].textContent = t("allPrices");
-      const footerLink = $(".site-footer > a");
-      if (footerLink) footerLink.textContent = t("footerHome");
-    }
+    const IMAGE_FOLDER = "falafel/imagefalafel/";
 
-    if (couponStatus && activeCoupon) couponStatus.textContent = t("savedCoupon");
-  }
+    /* =====================================================
+       02 — GENERAL HELPERS
+    ===================================================== */
 
-  function setLanguage(language) {
-    currentLanguage = language === "en" ? "en" : "ar";
-    safeStorageSet(LANGUAGE_KEY, currentLanguage);
-    applyStaticTranslations();
-    renderMenu();
-    renderCart();
-  }
+    const $ = (selector, root = document) =>
+        root.querySelector(selector);
 
-  $("#languageToggle")?.addEventListener("click", () => {
-    setLanguage(currentLanguage === "ar" ? "en" : "ar");
-  });
+    const $$ = (selector, root = document) =>
+        Array.from(root.querySelectorAll(selector));
 
-  const getProduct = id => products.find(product => product.id === id);
+    const escapeHTML = value =>
+        String(value ?? "").replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[char]);
 
-  // تبقى أيقونات عناوين أقسام المنيو والمنتج الاحتياطي، ولا تظهر في شريط التنقل.
-  function getCategoryIcon(category) {
-    switch (category) {
-      case CATEGORY.FALAFEL: return "";
-      case CATEGORY.BURGER: return "";
-      case CATEGORY.EXTRAS: return "";
-      case CATEGORY.DRINKS: return "";
-      default: return "";
-    }
-  }
-
-  function safeStorageGet(key, fallback = "") {
-    try { return localStorage.getItem(key) ?? fallback; }
-    catch { return fallback; }
-  }
-
-  function safeStorageSet(key, value) {
-    try { localStorage.setItem(key, value); }
-    catch (error) { console.warn("تعذر حفظ البيانات:", error); }
-  }
-
-  function safeStorageRemove(key) {
-    try { localStorage.removeItem(key); }
-    catch (error) { console.warn("تعذر حذف البيانات المحفوظة:", error); }
-  }
-
-  /* 4. عناصر الصفحة والحالة */
-  const menu = $("#falafelMenu");
-  const categoryNav = $("#categoryNav");
-  const searchInput = $("#falafelSearch");
-  const cartOverlay = $("#cartModalOverlay");
-  const fixedCartBar = $("#fixedCartBar");
-  const popupItems = $("#popupCartItems");
-  const addonsList = $("#cartAddonsList");
-  const couponInput = $("#couponCode");
-  const couponStatus = $("#couponStatus");
-  const viewToggleButton = $("#toggleProductView");
-  const viewToggleIcon = $("#viewToggleIcon");
-
-  let currentSearch = "";
-  let categoryEnglish = new Map();
-  let cart = loadCart();
-  let activeCoupon = loadCoupon();
-  let lastCartFocus = null;
-  let audioContext = null;
-
-  /* 5. إدارة السلة المحفوظة */
-  function loadCart() {
-    try {
-      const saved = JSON.parse(safeStorageGet(STORAGE_KEY, "[]"));
-      if (!Array.isArray(saved)) return [];
-      return saved.map(row => {
-        const product = getProduct(row?.id);
-        const qty = Number(row?.qty);
-        if (!product || !Number.isFinite(qty)) return null;
-        return { id: product.id, qty: Math.max(1, Math.min(99, Math.floor(qty))) };
-      }).filter(Boolean);
-    } catch { return []; }
-  }
-
-  function saveCart() { safeStorageSet(STORAGE_KEY, JSON.stringify(cart)); }
-
-  function loadCoupon() {
-    const code = safeStorageGet(COUPON_KEY, "").trim().toUpperCase();
-    return code === COUPON_CODE ? code : "";
-  }
-
-  function qtyOf(id) { return cart.find(row => row.id === id)?.qty || 0; }
-  function subtotal() {
-    return cart.reduce((sum, row) => {
-      const product = getProduct(row.id);
-      return sum + (product ? product.price * row.qty : 0);
-    }, 0);
-  }
-  function totalQty() { return cart.reduce((sum, row) => sum + row.qty, 0); }
-  function discountAmount() { return activeCoupon ? Math.round(subtotal() * COUPON_RATE) : 0; }
-  function grandTotal() { return Math.max(0, subtotal() - discountAmount()); }
-
-  /* 6. صوت الجرس عند إضافة منتج */
-  function playBellSound() {
-    try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
-      if (!audioContext || audioContext.state === "closed") audioContext = new AudioContextClass();
-
-      const play = () => {
-        const now = audioContext.currentTime;
-        [1046.5, 1318.5].forEach((frequency, index) => {
-          const oscillator = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          const start = now + index * 0.09;
-          oscillator.type = "sine";
-          oscillator.frequency.setValueAtTime(frequency, start);
-          gain.gain.setValueAtTime(0.0001, start);
-          gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.55);
-          oscillator.connect(gain);
-          gain.connect(audioContext.destination);
-          oscillator.start(start);
-          oscillator.stop(start + 0.6);
-        });
-      };
-
-      if (audioContext.state === "suspended") audioContext.resume().then(play).catch(() => {});
-      else play();
-    } catch (error) { console.warn("تعذر تشغيل صوت الجرس:", error); }
-  }
-
-  /* 7. تبديل عرض المنتجات: grid = بطاقات، list = أفقي */
-  function getSavedProductView() {
-    return safeStorageGet(PRODUCT_VIEW_KEY, "grid") === "list" ? "list" : "grid";
-  }
-
-  function updateProductView(view) {
-    if (!menu) return;
-    const isListView = view === "list";
-    menu.classList.toggle("list-view", isListView);
-
-    if (viewToggleButton) {
-      viewToggleButton.setAttribute("aria-pressed", String(isListView));
-      viewToggleButton.setAttribute("aria-label", isListView ? t("switchGrid") : t("switchList"));
-      viewToggleButton.title = isListView ? t("grid") : t("list");
-    }
-
-    if (viewToggleIcon) {
-      viewToggleIcon.innerHTML = isListView
-        ? `<rect x="3" y="3" width="7" height="7" rx="1"></rect>
-           <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-           <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-           <rect x="14" y="14" width="7" height="7" rx="1"></rect>`
-        : `<path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path>`;
-    }
-
-    safeStorageSet(PRODUCT_VIEW_KEY, isListView ? "list" : "grid");
-  }
-
-  function initializeProductView() {
-    updateProductView(getSavedProductView());
-    viewToggleButton?.addEventListener("click", () => {
-      const isCurrentlyList = menu?.classList.contains("list-view");
-      updateProductView(isCurrentlyList ? "grid" : "list");
-    });
-  }
-
-  /* 8. الصور: رابط قاعدة البيانات أولاً، ثم الصورة المحلية كاحتياط */
-  function localProductImage(product) {
-    return normalizeDatabaseImage(product.image);
-  }
-
-  function productImageSource(product) {
-    return product.databaseImageUrl || localProductImage(product);
-  }
-
-  function imageFallbackHandler() {
-    return `if (this.dataset.fallback && !this.dataset.fallbackUsed) { this.dataset.fallbackUsed = "1"; this.src = this.dataset.fallback; } else { this.style.display = "none"; const placeholder = this.nextElementSibling; if (placeholder) placeholder.style.display = "flex"; }`;
-  }
-
-  /* 8. إنشاء بطاقة المنتج */
-  function productCardHTML(product) {
-    const quantity = qtyOf(product.id);
-    const imagePath = productImageSource(product);
-    const fallbackPath = localProductImage(product);
-    const name = productName(product);
-    const description = productDescription(product);
-    return `
-      <article class="product-card" data-product-id="${escapeHTML(product.id)}">
-        <div class="product-image-box">
-          <img src="${escapeHTML(imagePath)}" data-fallback="${escapeHTML(fallbackPath)}" alt="${escapeHTML(name)}" loading="lazy"
-            onerror='${imageFallbackHandler()}'>
-          <div class="product-placeholder" style="display:none">${getCategoryIcon(product.category)}</div>
-        </div>
-        <div class="product-details">
-          <h3 class="product-name">${escapeHTML(name)}</h3>
-          ${description ? `<p class="ghannam-db-description">${escapeHTML(description)}</p>` : ""}
-          <div class="product-price">${money(product.price)}</div>
-          <button type="button" class="add-to-cart-button" data-add="${escapeHTML(product.id)}">
-            ${quantity ? `${t("addAgain")} (${quantity})` : t("add")}
-          </button>
-        </div>
-      </article>`;
-  }
-
-  /* 9. التصنيفات — أسماء فقط من دون أيقونات في شريط التنقل */
-  function getCategories() {
-    return [CATEGORY.FALAFEL, CATEGORY.BURGER, CATEGORY.EXTRAS, CATEGORY.DRINKS]
-      .filter(category => products.some(product => product.category === category));
-  }
-
-  function renderCategories(visibleCategories = getCategories()) {
-    if (!categoryNav) return;
-    categoryNav.innerHTML = visibleCategories.map((category, index) => `
-      <a href="#falafel-category-${index}"
-         data-category-index="${index}"
-         class="${index === 0 ? "active" : ""}">
-        ${escapeHTML(categoryName(category))}
-      </a>`).join("");
-  }
-
-  /* 10. عرض المنيو والبحث */
-  function renderMenu() {
-    if (!menu) return;
-    const query = currentSearch.trim().toLocaleLowerCase();
-    const filtered = products.filter(product => {
-      const searchable = [product.name, product.name_ar, product.name_en, product.description_ar, product.description_en, product.category, categoryName(product.category)]
-        .filter(Boolean).join(" ").toLocaleLowerCase();
-      return !query || searchable.includes(query);
-    });
-
-    if (!filtered.length) {
-      menu.innerHTML = `<p class="empty-message">${escapeHTML(t("emptySearch"))}</p>`;
-      renderCategories([]);
-      updateProductView(getSavedProductView());
-      return;
-    }
-
-    const visibleCategories = getCategories().filter(category =>
-      filtered.some(product => product.category === category)
-    );
-
-    menu.innerHTML = visibleCategories.map((category, index) => {
-      const rows = filtered.filter(product => product.category === category);
-      return `
-        <section class="menu-section" id="falafel-category-${index}">
-          <h2 class="section-title">${getCategoryIcon(category)} ${escapeHTML(categoryName(category))}</h2>
-          <div class="product-grid">${rows.map(productCardHTML).join("")}</div>
-        </section>`;
-    }).join("");
-
-    updateProductView(getSavedProductView());
-    renderCategories(visibleCategories);
-  }
-
-  /* 11. إضافة المنتجات وتعديل الكميات */
-  function addToCart(id, amount = 1) {
-    const product = getProduct(id);
-    if (!product) return;
-    const row = cart.find(item => item.id === id);
-    const increment = Math.max(1, Math.floor(Number(amount) || 1));
-    if (row) row.qty = Math.min(99, row.qty + increment);
-    else cart.push({ id, qty: Math.min(99, increment) });
-    saveCart();
-    renderMenu();
-    renderCart();
-    playBellSound();
-  }
-
-  function changeQty(id, amount) {
-    const row = cart.find(item => item.id === id);
-    if (!row) return;
-    row.qty += Number(amount) || 0;
-    if (row.qty <= 0) cart = cart.filter(item => item.id !== id);
-    else row.qty = Math.min(99, row.qty);
-    saveCart();
-    renderMenu();
-    renderCart();
-  }
-
-  function removeFromCart(id) {
-    cart = cart.filter(row => row.id !== id);
-    saveCart();
-    renderMenu();
-    renderCart();
-  }
-
-  /* 12. تحديث نصوص السلة */
-  function setText(selector, value) {
-    const element = $(selector);
-    if (element) element.textContent = value;
-  }
-
-  function renderCart() {
-    const count = totalQty();
-    const sub = subtotal();
-    const discount = discountAmount();
-    const total = grandTotal();
-    const countText = `${count} ${count === 1 ? t("item") : t("items")}`;
-
-    setText("#cartCount", countText);
-    setText("#falafelTotal", money(total));
-    setText("#fixedCartCount", count);
-    setText("#fixedCartSubtitle", count ? `${countText} ${t("inCart")}` : t("emptyCart"));
-    setText("#fixedCartTotal", money(total));
-    setText("#popupSubtotal", money(sub));
-    setText("#popupDiscount", money(discount));
-    setText("#popupGrandTotal", money(total));
-    setText("#popupFooterTotal", money(total));
-
-    if (popupItems) {
-      popupItems.innerHTML = cart.length ? cart.map(row => {
-        const product = getProduct(row.id);
-        if (!product) return "";
-        return `
-          <div class="cart-item">
-            <div class="cart-item-info">
-              <div class="cart-item-name">${escapeHTML(productName(product))}</div>
-              <div class="cart-item-price">${money(product.price * row.qty)}</div>
-            </div>
-            <div class="quantity-controls">
-              <button type="button" data-qty="${escapeHTML(row.id)}" data-delta="-1" aria-label="${escapeHTML(t("decrease"))}">−</button>
-              <strong>${row.qty}</strong>
-              <button type="button" data-qty="${escapeHTML(row.id)}" data-delta="1" aria-label="${escapeHTML(t("increase"))}">+</button>
-              <button type="button" data-remove="${escapeHTML(row.id)}" aria-label="${escapeHTML(t("remove"))}">×</button>
-            </div>
-          </div>`;
-      }).join("") : `<p class="empty-message">${escapeHTML(t("empty"))}</p>`;
-    }
-
-    const legacyItems = $("#falafelCartItems");
-    if (legacyItems) {
-      legacyItems.innerHTML = cart.map(row => {
-        const product = getProduct(row.id);
-        return product ? `<p>${escapeHTML(productName(product))} × ${row.qty}</p>` : "";
-      }).join("");
-    }
-    renderAddons();
-  }
-
-  /* 13. اقتراح الإضافات والمشروبات داخل السلة */
-  function renderAddons() {
-    if (!addonsList) return;
-    const suggestions = products.filter(product =>
-      (product.category === CATEGORY.EXTRAS || product.category === CATEGORY.DRINKS) &&
-      !cart.some(row => row.id === product.id)
-    );
-
-    addonsList.innerHTML = suggestions.length ? `
-      <div class="addons-grid">
-        ${suggestions.map(product => `
-          <div class="addon-card">
-            <img
-              class="addon-image"
-              src="${escapeHTML(productImageSource(product))}"
-              data-fallback="${escapeHTML(localProductImage(product))}"
-              alt="${escapeHTML(productName(product))}"
-              loading="lazy"
-              onerror='${imageFallbackHandler()}'
-            >
-            <strong>${escapeHTML(productName(product))}</strong>
-            <span>${money(product.price)}</span>
-            <button type="button" data-addon="${escapeHTML(product.id)}">${escapeHTML(t("addAddon"))}</button>
-          </div>`).join("")}
-      </div>` : `<p class="addons-loading">${escapeHTML(t("noAddons"))}</p>`;
-  }
-
-  /* 14. فتح وإغلاق نافذة السلة */
-  function openCart() {
-    if (!cartOverlay) return;
-    lastCartFocus = document.activeElement;
-    cartOverlay.hidden = false;
-    document.body.classList.add("cart-modal-open");
-    $("#closeCartModal")?.focus();
-  }
-
-  function closeCart() {
-    if (!cartOverlay || cartOverlay.hidden) return;
-    cartOverlay.hidden = true;
-    document.body.classList.remove("cart-modal-open");
-    if (lastCartFocus && lastCartFocus.isConnected) lastCartFocus.focus();
-    else fixedCartBar?.focus();
-  }
-
-  /* 15. كود الخصم GHANNAM15 */
-  function applyCoupon() {
-    const code = (couponInput?.value || "").trim().toUpperCase();
-    if (code === COUPON_CODE) {
-      if (subtotal() <= 0) {
-        if (couponStatus) {
-          couponStatus.textContent = t("couponNeedItems");
-          couponStatus.style.color = "#a33";
+    function safeStorageGet(key, fallback = "") {
+        try {
+            return localStorage.getItem(key) ?? fallback;
+        } catch {
+            return fallback;
         }
-        return;
-      }
-      activeCoupon = COUPON_CODE;
-      safeStorageSet(COUPON_KEY, activeCoupon);
-      if (couponStatus) {
-        couponStatus.textContent = t("applied");
-        couponStatus.style.color = "#18864b";
-      }
-    } else if (!code) {
-      activeCoupon = "";
-      safeStorageRemove(COUPON_KEY);
-      if (couponStatus) {
-        couponStatus.textContent = t("enterCoupon");
-        couponStatus.style.color = "#a33";
-      }
-    } else {
-      activeCoupon = "";
-      safeStorageRemove(COUPON_KEY);
-      if (couponStatus) {
-        couponStatus.textContent = t("invalidCoupon");
-        couponStatus.style.color = "#a33";
-      }
-    }
-    renderCart();
-  }
-
-  /* 16. إرسال الطلب عبر واتساب */
-  function submitOrder(event) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!cart.length) {
-      setText("#popupOrderStatus", t("cartEmptyOrder"));
-      return;
-    }
-    if (!form.reportValidity()) return;
-
-    const name = $("#popupCustomerName")?.value.trim() || "";
-    const phone = $("#popupCustomerPhone")?.value.trim() || "";
-    const address = $("#popupCustomerAddress")?.value.trim() || "";
-    const notes = $("#popupCustomerNotes")?.value.trim() || "";
-    if (!name || !phone || !address) return;
-
-    const lines = cart.map(row => {
-      const product = getProduct(row.id);
-      return product ? `• ${productName(product)} × ${row.qty} = ${money(product.price * row.qty)}` : "";
-    }).filter(Boolean);
-
-    const message = [
-      t("orderTitle"),
-      `${t("orderName")}: ${name}`,
-      `${t("orderPhone")}: ${phone}`,
-      `${t("orderAddress")}: ${address}`,
-      "",
-      `${t("details")}:`,
-      ...lines,
-      "",
-      `${t("subtotal")}: ${money(subtotal())}`,
-      `${t("discount")}: ${money(discountAmount())}`,
-      `${t("grandTotal")}: ${money(grandTotal())}`,
-      `${t("discountCode")}: ${activeCoupon || t("noCouponText")}`,
-      `${t("notes")}: ${notes || t("noItems")}`,
-      "",
-      `${t("branchNumbers")}: ${WHATSAPP_NUMBERS.join(" — ")}`
-    ].join("\n");
-
-    setText("#popupOrderStatus", t("openingWhatsApp"));
-    const waNumber = WHATSAPP_NUMBERS[0].replace(/\D/g, "").replace(/^0/, "");
-    const url = `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (!opened) setText("#popupOrderStatus", t("whatsappError"));
-  }
-
-  /* 17. أحداث المنتجات والسلة */
-  document.addEventListener("click", event => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-
-    const addButton = target.closest("[data-add]");
-    if (addButton) { addToCart(addButton.dataset.add); return; }
-
-    const quantityButton = target.closest("[data-qty]");
-    if (quantityButton) {
-      changeQty(quantityButton.dataset.qty, Number(quantityButton.dataset.delta));
-      return;
     }
 
-    const removeButton = target.closest("[data-remove]");
-    if (removeButton) { removeFromCart(removeButton.dataset.remove); return; }
-
-    const addonButton = target.closest("[data-addon]");
-    if (addonButton) addToCart(addonButton.dataset.addon);
-  });
-
-  /* 18. البحث */
-  searchInput?.addEventListener("input", () => {
-    currentSearch = searchInput.value.trim();
-    renderMenu();
-  });
-
-  /* 19. التنقل بين التصنيفات */
-  categoryNav?.addEventListener("click", event => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const link = target.closest("a[data-category-index]");
-    if (!link) return;
-    $$(".category-nav a").forEach(item => item.classList.toggle("active", item === link));
-  });
-
-  /* 20. أحداث نافذة السلة والخصم والطلب */
-  fixedCartBar?.addEventListener("click", openCart);
-  $("#closeCartModal")?.addEventListener("click", closeCart);
-  $("#continueShoppingButton")?.addEventListener("click", closeCart);
-  cartOverlay?.addEventListener("click", event => {
-    if (event.target === cartOverlay) closeCart();
-  });
-  $("#applyCouponButton")?.addEventListener("click", applyCoupon);
-  couponInput?.addEventListener("keydown", event => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applyCoupon();
-    }
-  });
-  $("#popupOrderForm")?.addEventListener("submit", submitOrder);
-
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && cartOverlay && !cartOverlay.hidden) closeCart();
-  });
-
-  /* 21. توافق نموذج الطلب القديم */
-  $("#falafelOrderForm")?.addEventListener("submit", event => event.preventDefault());
-
-  /* 22. استعادة كود الخصم المحفوظ */
-  if (activeCoupon && couponInput) {
-    couponInput.value = activeCoupon;
-    if (couponStatus) {
-      couponStatus.textContent = t("savedCoupon");
-      couponStatus.style.color = "#18864b";
-    }
-  }
-
-  /* 23. تحميل روابط صور المنتجات من Supabase فقط.
-     لا نستبدل أسماء المنتجات أو أسعارها أو تصنيفاتها أو بيانات السلة. */
-  function normalizeDatabaseImage(value) {
-    if (typeof value !== "string" || !value.trim()) return "";
-
-    const raw = value.trim();
-
-    // روابط عامة كاملة من Supabase Storage أو أي مصدر صور آخر.
-    if (/^https?:\/\//i.test(raw)) return raw;
-
-    // تنظيف المسار وإزالة الشرطة المائلة من البداية.
-    const clean = raw
-      .split("?")[0]
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "");
-
-    // مسار صور فرع الفلافل الصحيح.
-    if (clean.startsWith("falafel/imagefalafel/")) return clean;
-
-    // تحويل المسار القديم إلى المسار الصحيح.
-    if (clean.startsWith("imagefalafel/")) {
-      return "falafel/" + clean;
+    function safeStorageSet(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (error) {
+            console.warn("تعذر حفظ البيانات:", error);
+        }
     }
 
-    // إذا كانت قاعدة البيانات تخزن اسم الصورة فقط.
-    if (!clean.includes("/")) {
-      return IMAGE_FOLDER + clean;
+    function safeStorageRemove(key) {
+        try {
+            localStorage.removeItem(key);
+        } catch (error) {
+            console.warn("تعذر حذف البيانات:", error);
+        }
     }
 
-    // أي مسار آخر غير معروف لا نستخدمه.
-    return "";
-  }
+    function safeNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : 0;
+    }
 
-  async function loadDatabaseProductImages() {
-    try {
-      // استيراد ديناميكي حتى لا تتعطل الصفحة إذا كانت إعدادات Supabase غير جاهزة.
-      const menuDatabase = await import("./menu-db.js");
-      const result = await menuDatabase.loadBranchMenu("falafel", currentLanguage);
-      const databaseProducts = Array.isArray(result?.products) ? result.products : [];
-      let updatedCount = 0;
-
-      databaseProducts.forEach(databaseProduct => {
-        const sourceId = String(
-          databaseProduct?.extra?.source_product_id ||
-          databaseProduct?.source_product_id ||
-          databaseProduct?.id ||
-          ""
+    function clampQuantity(value) {
+        return Math.max(
+            1,
+            Math.min(99, Math.floor(safeNumber(value)))
         );
-        const localProduct = products.find(product => product.id === sourceId);
-        if (!localProduct) return;
-
-        // image_url هو المصدر الأساسي. نقبل image_path إذا كان رابطاً عاماً
-        // أو مساراً محلياً واضحاً، ثم extra.local_image_path كخيار أخير.
-        const imageCandidates = [
-          databaseProduct.image_url,
-          databaseProduct.image_path,
-          databaseProduct.extra?.local_image_path
-        ];
-        const databaseImage = imageCandidates.map(normalizeDatabaseImage).find(Boolean);
-
-        if (databaseImage) {
-          localProduct.databaseImageUrl = databaseImage;
-          updatedCount++;
-        }
-      });
-
-      if (updatedCount) {
-        console.info(`تم تحميل ${updatedCount} رابط صورة من قاعدة البيانات.`);
-        renderMenu();
-        renderAddons();
-      } else {
-        console.info("لم يتم العثور على روابط صور صالحة لمنتجات فرع الفلافل؛ سيتم استخدام الصور المحلية.");
-      }
-    } catch (error) {
-      // استمرار عرض الموقع بالصور المحلية إذا تعذر الاتصال بقاعدة البيانات.
-      console.warn("تعذر تحميل صور المنتجات من قاعدة البيانات، سيتم استخدام الصور المحلية:", error);
     }
-  }
 
-  /* 24. تشغيل الصفحة واللغة وقاعدة البيانات */
-  applyStaticTranslations();
-  initializeProductView();
-  renderMenu();
-  renderCart();
-  loadDatabaseProductImages();
+    let currentLanguage =
+        safeStorageGet(LANGUAGE_KEY, "ar") === "en"
+            ? "en"
+            : "ar";
+
+    /* =====================================================
+       03 — UI TRANSLATIONS
+    ===================================================== */
+
+    const ui = {
+        ar: {
+            restaurant: "مطعم الغنّام",
+            branch: "فرع الفلافل",
+            home: "الرئيسية",
+            menu: "قائمة الطعام",
+            search: "ابحث عن وجبتك المفضلة...",
+            searchLabel: "ابحث عن وجبتك المفضلة",
+            loading: "جارٍ تحميل المنيو...",
+            loadingPage: "يرجى الانتظار...",
+            loadingError: "تعذر تحميل المنيو من قاعدة البيانات.",
+            retry: "إعادة المحاولة",
+            empty: "لا توجد منتجات حالياً.",
+            emptySearch: "ما لقينا منتجات تطابق بحثك.",
+            add: "أضف إلى السلة",
+            addAgain: "إضافة أخرى",
+            cart: "عرض السلة",
+            cartTitle: "سلة مشترياتك 🛒",
+            emptyCart: "لا توجد منتجات في السلة",
+            item: "صنف",
+            items: "أصناف",
+            inCart: "في السلة",
+            decrease: "تقليل الكمية",
+            increase: "زيادة الكمية",
+            remove: "حذف المنتج",
+            extras: "إضافات من المنيو",
+            addToOrder: "أضف إلى طلبك",
+            addAddon: "أضف للسلة",
+            noAddons: "لا توجد إضافات أخرى متاحة.",
+            scrollBrowse: "اسحب للتصفح ←",
+            coupon: "🎟️ كود الخصم",
+            couponPlaceholder: "أدخل كود الخصم",
+            apply: "تطبيق",
+            invalidCoupon: "الكود غير صحيح.",
+            enterCoupon: "أدخل كود الخصم أولاً.",
+            applied: "تم تطبيق خصم 15% بنجاح.",
+            couponNeedItems: "أضف منتجات إلى السلة أولاً.",
+            subtotal: "المجموع الفرعي",
+            discount: "الخصم",
+            total: "الإجمالي النهائي",
+            customerInfo: "معلومات الزبون",
+            name: "الاسم",
+            fullName: "الاسم الكامل",
+            phone: "رقم الهاتف",
+            address: "العنوان",
+            addressPlaceholder: "منطقة السكن وأقرب نقطة دالة",
+            notes: "ملاحظات إضافية",
+            notesPlaceholder: "أي ملاحظات على الطلب",
+            send: "إرسال الطلب عبر واتساب",
+            continue: "مواصلة التسوق",
+            close: "إغلاق",
+            closeMenu: "إغلاق القائمة",
+            cartEmptyOrder: "أضف منتجاً واحداً على الأقل قبل إرسال الطلب.",
+            openingWhatsApp: "سيتم فتح واتساب لإكمال إرسال الطلب.",
+            whatsappError: "تعذر فتح واتساب. اسمح بالنوافذ المنبثقة.",
+            orderTitle: "طلب جديد — مطعم الغنّام / فرع الفلافل",
+            details: "تفاصيل الطلب",
+            noCoupon: "لا يوجد",
+            noNotes: "لا توجد",
+            branchNumbers: "أرقام الفرع",
+            offers: "عروضنا",
+            originalPrice: "السعر قبل العرض",
+            offerPrice: "سعر العرض",
+            noOffers: "لا توجد عروض حالياً",
+            allPrices: "جميع الأسعار بالدينار العراقي",
+
+            mainNavigation: "التنقل الرئيسي",
+            siteSettings: "إعدادات الموقع",
+            changeLanguage: "تغيير اللغة",
+            openMenu: "فتح القائمة",
+            backToRestaurant: "العودة إلى مطعم الغنّام",
+
+            sideMenuTitle: "القائمة",
+            navigationTitle: "التنقل",
+            homePage: "الرئيسية",
+            foodMenu: "قائمة الطعام",
+            goToMenu: "الانتقال إلى المنيو",
+            shoppingCart: "سلة المشتريات",
+            viewItemsTotal: "عرض المنتجات والإجمالي",
+            restaurantInfo: "معلومات المطعم",
+            currency: "العملة",
+            iraqiCurrency: "الدينار العراقي (د.ع)",
+            helpComplaints: "المساعدة والشكاوى",
+            helpDescription: "للاستفسارات وتقديم الشكاوى",
+            branchLocation: "موقع الفرع",
+            locationDescription: "الإعلام، سوق أميمة، مقابل جامع المصطفى",
+            openMap: "فتح الموقع على الخريطة",
+            closeSideMenu: "إغلاق القائمة",
+
+            footerAddress: "الإعلام، سوق أميمة، مقابل جامع المصطفى",
+            footerBranchNumbers: "أرقام الفرع:",
+            footerPrices: "جميع الأسعار بالدينار العراقي",
+            backHomePage: "العودة إلى الصفحة الرئيسية",
+
+            currentOrder: "طلبك الحالي",
+            addonsDescription: "إضافات من المنيو",
+            cartSummary: "ملخص الحساب",
+            cartBranch: "مطعم الغنّام — فرع الفلافل",
+
+            gridView: "التبديل إلى العرض الأفقي",
+            listView: "التبديل إلى عرض البطاقات"
+        },
+
+        en: {
+            restaurant: "Al Ghannam Restaurant",
+            branch: "Falafel Branch",
+            home: "Home",
+            menu: "Menu",
+            search: "Search for your favorite meal...",
+            searchLabel: "Search for your favorite meal",
+            loading: "Loading menu...",
+            loadingPage: "Please wait...",
+            loadingError: "Unable to load the menu from the database.",
+            retry: "Try again",
+            empty: "No products available.",
+            emptySearch: "No products match your search.",
+            add: "Add to Cart",
+            addAgain: "Add another",
+            cart: "View Cart",
+            cartTitle: "Your Shopping Cart 🛒",
+            emptyCart: "Your cart is empty",
+            item: "item",
+            items: "items",
+            inCart: "in cart",
+            decrease: "Decrease quantity",
+            increase: "Increase quantity",
+            remove: "Remove item",
+            extras: "Menu Add-ons",
+            addToOrder: "Add to Your Order",
+            addAddon: "Add to Cart",
+            noAddons: "No additional items available.",
+            scrollBrowse: "Scroll to browse →",
+            coupon: "🎟️ Discount Code",
+            couponPlaceholder: "Enter discount code",
+            apply: "Apply",
+            invalidCoupon: "Invalid discount code.",
+            enterCoupon: "Please enter the discount code.",
+            applied: "15% discount applied successfully.",
+            couponNeedItems: "Add products to your cart first.",
+            subtotal: "Subtotal",
+            discount: "Discount",
+            total: "Grand Total",
+            customerInfo: "Customer Information",
+            name: "Name",
+            fullName: "Full Name",
+            phone: "Phone Number",
+            address: "Address",
+            addressPlaceholder: "Your area and nearest landmark",
+            notes: "Additional Notes",
+            notesPlaceholder: "Any notes about your order",
+            send: "Send Order via WhatsApp",
+            continue: "Continue Shopping",
+            close: "Close",
+            closeMenu: "Close Menu",
+            cartEmptyOrder: "Add at least one item before submitting.",
+            openingWhatsApp: "Opening WhatsApp...",
+            whatsappError: "Could not open WhatsApp. Allow pop-ups.",
+            orderTitle: "New Order — Al Ghannam / Falafel Branch",
+            details: "Order Details",
+            noCoupon: "None",
+            noNotes: "None",
+            branchNumbers: "Branch Numbers",
+            offers: "Our Offers",
+            originalPrice: "Original Price",
+            offerPrice: "Offer Price",
+            noOffers: "No offers available",
+            allPrices: "All prices are in Iraqi dinars",
+
+            mainNavigation: "Main Navigation",
+            siteSettings: "Website Settings",
+            changeLanguage: "Change Language",
+            openMenu: "Open Menu",
+            backToRestaurant: "Back to Al Ghannam Restaurant",
+
+            sideMenuTitle: "Menu",
+            navigationTitle: "Navigation",
+            homePage: "Home",
+            foodMenu: "Food Menu",
+            goToMenu: "Go to Menu",
+            shoppingCart: "Shopping Cart",
+            viewItemsTotal: "View items and total",
+            restaurantInfo: "Restaurant Information",
+            currency: "Currency",
+            iraqiCurrency: "Iraqi Dinar (IQD)",
+            helpComplaints: "Help & Complaints",
+            helpDescription: "For inquiries and complaints",
+            branchLocation: "Branch Location",
+            locationDescription: "Al I'lam, Umayma Market, opposite Al-Mustafa Mosque",
+            openMap: "Open Location on Map",
+            closeSideMenu: "Close Menu",
+
+            footerAddress: "Al I'lam, Umayma Market, opposite Al-Mustafa Mosque",
+            footerBranchNumbers: "Branch Numbers:",
+            footerPrices: "All prices are in Iraqi dinars",
+            backHomePage: "Back to Home Page",
+
+            currentOrder: "Your Current Order",
+            addonsDescription: "Menu Add-ons",
+            cartSummary: "Order Summary",
+            cartBranch: "Al Ghannam Restaurant — Falafel Branch",
+
+            gridView: "Switch to List View",
+            listView: "Switch to Grid View"
+        }
+    };
+
+    const t = key =>
+        ui[currentLanguage][key] ?? ui.ar[key] ?? key;
+
+    function money(value) {
+        const amount = Math.max(0, Math.round(safeNumber(value)));
+
+        return currentLanguage === "en"
+            ? `${amount.toLocaleString("en-US")} IQD`
+            : `${amount.toLocaleString("en-US")} د.ع`;
+    }
+
+    /* =====================================================
+       04 — PAGE STATE
+    ===================================================== */
+
+    let products = [];
+    let databaseCategories = [];
+    let databaseOffers = [];
+
+    let currentSearch = "";
+    let cart = [];
+    let activeCoupon = "";
+
+    let lastCartFocus = null;
+    let audioContext = null;
+
+    let menuDatabase = null;
+    let menuLoadSequence = 0;
+
+    /* =====================================================
+       05 — PAGE ELEMENTS
+    ===================================================== */
+
+    const menu = $("#falafelMenu");
+    const categoryNav = $("#categoryNav");
+    const searchInput = $("#falafelSearch");
+
+    const cartOverlay = $("#cartModalOverlay");
+    const fixedCartBar = $("#fixedCartBar");
+    const popupItems = $("#popupCartItems");
+    const addonsList = $("#cartAddonsList");
+
+    const couponInput = $("#couponCode");
+    const couponStatus = $("#couponStatus");
+
+    const viewToggleButton = $("#toggleProductView");
+    const viewToggleIcon = $("#viewToggleIcon");
+
+    /* =====================================================
+       06 — PRODUCT AND CATEGORY DATA
+    ===================================================== */
+
+    function productName(product) {
+        if (currentLanguage === "en") {
+            return product.name_en ||
+                product.name_ar ||
+                product.name ||
+                "";
+        }
+
+        return product.name_ar ||
+            product.name ||
+            "";
+    }
+
+    function productDescription(product) {
+        if (currentLanguage === "en") {
+            return product.description_en ||
+                product.description_ar ||
+                product.description ||
+                "";
+        }
+
+        return product.description_ar ||
+            product.description ||
+            "";
+    }
+
+    function categoryDisplayName(category) {
+        if (currentLanguage === "en") {
+            return category.name_en ||
+                category.name_ar ||
+                category.name ||
+                "";
+        }
+
+        return category.name_ar ||
+            category.name ||
+            "";
+    }
+
+    function getProduct(id) {
+        return products.find(product =>
+            String(product.id) === String(id)
+        );
+    }
+
+    function getCategory(id) {
+        return databaseCategories.find(category =>
+            String(category.id) === String(id)
+        );
+    }
+
+    /* =====================================================
+       07 — DATABASE IMAGES
+    ===================================================== */
+
+    function normalizeDatabaseImage(value) {
+        if (typeof value !== "string" || !value.trim()) {
+            return "";
+        }
+
+        const raw = value.trim();
+
+        if (/^https?:\/\//i.test(raw)) {
+            return raw;
+        }
+
+        const clean = raw
+            .split("?")[0]
+            .replace(/\\/g, "/")
+            .replace(/^\/+/, "");
+
+        if (!clean) return "";
+
+        if (
+            clean.startsWith("falafel/imagefalafel/") ||
+            clean.startsWith("./falafel/imagefalafel/")
+        ) {
+            return clean.replace(/^\.\//, "");
+        }
+
+        if (clean.startsWith("imagefalafel/")) {
+            return `falafel/${clean}`;
+        }
+
+        if (!clean.includes("/")) {
+            return IMAGE_FOLDER + clean;
+        }
+
+        return "";
+    }
+
+    function getProductImage(product) {
+        return [
+            product.image_url,
+            product.image_path,
+            product.extra?.local_image_path
+        ]
+            .map(normalizeDatabaseImage)
+            .find(Boolean) || "";
+    }
+
+    function getOfferImage(offer) {
+        return [
+            offer.image_url,
+            offer.image_path
+        ]
+            .map(normalizeDatabaseImage)
+            .find(Boolean) || "";
+    }
+
+    function imageFallbackHandler() {
+        return `
+            if (this.dataset.fallback && !this.dataset.fallbackUsed) {
+                this.dataset.fallbackUsed = "1";
+                this.src = this.dataset.fallback;
+            } else {
+                this.style.display = "none";
+                const placeholder = this.nextElementSibling;
+                if (placeholder) placeholder.style.display = "flex";
+            }
+        `;
+    }
+
+    /* =====================================================
+       08 — STATIC PAGE TRANSLATIONS
+       Header / Cart / Settings / Footer / Page labels
+    ===================================================== */
+
+    function setText(selector, value, root = document) {
+        const element = $(selector, root);
+        if (element) element.textContent = value;
+    }
+
+    function setAttribute(selector, attribute, value) {
+        const element = $(selector);
+        if (element) element.setAttribute(attribute, value);
+    }
+
+    function applyStaticTranslations() {
+        const isEnglish = currentLanguage === "en";
+
+        document.documentElement.lang = currentLanguage;
+        document.documentElement.dir = isEnglish ? "ltr" : "rtl";
+
+        document.body.classList.toggle("language-en", isEnglish);
+
+        document.title = isEnglish
+            ? "Al Ghannam Restaurant | Falafel Branch"
+            : "مطعم الغنّام | فرع الفلافل";
+
+        const description = $('meta[name="description"]');
+
+        if (description) {
+            description.content = isEnglish
+                ? "Al Ghannam Restaurant - Falafel Branch, fresh meals and WhatsApp orders"
+                : "منيو مطعم الغنّام - فرع الفلافل، وجبات طازجة وطلبات عبر واتساب";
+        }
+
+        /* Header */
+        setText(".main-nav-link", t("home"));
+
+        setAttribute(".main-nav", "aria-label", t("mainNavigation"));
+        setAttribute(".header-actions", "aria-label", t("siteSettings"));
+        setAttribute(".brand", "aria-label", t("backToRestaurant"));
+
+        setAttribute("#languageToggle", "aria-label", t("changeLanguage"));
+        setAttribute("#openSettingsPanel", "aria-label", t("openMenu"));
+
+        const languageButton = $("#languageToggle");
+
+        if (languageButton) {
+            languageButton.textContent = isEnglish ? "AR" : "EN";
+        }
+
+        /* Loader */
+        setText(".loader-content p", t("restaurant"));
+        setText(".loader-content span", t("loadingPage"));
+
+        /* Search */
+        if (searchInput) {
+            searchInput.placeholder = t("search");
+            searchInput.setAttribute("aria-label", t("searchLabel"));
+        }
+
+        setAttribute(".menu-tools", "aria-label", t("searchLabel"));
+        setAttribute("#categoryNav", "aria-label", t("menu"));
+        setAttribute(".menu-heading-row", "aria-label", t("menu"));
+        setAttribute("#menu", "aria-label", t("menu"));
+
+        /* Fixed cart */
+        setText(".fixed-cart-label strong", t("cart"));
+        setAttribute("#fixedCartBar", "aria-label", t("cart"));
+
+        /* Cart modal */
+        setText("#cartModalTitle", t("cartTitle"));
+        setText(".cart-modal-header > div p", t("cartBranch"));
+        setAttribute("#closeCartModal", "aria-label", t("close"));
+
+        setText(
+            ".popup-cart-products .popup-section-title",
+            t("currentOrder")
+        );
+
+        setText("#cartAddonsTitle", t("addToOrder"));
+        setText(".cart-addons-heading p", t("addonsDescription"));
+        setText(".cart-addons-hint", t("scrollBrowse"));
+
+        /* Coupon */
+        setText(".coupon-box label", t("coupon"));
+
+        if (couponInput) {
+            couponInput.placeholder = t("couponPlaceholder");
+        }
+
+        setText("#applyCouponButton", t("apply"));
+
+        /* Cart summary */
+        const summary = $(".coupon-summary");
+
+        if (summary) {
+            const rows = $$(":scope > div", summary);
+
+            if (rows[0]) setText("span", t("subtotal"), rows[0]);
+            if (rows[1]) setText("span", t("discount"), rows[1]);
+            if (rows[2]) setText("span", t("total"), rows[2]);
+        }
+
+        setAttribute(".coupon-summary", "aria-label", t("cartSummary"));
+
+        /* Customer form */
+        setText(".popup-order-form h3", t("customerInfo"));
+
+        const labels = $$(".popup-order-form label");
+
+        const labelTexts = [
+            t("name"),
+            t("phone"),
+            t("address"),
+            t("notes")
+        ];
+
+        labels.forEach((label, index) => {
+            if (labelTexts[index]) {
+                label.textContent = labelTexts[index];
+            }
+        });
+
+        const placeholders = [
+            ["#popupCustomerName", t("fullName")],
+            ["#popupCustomerPhone", t("phone")],
+            ["#popupCustomerAddress", t("addressPlaceholder")],
+            ["#popupCustomerNotes", t("notesPlaceholder")]
+        ];
+
+        placeholders.forEach(([selector, value]) => {
+            const element = $(selector);
+            if (element) element.placeholder = value;
+        });
+
+        setText(".popup-submit-button", t("send"));
+        setText("#continueShoppingButton", t("continue"));
+
+        /* Settings panel header */
+        setText("#settingsPanelTitle", t("sideMenuTitle"));
+        setText(".settings-heading p", t("cartBranch"));
+        setAttribute("#closeSettingsPanel", "aria-label", t("close"));
+
+        /* Settings section headings */
+        const settingsHeadings =
+            $$(".settings-panel .settings-section-title");
+
+        if (settingsHeadings[0]) {
+            settingsHeadings[0].textContent = t("navigationTitle");
+        }
+
+        if (settingsHeadings[1]) {
+            settingsHeadings[1].textContent = t("restaurantInfo");
+        }
+
+        /* Settings menu items */
+        const settingsItems =
+            $$(".settings-panel .settings-menu-item");
+
+        if (settingsItems[0]) {
+            setText("strong", t("homePage"), settingsItems[0]);
+        }
+
+        if (settingsItems[1]) {
+            setText("strong", t("foodMenu"), settingsItems[1]);
+            setText("small", t("goToMenu"), settingsItems[1]);
+        }
+
+        if (settingsItems[2]) {
+            setText("strong", t("shoppingCart"), settingsItems[2]);
+            setText("small", t("viewItemsTotal"), settingsItems[2]);
+        }
+
+        /* Restaurant info cards */
+        const infoCards = $$(".settings-info-card");
+
+        if (infoCards[0]) {
+            setText("strong", t("restaurant"), infoCards[0]);
+            setText("p", t("branch"), infoCards[0]);
+        }
+
+        if (infoCards[1]) {
+            setText("strong", t("currency"), infoCards[1]);
+            setText("p", t("iraqiCurrency"), infoCards[1]);
+        }
+
+        /* Help link */
+        const helpLink = $('a[href="support/support.html"]');
+
+        if (helpLink) {
+            setText("strong", t("helpComplaints"), helpLink);
+            setText("small", t("helpDescription"), helpLink);
+        }
+
+        /* Branch phone card */
+        const phoneCard =
+            $(".settings-compact-card:not(.settings-location-link)");
+
+        if (phoneCard) {
+            setText("strong", t("branchNumbers"), phoneCard);
+        }
+
+        /* Branch location */
+        const locationCard = $(".settings-location-link");
+
+        if (locationCard) {
+            setText("strong", t("branchLocation"), locationCard);
+            setText("small", t("locationDescription"), locationCard);
+
+            locationCard.setAttribute(
+                "aria-label",
+                t("openMap")
+            );
+        }
+
+        setText("#settingsDoneButton", t("closeSideMenu"));
+
+        /* Footer */
+        const footer = $(".site-footer");
+
+        if (footer) {
+            const paragraphs = $$("p", footer);
+
+            if (paragraphs[0]) {
+                paragraphs[0].textContent =
+                    `${t("restaurant")} — ${t("branch")}`;
+            }
+
+            if (paragraphs[1]) {
+                paragraphs[1].textContent = t("footerAddress");
+            }
+
+            if (paragraphs[2]) {
+                const phoneLinks = $$("a", paragraphs[2]);
+
+                paragraphs[2].textContent =
+                    `${t("footerBranchNumbers")} `;
+
+                phoneLinks.forEach((link, index) => {
+                    if (index > 0) {
+                        paragraphs[2].append(" — ");
+                    }
+
+                    paragraphs[2].appendChild(link);
+                });
+            }
+
+            if (paragraphs[3]) {
+                paragraphs[3].textContent = t("footerPrices");
+            }
+
+            const homeLink = $('a[href="index.html"]', footer);
+
+            if (homeLink) {
+                homeLink.textContent = t("backHomePage");
+            }
+        }
+
+        /* Offers heading */
+        const offersSection = $("#falafelOffersSection");
+
+        if (offersSection) {
+            setText(
+                ".falafel-offers-heading h2",
+                t("offers"),
+                offersSection
+            );
+
+            setText(
+                ".falafel-offers-heading p",
+                t("allPrices"),
+                offersSection
+            );
+        }
+
+        /* Product view accessibility */
+        updateProductView(getSavedProductView());
+    }
+
+    /* =====================================================
+       09 — LANGUAGE SWITCHING
+    ===================================================== */
+
+    async function setLanguage(language) {
+        const nextLanguage = language === "en" ? "en" : "ar";
+
+        if (nextLanguage === currentLanguage) return;
+
+        currentLanguage = nextLanguage;
+
+        safeStorageSet(LANGUAGE_KEY, currentLanguage);
+
+        applyStaticTranslations();
+
+        // Reload products and categories using the selected language.
+        await loadDatabaseMenu();
+
+        // Refresh cart labels and product names.
+        renderCart();
+    }
+
+    $("#languageToggle")?.addEventListener("click", () => {
+        setLanguage(currentLanguage === "ar" ? "en" : "ar");
+    });
+
+    /* =====================================================
+       10 — DATABASE MODULE
+    ===================================================== */
+
+    async function initializeDatabaseModule() {
+        if (!menuDatabase) {
+            menuDatabase = await import("./menu-db.js");
+        }
+
+        return menuDatabase;
+    }
+
+    /* =====================================================
+       11 — CART STORAGE
+    ===================================================== */
+
+    function loadStoredCart() {
+        try {
+            const saved = JSON.parse(
+                safeStorageGet(STORAGE_KEY, "[]")
+            );
+
+            if (!Array.isArray(saved)) return [];
+
+            return saved
+                .map(row => {
+                    if (!row || row.id == null) return null;
+
+                    return {
+                        id: String(row.id),
+                        qty: clampQuantity(row.qty)
+                    };
+                })
+                .filter(Boolean);
+
+        } catch {
+            return [];
+        }
+    }
+
+    function saveCart() {
+        safeStorageSet(STORAGE_KEY, JSON.stringify(cart));
+    }
+
+    function reconcileCartWithDatabase() {
+        const validIds = new Set(
+            products.map(product => String(product.id))
+        );
+
+        cart = cart.filter(row =>
+            validIds.has(String(row.id))
+        );
+
+        saveCart();
+    }
+
+    /* =====================================================
+       12 — LOAD DATABASE MENU
+    ===================================================== */
+
+    async function loadDatabaseMenu() {
+        const sequence = ++menuLoadSequence;
+
+        if (menu) {
+            menu.innerHTML = `
+                <p class="empty-message">
+                    ${escapeHTML(t("loading"))}
+                </p>
+            `;
+        }
+
+        try {
+            const database = await initializeDatabaseModule();
+
+            const [menuResult, offersResult] = await Promise.all([
+                database.loadBranchMenu(BRANCH_ID, currentLanguage),
+                database.loadBranchOffers(BRANCH_ID)
+            ]);
+
+            // Ignore old requests when the user changes language quickly.
+            if (sequence !== menuLoadSequence) return;
+
+            if (!menuResult) {
+                throw new Error(
+                    "لم تصل بيانات المنيو من قاعدة البيانات"
+                );
+            }
+
+            databaseCategories =
+                Array.isArray(menuResult.categories)
+                    ? menuResult.categories
+                    : [];
+
+            const rawProducts =
+                Array.isArray(menuResult.products)
+                    ? menuResult.products
+                    : [];
+
+            databaseOffers =
+                Array.isArray(offersResult)
+                    ? offersResult
+                    : [];
+
+            const categoryIds = new Set(
+                databaseCategories.map(category =>
+                    String(category.id)
+                )
+            );
+
+            products = rawProducts
+                .filter(product =>
+                    categoryIds.has(String(product.category_id))
+                )
+                .filter(product =>
+                    product.is_available !== false
+                )
+                .map(product => ({
+                    ...product,
+
+                    id: String(product.id),
+
+                    name_ar:
+                        product.name_ar ||
+                        product.name ||
+                        "",
+
+                    name_en:
+                        product.name_en || "",
+
+                    description_ar:
+                        product.description_ar ||
+                        product.description ||
+                        "",
+
+                    description_en:
+                        product.description_en || "",
+
+                    price: safeNumber(product.price),
+
+                    image: getProductImage(product)
+                }));
+
+            if (!window.__falafelCartRestored) {
+                cart = loadStoredCart();
+                window.__falafelCartRestored = true;
+            }
+
+            reconcileCartWithDatabase();
+
+            renderMenu();
+            renderOffers();
+            renderCart();
+
+            console.info(
+                "تم تحميل منيو الفلافل من Supabase",
+                {
+                    categories: databaseCategories.length,
+                    products: products.length,
+                    offers: databaseOffers.length,
+                    language: currentLanguage
+                }
+            );
+
+        } catch (error) {
+            if (sequence !== menuLoadSequence) return;
+
+            console.error("خطأ تحميل المنيو:", error);
+
+            products = [];
+            databaseCategories = [];
+            databaseOffers = [];
+
+            if (menu) {
+                menu.innerHTML = `
+                    <div class="empty-message">
+                        <p>${escapeHTML(t("loadingError"))}</p>
+
+                        <button type="button" id="retryMenuLoading">
+                            ${escapeHTML(t("retry"))}
+                        </button>
+                    </div>
+                `;
+            }
+
+            if (categoryNav) {
+                categoryNav.innerHTML = "";
+            }
+
+            renderOffers();
+            renderCart();
+        }
+    }
+
+    document.addEventListener("click", event => {
+        if (event.target.closest("#retryMenuLoading")) {
+            loadDatabaseMenu();
+        }
+    });
+
+    /* =====================================================
+       13 — DATABASE CATEGORIES
+    ===================================================== */
+
+    function getCategories() {
+        return databaseCategories.filter(category =>
+            products.some(product =>
+                String(product.category_id) === String(category.id)
+            )
+        );
+    }
+
+    function renderCategories(visibleCategories = getCategories()) {
+        if (!categoryNav) return;
+
+        categoryNav.innerHTML = visibleCategories
+            .map((category, index) => `
+                <a
+                    href="#falafel-category-${escapeHTML(category.id)}"
+                    data-category-id="${escapeHTML(category.id)}"
+                    class="${index === 0 ? "active" : ""}"
+                >
+                    ${escapeHTML(categoryDisplayName(category))}
+                </a>
+            `)
+            .join("");
+    }
+
+    /* =====================================================
+       14 — PRODUCT VIEW
+    ===================================================== */
+
+    function getSavedProductView() {
+        return safeStorageGet(PRODUCT_VIEW_KEY, "grid") === "list"
+            ? "list"
+            : "grid";
+    }
+
+    function updateProductView(view) {
+        if (!menu) return;
+
+        const isList = view === "list";
+
+        menu.classList.toggle("list-view", isList);
+
+        if (viewToggleButton) {
+            viewToggleButton.setAttribute(
+                "aria-pressed",
+                String(isList)
+            );
+
+            viewToggleButton.setAttribute(
+                "aria-label",
+                isList ? t("listView") : t("gridView")
+            );
+
+            viewToggleButton.setAttribute(
+                "title",
+                isList ? t("listView") : t("gridView")
+            );
+        }
+
+        if (viewToggleIcon) {
+            viewToggleIcon.innerHTML = isList
+                ? `
+                    <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                `
+                : `
+                    <path d="M4 5h16"></path>
+                    <path d="M4 12h16"></path>
+                    <path d="M4 19h16"></path>
+                `;
+        }
+
+        safeStorageSet(
+            PRODUCT_VIEW_KEY,
+            isList ? "list" : "grid"
+        );
+    }
+
+    function initializeProductView() {
+        updateProductView(getSavedProductView());
+
+        viewToggleButton?.addEventListener("click", () => {
+            const isCurrentlyList =
+                menu?.classList.contains("list-view");
+
+            updateProductView(
+                isCurrentlyList ? "grid" : "list"
+            );
+        });
+    }
+
+    /* =====================================================
+       15 — PRODUCT CARDS
+    ===================================================== */
+
+    function productCardHTML(product) {
+        const quantity = qtyOf(product.id);
+        const image = getProductImage(product);
+        const name = productName(product);
+        const description = productDescription(product);
+
+        return `
+            <article
+                class="product-card"
+                data-product-id="${escapeHTML(product.id)}"
+            >
+                <div class="product-image-box">
+
+                    ${
+                        image
+                            ? `
+                                <img
+                                    src="${escapeHTML(image)}"
+                                    alt="${escapeHTML(name)}"
+                                    loading="lazy"
+                                    onerror='${imageFallbackHandler()}'
+                                >
+                            `
+                            : ""
+                    }
+
+                    <div
+                        class="product-placeholder"
+                        style="${image ? "display:none" : "display:flex"}"
+                    ></div>
+
+                </div>
+
+                <div class="product-details">
+
+                    <h3 class="product-name">
+                        ${escapeHTML(name)}
+                    </h3>
+
+                    ${
+                        description
+                            ? `
+                                <p class="ghannam-db-description">
+                                    ${escapeHTML(description)}
+                                </p>
+                            `
+                            : ""
+                    }
+
+                    <div class="product-price">
+                        ${money(product.price)}
+                    </div>
+
+                    <button
+                        type="button"
+                        class="add-to-cart-button"
+                        data-add="${escapeHTML(product.id)}"
+                    >
+                        ${
+                            quantity
+                                ? `${t("addAgain")} (${quantity})`
+                                : t("add")
+                        }
+                    </button>
+
+                </div>
+            </article>
+        `;
+    }
+
+    /* =====================================================
+       16 — MENU RENDERING AND SEARCH
+    ===================================================== */
+
+    function renderMenu() {
+        if (!menu) return;
+
+        const query = currentSearch
+            .trim()
+            .toLocaleLowerCase();
+
+        const filtered = products.filter(product => {
+            const category = getCategory(product.category_id);
+
+            const searchable = [
+                product.name,
+                product.name_ar,
+                product.name_en,
+                product.description,
+                product.description_ar,
+                product.description_en,
+                category?.name,
+                category?.name_ar,
+                category?.name_en,
+                category?.slug
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLocaleLowerCase();
+
+            return !query || searchable.includes(query);
+        });
+
+        if (!filtered.length) {
+            menu.innerHTML = `
+                <p class="empty-message">
+                    ${escapeHTML(
+                        query ? t("emptySearch") : t("empty")
+                    )}
+                </p>
+            `;
+
+            renderCategories([]);
+            updateProductView(getSavedProductView());
+
+            return;
+        }
+
+        const visibleCategories = getCategories().filter(category =>
+            filtered.some(product =>
+                String(product.category_id) === String(category.id)
+            )
+        );
+
+        menu.innerHTML = visibleCategories.map(category => {
+            const categoryProducts = filtered.filter(product =>
+                String(product.category_id) === String(category.id)
+            );
+
+            return `
+                <section
+                    class="menu-section"
+                    id="falafel-category-${escapeHTML(category.id)}"
+                >
+                    <h2 class="section-title">
+                        ${escapeHTML(categoryDisplayName(category))}
+                    </h2>
+
+                    <div class="product-grid">
+                        ${categoryProducts.map(productCardHTML).join("")}
+                    </div>
+                </section>
+            `;
+        }).join("");
+
+        renderCategories(visibleCategories);
+        updateProductView(getSavedProductView());
+    }
+
+    searchInput?.addEventListener("input", () => {
+        currentSearch = searchInput.value || "";
+        renderMenu();
+    });
+
+    categoryNav?.addEventListener("click", event => {
+        const link = event.target.closest("a[data-category-id]");
+
+        if (!link) return;
+
+        $$(".category-nav a").forEach(item => {
+            item.classList.toggle("active", item === link);
+        });
+    });
+
+    /* =====================================================
+       17 — DATABASE OFFERS
+       Position: below menu heading and above products.
+    ===================================================== */
+
+    function ensureOffersContainer() {
+        let section = $("#falafelOffersSection");
+
+        if (!section) {
+            section = document.createElement("section");
+
+            section.id = "falafelOffersSection";
+            section.className = "falafel-offers-section";
+            section.hidden = true;
+
+            section.innerHTML = `
+                <div class="falafel-offers-container">
+
+                    <div class="falafel-offers-heading">
+                        <div>
+                            <h2>${escapeHTML(t("offers"))}</h2>
+                            <p>${escapeHTML(t("allPrices"))}</p>
+                        </div>
+                    </div>
+
+                    <div
+                        id="falafelOffersGrid"
+                        class="falafel-offers-grid"
+                    ></div>
+
+                </div>
+            `;
+        }
+
+        const menuHeading = $(".menu-heading-row");
+        const menuTools = $(".menu-tools");
+
+        if (menuHeading) {
+            if (section.previousElementSibling !== menuHeading) {
+                menuHeading.insertAdjacentElement(
+                    "afterend",
+                    section
+                );
+            }
+        } else if (menuTools) {
+            if (section.previousElementSibling !== menuTools) {
+                menuTools.insertAdjacentElement(
+                    "afterend",
+                    section
+                );
+            }
+        } else if (menu) {
+            if (section.nextElementSibling !== menu) {
+                menu.insertAdjacentElement(
+                    "beforebegin",
+                    section
+                );
+            }
+        } else if (!section.isConnected) {
+            document.body.appendChild(section);
+        }
+
+        return section;
+    }
+
+    function renderOffers() {
+        const section = ensureOffersContainer();
+        const grid = $("#falafelOffersGrid", section);
+
+        if (!grid) return;
+
+        setText(
+            ".falafel-offers-heading h2",
+            t("offers"),
+            section
+        );
+
+        setText(
+            ".falafel-offers-heading p",
+            t("allPrices"),
+            section
+        );
+
+        if (!databaseOffers.length) {
+            section.hidden = true;
+            grid.innerHTML = "";
+            return;
+        }
+
+        grid.innerHTML = databaseOffers.map(offer => {
+            const image = getOfferImage(offer);
+
+            // The current offers query supplies name and description.
+            // English offer fields are not assumed to exist.
+            const name = offer.name || "";
+            const description = offer.description || "";
+
+            const originalPrice =
+                safeNumber(offer.original_price);
+
+            const offerPrice =
+                safeNumber(offer.offer_price);
+
+            return `
+                <article class="falafel-offer-card">
+
+                    <div class="falafel-offer-image-box">
+
+                        ${
+                            image
+                                ? `
+                                    <img
+                                        class="falafel-offer-image"
+                                        src="${escapeHTML(image)}"
+                                        alt="${escapeHTML(name)}"
+                                        loading="lazy"
+                                        onerror='${imageFallbackHandler()}'
+                                    >
+                                `
+                                : ""
+                        }
+
+                        <div
+                            class="falafel-offer-placeholder"
+                            style="${image ? "display:none" : "display:flex"}"
+                        >
+                            🍔
+                        </div>
+
+                    </div>
+
+                    <div class="falafel-offer-info">
+
+                        <h3 class="falafel-offer-name">
+                            ${escapeHTML(name)}
+                        </h3>
+
+                        ${
+                            description
+                                ? `
+                                    <p class="falafel-offer-description">
+                                        ${escapeHTML(description)}
+                                    </p>
+                                `
+                                : ""
+                        }
+
+                        <div class="falafel-offer-prices">
+
+                            <span class="falafel-offer-current-price">
+                                ${money(offerPrice)}
+                            </span>
+
+                            ${
+                                originalPrice > 0
+                                    ? `
+                                        <span class="falafel-offer-original-price">
+                                            ${money(originalPrice)}
+                                        </span>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </div>
+
+                </article>
+            `;
+        }).join("");
+
+        section.hidden = false;
+    }
+
+    /* =====================================================
+       18 — CART CALCULATIONS
+    ===================================================== */
+
+    function qtyOf(id) {
+        return cart.find(row =>
+            String(row.id) === String(id)
+        )?.qty || 0;
+    }
+
+    function totalQty() {
+        return cart.reduce(
+            (sum, row) => sum + row.qty,
+            0
+        );
+    }
+
+    function subtotal() {
+        return cart.reduce((sum, row) => {
+            const product = getProduct(row.id);
+
+            return sum + (
+                product
+                    ? safeNumber(product.price) * row.qty
+                    : 0
+            );
+        }, 0);
+    }
+
+    function discountAmount() {
+        return activeCoupon
+            ? Math.round(subtotal() * COUPON_RATE)
+            : 0;
+    }
+
+    function grandTotal() {
+        return Math.max(
+            0,
+            subtotal() - discountAmount()
+        );
+    }
+
+    /* =====================================================
+       19 — ADD AND CHANGE PRODUCTS
+    ===================================================== */
+
+    function addToCart(id, amount = 1) {
+        const product = getProduct(id);
+
+        if (!product || product.is_available === false) {
+            return;
+        }
+
+        const row = cart.find(item =>
+            String(item.id) === String(id)
+        );
+
+        const increment = Math.max(
+            1,
+            Math.floor(safeNumber(amount))
+        );
+
+        if (row) {
+            row.qty = Math.min(
+                99,
+                row.qty + increment
+            );
+        } else {
+            cart.push({
+                id: String(product.id),
+                qty: Math.min(99, increment)
+            });
+        }
+
+        saveCart();
+        renderMenu();
+        renderCart();
+        playBellSound();
+    }
+
+    function changeQty(id, amount) {
+        const row = cart.find(item =>
+            String(item.id) === String(id)
+        );
+
+        if (!row) return;
+
+        row.qty += safeNumber(amount);
+
+        if (row.qty <= 0) {
+            cart = cart.filter(item =>
+                String(item.id) !== String(id)
+            );
+        } else {
+            row.qty = Math.min(99, row.qty);
+        }
+
+        saveCart();
+        renderMenu();
+        renderCart();
+    }
+
+    function removeFromCart(id) {
+        cart = cart.filter(row =>
+            String(row.id) !== String(id)
+        );
+
+        saveCart();
+        renderMenu();
+        renderCart();
+    }
+
+    /* =====================================================
+       20 — ADD TO CART BELL SOUND
+    ===================================================== */
+
+    function playBellSound() {
+        try {
+            const AudioContextClass =
+                window.AudioContext ||
+                window.webkitAudioContext;
+
+            if (!AudioContextClass) return;
+
+            if (
+                !audioContext ||
+                audioContext.state === "closed"
+            ) {
+                audioContext = new AudioContextClass();
+            }
+
+            const play = () => {
+                const now = audioContext.currentTime;
+
+                [1046.5, 1318.5].forEach((frequency, index) => {
+                    const oscillator =
+                        audioContext.createOscillator();
+
+                    const gain =
+                        audioContext.createGain();
+
+                    const start = now + index * 0.09;
+
+                    oscillator.type = "sine";
+
+                    oscillator.frequency.setValueAtTime(
+                        frequency,
+                        start
+                    );
+
+                    gain.gain.setValueAtTime(
+                        0.0001,
+                        start
+                    );
+
+                    gain.gain.exponentialRampToValueAtTime(
+                        0.25,
+                        start + 0.02
+                    );
+
+                    gain.gain.exponentialRampToValueAtTime(
+                        0.0001,
+                        start + 0.55
+                    );
+
+                    oscillator.connect(gain);
+                    gain.connect(audioContext.destination);
+
+                    oscillator.start(start);
+                    oscillator.stop(start + 0.6);
+                });
+            };
+
+            if (audioContext.state === "suspended") {
+                audioContext.resume()
+                    .then(play)
+                    .catch(() => {});
+            } else {
+                play();
+            }
+
+        } catch (error) {
+            console.warn(
+                "تعذر تشغيل صوت الجرس:",
+                error
+            );
+        }
+    }
+
+    /* =====================================================
+       21 — CART RENDERING
+    ===================================================== */
+
+    function renderCart() {
+        const count = totalQty();
+
+        const sub = subtotal();
+        const discount = discountAmount();
+        const total = grandTotal();
+
+        const countText =
+            `${count} ${count === 1 ? t("item") : t("items")}`;
+
+        setText("#cartCount", countText);
+        setText("#falafelTotal", money(total));
+        setText("#fixedCartCount", count);
+
+        setText(
+            "#fixedCartSubtitle",
+            count
+                ? `${countText} ${t("inCart")}`
+                : t("emptyCart")
+        );
+
+        setText("#fixedCartTotal", money(total));
+        setText("#popupSubtotal", money(sub));
+        setText("#popupDiscount", money(discount));
+        setText("#popupGrandTotal", money(total));
+        setText("#popupFooterTotal", money(total));
+
+        if (popupItems) {
+            popupItems.innerHTML = cart.length
+                ? cart.map(row => {
+                    const product = getProduct(row.id);
+
+                    if (!product) return "";
+
+                    return `
+                        <div class="cart-item">
+
+                            <div class="cart-item-info">
+
+                                <div class="cart-item-name">
+                                    ${escapeHTML(productName(product))}
+                                </div>
+
+                                <div class="cart-item-price">
+                                    ${money(product.price * row.qty)}
+                                </div>
+
+                            </div>
+
+                            <div class="quantity-controls">
+
+                                <button
+                                    type="button"
+                                    data-qty="${escapeHTML(row.id)}"
+                                    data-delta="-1"
+                                    aria-label="${escapeHTML(t("decrease"))}"
+                                >−</button>
+
+                                <strong>${row.qty}</strong>
+
+                                <button
+                                    type="button"
+                                    data-qty="${escapeHTML(row.id)}"
+                                    data-delta="1"
+                                    aria-label="${escapeHTML(t("increase"))}"
+                                >+</button>
+
+                                <button
+                                    type="button"
+                                    data-remove="${escapeHTML(row.id)}"
+                                    aria-label="${escapeHTML(t("remove"))}"
+                                >×</button>
+
+                            </div>
+
+                        </div>
+                    `;
+                }).join("")
+                : `
+                    <p class="empty-message">
+                        ${escapeHTML(t("emptyCart"))}
+                    </p>
+                `;
+        }
+
+        const legacyItems = $("#falafelCartItems");
+
+        if (legacyItems) {
+            legacyItems.innerHTML = cart.map(row => {
+                const product = getProduct(row.id);
+
+                return product
+                    ? `
+                        <p>
+                            ${escapeHTML(productName(product))}
+                            × ${row.qty}
+                        </p>
+                    `
+                    : "";
+            }).join("");
+        }
+
+        renderAddons();
+    }
+
+    /* =====================================================
+       22 — SUGGESTED ADD-ONS
+    ===================================================== */
+
+    function renderAddons() {
+        if (!addonsList) return;
+
+        const suggestions = products.filter(product => {
+            const category = getCategory(product.category_id);
+
+            const categoryText = [
+                category?.name,
+                category?.name_ar,
+                category?.name_en,
+                category?.slug
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const isExtra =
+                categoryText.includes("إضاف") ||
+                categoryText.includes("اضاف") ||
+                categoryText.includes("extra") ||
+                categoryText.includes("side") ||
+                categoryText.includes("مشروب") ||
+                categoryText.includes("drink");
+
+            return isExtra && !cart.some(row =>
+                String(row.id) === String(product.id)
+            );
+        });
+
+        if (!suggestions.length) {
+            addonsList.innerHTML = `
+                <p class="addons-loading">
+                    ${escapeHTML(t("noAddons"))}
+                </p>
+            `;
+
+            return;
+        }
+
+        addonsList.innerHTML = `
+            <div class="addons-grid">
+
+                ${suggestions.map(product => {
+                    const image = getProductImage(product);
+
+                    return `
+                        <div class="addon-card">
+
+                            ${
+                                image
+                                    ? `
+                                        <img
+                                            class="addon-image"
+                                            src="${escapeHTML(image)}"
+                                            alt="${escapeHTML(productName(product))}"
+                                            loading="lazy"
+                                        >
+                                    `
+                                    : ""
+                            }
+
+                            <strong>
+                                ${escapeHTML(productName(product))}
+                            </strong>
+
+                            <span>${money(product.price)}</span>
+
+                            <button
+                                type="button"
+                                data-addon="${escapeHTML(product.id)}"
+                            >
+                                ${escapeHTML(t("addAddon"))}
+                            </button>
+
+                        </div>
+                    `;
+                }).join("")}
+
+            </div>
+        `;
+    }
+
+    /* =====================================================
+       23 — CART MODAL
+    ===================================================== */
+
+    function openCart() {
+        if (!cartOverlay) return;
+
+        lastCartFocus = document.activeElement;
+
+        cartOverlay.hidden = false;
+
+        document.body.classList.add("cart-modal-open");
+
+        $("#closeCartModal")?.focus();
+    }
+
+    function closeCart() {
+        if (!cartOverlay || cartOverlay.hidden) return;
+
+        cartOverlay.hidden = true;
+
+        document.body.classList.remove("cart-modal-open");
+
+        if (lastCartFocus?.isConnected) {
+            lastCartFocus.focus();
+        } else {
+            fixedCartBar?.focus();
+        }
+    }
+
+    fixedCartBar?.addEventListener("click", openCart);
+
+    $("#closeCartModal")?.addEventListener(
+        "click",
+        closeCart
+    );
+
+    $("#continueShoppingButton")?.addEventListener(
+        "click",
+        closeCart
+    );
+
+    cartOverlay?.addEventListener("click", event => {
+        if (event.target === cartOverlay) {
+            closeCart();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (
+            event.key === "Escape" &&
+            cartOverlay &&
+            !cartOverlay.hidden
+        ) {
+            closeCart();
+        }
+    });
+
+    /* =====================================================
+       24 — COUPON
+    ===================================================== */
+
+    function loadCoupon() {
+        const code = safeStorageGet(COUPON_KEY, "")
+            .trim()
+            .toUpperCase();
+
+        return code === COUPON_CODE ? code : "";
+    }
+
+    function applyCoupon() {
+        const code = (couponInput?.value || "")
+            .trim()
+            .toUpperCase();
+
+        if (code === COUPON_CODE) {
+            if (subtotal() <= 0) {
+                if (couponStatus) {
+                    couponStatus.textContent =
+                        t("couponNeedItems");
+
+                    couponStatus.style.color = "#a33";
+                }
+
+                return;
+            }
+
+            activeCoupon = COUPON_CODE;
+
+            safeStorageSet(COUPON_KEY, activeCoupon);
+
+            if (couponStatus) {
+                couponStatus.textContent = t("applied");
+                couponStatus.style.color = "#18864b";
+            }
+
+        } else if (!code) {
+            activeCoupon = "";
+
+            safeStorageRemove(COUPON_KEY);
+
+            if (couponStatus) {
+                couponStatus.textContent = t("enterCoupon");
+                couponStatus.style.color = "#a33";
+            }
+
+        } else {
+            activeCoupon = "";
+
+            safeStorageRemove(COUPON_KEY);
+
+            if (couponStatus) {
+                couponStatus.textContent = t("invalidCoupon");
+                couponStatus.style.color = "#a33";
+            }
+        }
+
+        renderCart();
+    }
+
+    $("#applyCouponButton")?.addEventListener(
+        "click",
+        applyCoupon
+    );
+
+    couponInput?.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            applyCoupon();
+        }
+    });
+
+    /* =====================================================
+       25 — WHATSAPP ORDER
+    ===================================================== */
+
+    function submitOrder(event) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+
+        if (!cart.length) {
+            setText(
+                "#popupOrderStatus",
+                t("cartEmptyOrder")
+            );
+
+            return;
+        }
+
+        if (!form.reportValidity()) return;
+
+        const name =
+            $("#popupCustomerName")?.value.trim() || "";
+
+        const phone =
+            $("#popupCustomerPhone")?.value.trim() || "";
+
+        const address =
+            $("#popupCustomerAddress")?.value.trim() || "";
+
+        const notes =
+            $("#popupCustomerNotes")?.value.trim() || "";
+
+        if (!name || !phone || !address) return;
+
+        const lines = cart.map(row => {
+            const product = getProduct(row.id);
+
+            return product
+                ? `• ${productName(product)} × ${row.qty} = ${money(product.price * row.qty)}`
+                : "";
+        }).filter(Boolean);
+
+        const message = [
+            t("orderTitle"),
+            `${t("name")}: ${name}`,
+            `${t("phone")}: ${phone}`,
+            `${t("address")}: ${address}`,
+            "",
+            `${t("details")}:`,
+            ...lines,
+            "",
+            `${t("subtotal")}: ${money(subtotal())}`,
+            `${t("discount")}: ${money(discountAmount())}`,
+            `${t("total")}: ${money(grandTotal())}`,
+            `${t("coupon")}: ${activeCoupon || t("noCoupon")}`,
+            `${t("notes")}: ${notes || t("noNotes")}`,
+            "",
+            `${t("branchNumbers")}: ${WHATSAPP_NUMBERS.join(" — ")}`
+        ].join("\n");
+
+        setText(
+            "#popupOrderStatus",
+            t("openingWhatsApp")
+        );
+
+        const waNumber = WHATSAPP_NUMBERS[0]
+            .replace(/\D/g, "")
+            .replace(/^0/, "");
+
+        const url =
+            `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
+
+        const opened = window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+        if (!opened) {
+            setText(
+                "#popupOrderStatus",
+                t("whatsappError")
+            );
+        }
+    }
+
+    $("#popupOrderForm")?.addEventListener(
+        "submit",
+        submitOrder
+    );
+
+    $("#falafelOrderForm")?.addEventListener(
+        "submit",
+        event => event.preventDefault()
+    );
+
+    /* =====================================================
+       26 — GLOBAL PRODUCT AND CART EVENTS
+    ===================================================== */
+
+    document.addEventListener("click", event => {
+        const target = event.target;
+
+        if (!(target instanceof Element)) return;
+
+        const addButton = target.closest("[data-add]");
+
+        if (addButton) {
+            addToCart(addButton.dataset.add);
+            return;
+        }
+
+        const quantityButton = target.closest("[data-qty]");
+
+        if (quantityButton) {
+            changeQty(
+                quantityButton.dataset.qty,
+                Number(quantityButton.dataset.delta)
+            );
+
+            return;
+        }
+
+        const removeButton = target.closest("[data-remove]");
+
+        if (removeButton) {
+            removeFromCart(removeButton.dataset.remove);
+            return;
+        }
+
+        const addonButton = target.closest("[data-addon]");
+
+        if (addonButton) {
+            addToCart(addonButton.dataset.addon);
+        }
+    });
+
+    /* =====================================================
+       27 — INITIALIZE PAGE
+    ===================================================== */
+
+    async function initializeFalafelPage() {
+        applyStaticTranslations();
+
+        initializeProductView();
+
+        activeCoupon = loadCoupon();
+
+        if (activeCoupon && couponInput) {
+            couponInput.value = activeCoupon;
+
+            if (couponStatus) {
+                couponStatus.textContent =
+                    currentLanguage === "en"
+                        ? "GHANNAM15 saved: 15% discount."
+                        : "كود GHANNAM15 محفوظ: خصم 15%.";
+
+                couponStatus.style.color = "#18864b";
+            }
+        }
+
+        ensureOffersContainer();
+
+        await loadDatabaseMenu();
+    }
+
+    initializeFalafelPage();
+
 })();

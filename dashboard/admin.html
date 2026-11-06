@@ -449,10 +449,7 @@
                 <div class="permissions-grid">
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_menu">
-
+                        <input type="checkbox" data-permission="can_manage_menu">
                         <span>
                             <strong>إدارة التصنيفات</strong>
                             <small>إضافة وتعديل وحذف التصنيفات.</small>
@@ -460,10 +457,7 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_prices">
-
+                        <input type="checkbox" data-permission="can_manage_prices">
                         <span>
                             <strong>إدارة الأسعار</strong>
                             <small>تعديل أسعار المنتجات.</small>
@@ -471,10 +465,7 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_products">
-
+                        <input type="checkbox" data-permission="can_manage_products">
                         <span>
                             <strong>إدارة المنتجات</strong>
                             <small>إضافة وتعديل وحذف المنتجات.</small>
@@ -482,10 +473,7 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_orders">
-
+                        <input type="checkbox" data-permission="can_manage_orders">
                         <span>
                             <strong>إدارة الطلبات</strong>
                             <small>الوصول إلى إدارة الطلبات.</small>
@@ -493,10 +481,7 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_conversations">
-
+                        <input type="checkbox" data-permission="can_manage_conversations">
                         <span>
                             <strong>إدارة المحادثات</strong>
                             <small>الوصول إلى محادثات ليلى.</small>
@@ -504,35 +489,23 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_offers">
-
+                        <input type="checkbox" data-permission="can_manage_offers">
                         <span>
                             <strong>إدارة العروض</strong>
                             <small>إضافة وتعديل وإيقاف العروض.</small>
                         </span>
                     </label>
 
-                    <!-- صلاحية إدارة القسائم -->
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_coupons">
-
+                        <input type="checkbox" data-permission="can_manage_coupons">
                         <span>
                             <strong>إدارة القسائم</strong>
-                            <small>
-                                إنشاء وتعديل وحذف قسائم الخصم وإدارتها.
-                            </small>
+                            <small>إنشاء وتعديل وحذف قسائم الخصم وإدارتها.</small>
                         </span>
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_manage_branch_staff">
-
+                        <input type="checkbox" data-permission="can_manage_branch_staff">
                         <span>
                             <strong>إدارة موظفي الفرع</strong>
                             <small>الوصول إلى قائمة موظفي الفرع.</small>
@@ -540,10 +513,7 @@
                     </label>
 
                     <label class="permission-item">
-                        <input
-                            type="checkbox"
-                            data-permission="can_delete_staff">
-
+                        <input type="checkbox" data-permission="can_delete_staff">
                         <span>
                             <strong>حذف موظفي الفرع</strong>
                             <small>حذف الموظفين التابعين لفرعه فقط.</small>
@@ -561,11 +531,7 @@
                         💾 حفظ الصلاحيات
                     </button>
 
-                    <p
-                        id="permissionsMessage"
-                        class="form-message"
-                        role="status">
-                    </p>
+                    <p id="permissionsMessage" class="form-message" role="status"></p>
                 </div>
             </section>
         </section>
@@ -675,11 +641,7 @@
                     </table>
                 </div>
 
-                <p
-                    id="productsMessage"
-                    class="form-message"
-                    role="status">
-                </p>
+                <p id="productsMessage" class="form-message" role="status"></p>
             </section>
 
             <!-- محرر المنتجات -->
@@ -719,17 +681,29 @@
                         <select id="productCategory" required></select>
                     </label>
 
+                    <!-- اسم المنتج بالعربية -->
                     <label>
-                        اسم الوجبة *
+                        اسم الوجبة بالعربية *
                         <input
                             id="productName"
                             maxlength="140"
                             required
-                            placeholder="مثلاً: بركر لحم">
+                            placeholder="مثلاً: كباب لحم">
                     </label>
 
+                    <!-- اسم المنتج بالإنجليزية -->
                     <label>
-                        الوصف / التفاصيل
+                        اسم الوجبة بالإنجليزية
+                        <input
+                            id="productNameEn"
+                            maxlength="140"
+                            placeholder="Example: Beef Kebab"
+                            dir="ltr">
+                    </label>
+
+                    <!-- وصف المنتج بالعربية -->
+                    <label>
+                        الوصف / التفاصيل بالعربية
                         <textarea
                             id="productDescription"
                             rows="3"
@@ -737,8 +711,20 @@
                             placeholder="تفاصيل الوجبة أو المكونات"></textarea>
                     </label>
 
+                    <!-- وصف المنتج بالإنجليزية -->
                     <label>
-                        السعر بالدينار العراقي *
+                        الوصف / التفاصيل بالإنجليزية
+                        <textarea
+                            id="productDescriptionEn"
+                            rows="3"
+                            maxlength="600"
+                            placeholder="Product description"
+                            dir="ltr"></textarea>
+                    </label>
+
+                    <!-- السعر الأساسي -->
+                    <label>
+                        السعر الأساسي بالدينار العراقي *
                         <input
                             id="productPrice"
                             type="number"
@@ -748,6 +734,37 @@
                             value="0">
                     </label>
 
+                    <!-- أحجام وأسعار المنتج -->
+                    <section
+                        id="productSizesPanel"
+                        class="product-sizes-panel"
+                        hidden>
+
+                        <div class="section-heading">
+                            <div>
+                                <h3>أحجام المنتج وأسعارها</h3>
+                                <p class="muted">
+                                    أضف أحجام المنتج وحدد سعراً مستقلاً لكل حجم.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div id="productSizesList"></div>
+
+                        <button
+                            type="button"
+                            id="addProductSizeButton"
+                            class="button button-secondary">
+                            ＋ إضافة حجم جديد
+                        </button>
+
+                        <p class="muted">
+                            أمثلة: كيلو، نصف كيلو، نفر، نصف نفر.
+                        </p>
+
+                    </section>
+
+                    <!-- ترتيب الظهور -->
                     <label>
                         ترتيب الظهور
                         <input
@@ -757,6 +774,7 @@
                             value="0">
                     </label>
 
+                    <!-- صورة المنتج -->
                     <label class="upload-box">
                         <span>صورة المنتج (PNG أو JPG أو WebP)</span>
 
@@ -782,6 +800,7 @@
                         <span id="imageFileLabel"></span>
                     </div>
 
+                    <!-- حالة التوفر -->
                     <label class="switch-row">
                         <input
                             id="productAvailable"
@@ -822,39 +841,91 @@
                     <h2>تصنيفات الفرع</h2>
 
                     <p class="muted">
-                        أضف تصنيفًا جديدًا أو غيّر اسم تصنيف موجود.
+                        إدارة التصنيفات والتحكم بترتيب ظهورها في المنيو.
                     </p>
                 </div>
             </div>
 
+            <!-- إضافة تصنيف جديد -->
             <form
                 id="categoryForm"
                 class="category-create-form">
 
                 <label>
-                    اسم التصنيف الجديد
-
+                    اسم التصنيف بالعربية *
                     <input
                         id="newCategoryName"
+                        type="text"
                         required
                         maxlength="100"
                         placeholder="مثلاً: وجبات عائلية">
                 </label>
 
+                <label>
+                    اسم التصنيف بالإنجليزية
+                    <input
+                        id="newCategoryNameEn"
+                        type="text"
+                        maxlength="100"
+                        placeholder="Example: Family Meals"
+                        dir="ltr">
+                </label>
+
+                <label>
+                    ترتيب العرض
+                    <input
+                        id="newCategoryOrder"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="1"
+                        required
+                        placeholder="مثلاً: 1">
+
+                    <small>
+                        الرقم الأصغر يظهر أولاً في المنيو.
+                    </small>
+                </label>
+
                 <button
                     class="button button-secondary"
                     type="submit">
-                    إضافة تصنيف
+                    ＋ إضافة تصنيف
                 </button>
+
             </form>
 
-            <div id="categoriesList" class="category-list"></div>
+            <!-- قائمة التصنيفات -->
+            <div class="categories-management">
+
+                <div class="section-heading">
+                    <div>
+                        <h3>الأقسام الحالية</h3>
+
+                        <p class="muted">
+                            يمكنك تعديل اسم القسم بالعربية والإنجليزية أو تغيير رقم ترتيبه.
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    id="categoriesList"
+                    class="category-list">
+
+                    <p class="muted">
+                        جاري تحميل التصنيفات...
+                    </p>
+
+                </div>
+
+            </div>
 
             <p
                 id="categoryMessage"
                 class="form-message"
                 role="status">
             </p>
+
         </section>
 
         <!-- العروض الخاصة -->
@@ -1120,7 +1191,6 @@
 
                         <label>
                             كود القسيمة
-
                             <input
                                 type="text"
                                 id="couponCode"
@@ -1131,7 +1201,6 @@
 
                         <label>
                             وصف القسيمة
-
                             <input
                                 type="text"
                                 id="couponDescription"
@@ -1140,7 +1209,6 @@
 
                         <label>
                             نوع الخصم
-
                             <select id="couponDiscountType" required>
                                 <option value="percent">نسبة مئوية %</option>
                                 <option value="fixed">مبلغ ثابت بالدينار</option>
@@ -1149,7 +1217,6 @@
 
                         <label>
                             قيمة الخصم
-
                             <input
                                 type="number"
                                 id="couponDiscountValue"
@@ -1160,7 +1227,6 @@
 
                         <label>
                             الحد الأعلى للخصم (اختياري)
-
                             <input
                                 type="number"
                                 id="couponMaxDiscount"
@@ -1171,7 +1237,6 @@
 
                         <label>
                             أقل مبلغ للطلب
-
                             <input
                                 type="number"
                                 id="couponMinOrder"
@@ -1182,7 +1247,6 @@
 
                         <label>
                             تاريخ بداية القسيمة
-
                             <input
                                 type="datetime-local"
                                 id="couponStartsAt"
@@ -1191,7 +1255,6 @@
 
                         <label>
                             تاريخ انتهاء القسيمة
-
                             <input
                                 type="datetime-local"
                                 id="couponExpiresAt">
@@ -1199,7 +1262,6 @@
 
                         <label>
                             الحد الأقصى للاستخدام
-
                             <input
                                 type="number"
                                 id="couponUsageLimit"
@@ -1209,7 +1271,6 @@
 
                         <label>
                             الحد لكل زبون
-
                             <input
                                 type="number"
                                 id="couponPerCustomerLimit"
@@ -1228,14 +1289,11 @@
                         </h4>
 
                         <label class="coupon-branch-option">
-
                             <input
                                 type="checkbox"
                                 id="couponAllBranches"
                                 checked>
-
                             جميع الفروع
-
                         </label>
 
                         <div id="couponBranchesList"></div>
@@ -1244,16 +1302,11 @@
 
                     <!-- حالة القسيمة -->
                     <label class="coupon-active-option">
-
                         <input
                             type="checkbox"
                             id="couponActive"
                             checked>
-
-                        <span>
-                            القسيمة مفعّلة
-                        </span>
-
+                        <span>القسيمة مفعّلة</span>
                     </label>
 
                     <!-- أزرار الحفظ والإلغاء -->
@@ -1303,13 +1356,11 @@
                     </thead>
 
                     <tbody id="couponsTable">
-
                         <tr>
                             <td colspan="7" class="empty-cell">
                                 لا توجد قسائم بعد.
                             </td>
                         </tr>
-
                     </tbody>
 
                 </table>
@@ -1350,7 +1401,7 @@
             التواصل مع فريق الدعم عبر واتساب
         </a>
 
-        <small>واتساب الدعم: +964 771 501 3593</small>
+        <small>واتساب الدعم: 07715013593</small>
     </footer>
 
 </main>

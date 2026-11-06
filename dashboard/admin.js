@@ -1,11 +1,10 @@
+
 import {
   supabaseClient as client,
   isSupabaseConfigured as readyConfig
 } from './supabase-client.js';
 
 const $ = selector => document.querySelector(selector);
-
-
 
 const IMAGE_BUCKET = 'menu-images';
 
@@ -21,6 +20,7 @@ const PERMISSION_LABELS = {
   can_manage_orders: 'إدارة الطلبات',
   can_manage_conversations: 'إدارة المحادثات',
   can_manage_offers: 'إدارة العروض',
+  can_manage_coupons: 'إدارة القسائم',
   can_manage_branch_staff: 'مشاهدة موظفي جميع الفروع',
   can_delete_staff: 'حذف موظفي الفرع'
 };
@@ -49,6 +49,10 @@ let currentOfferImageUrl = '';
 let currentOfferImagePath = '';
 
 let toastTimer = null;
+
+/* =====================================================
+   عناصر الواجهة
+===================================================== */
 
 const loginPanel = $('#loginPanel');
 const dashboard = $('#dashboard');
@@ -150,7 +154,11 @@ function isManager() {
 }
 
 function hasPermission(permission) {
-  return isOwner || ownPermissions?.[permission] === true;
+  return (
+    isServerOwner ||
+    isOwner ||
+    ownPermissions?.[permission] === true
+  );
 }
 
 function branchName(branchId) {
@@ -172,7 +180,11 @@ function canEditAnyProduct() {
 }
 
 function canManageCategories() {
-  return hasPermission('can_manage_menu');
+  return (
+    isServerOwner ||
+    isOwner ||
+    ownPermissions?.can_manage_menu === true
+  );
 }
 
 function canManageOffers() {
@@ -180,10 +192,242 @@ function canManageOffers() {
 }
 
 function canManageUsers() {
-  return isOwner || (
+  return isServerOwner || isOwner || (
     isManager() &&
     hasPermission('can_manage_branch_staff')
   );
+}
+
+/*
+  نحدد فرع المشاوي من معرف الفرع أو اسمه.
+  هذا يمنع الاعتماد على معرف ثابت إذا كان معرف الفرع
+  في قاعدة البيانات مختلفاً.
+*/
+function isGrillBranch(branchId = activeBranch) {
+  const branch = branches.find(item =>
+    String(item.id) === String(branchId)
+  );
+
+  const identity = `${branchId || ''} ${branch?.name || ''}`
+    .toLowerCase();
+
+  return (
+    identity.includes('grill') ||
+    identity.includes('mashawi') ||
+    identity.includes('مشاوي') ||
+    identity.includes('المشاوي')
+  );
+}
+
+/* =====================================================
+   الأحجام — products.extra.size_options
+===================================================== */
+
+function normalizeSizeOptions(extra) {
+  if (!extra || typeof extra !== 'object') return [];
+
+  const options = extra.size_options;
+
+  if (!Array.isArray(options)) return [];
+
+  return options.map((item, index) => ({
+    value: String(item?.value || `size_${index + 1}`),
+    label: String(item?.label || ''),
+    label_en: String(item?.label_en || ''),
+    price: Number(item?.price || 0)
+  }));
+}
+
+function renderProductSizes(sizeOptions = []) {
+  const panel = $('#productSizesPanel');
+  const list = $('#productSizesList');
+
+  if (!panel || !list) return;
+
+  panel.hidden = !isGrillBranch();
+
+  if (!isGrillBranch()) {
+    list.innerHTML = '';
+    return;
+  }
+
+  if (!sizeOptions.length) {
+    list.innerHTML = `
+      <p class="muted" data-empty-sizes>
+        لا توجد أحجام مضافة لهذا المنتج.
+      </p>
+    `;
+    return;
+  }
+
+  list.innerHTML = sizeOptions.map((size, index) => `
+    <div class="product-size-row" data-size-row>
+      <div class="user-form-grid">
+
+        <label>
+          اسم الحجم بالعربية
+          <input
+            type="text"
+            data-size-label
+            maxlength="100"
+            value="${escapeHTML(size.label)}"
+            placeholder="مثلاً: نصف كيلو">
+        </label>
+
+        <label>
+          اسم الحجم بالإنجليزية
+          <input
+            type="text"
+            data-size-label-en
+            maxlength="100"
+            dir="ltr"
+            value="${escapeHTML(size.label_en)}"
+            placeholder="Example: Half Kilo">
+        </label>
+
+        <label>
+          السعر بالدينار العراقي
+          <input
+            type="number"
+            data-size-price
+            min="0"
+            step="250"
+            value="${Number(size.price) || 0}">
+        </label>
+
+        <input
+          type="hidden"
+          data-size-value
+          value="${escapeHTML(size.value || `size_${index + 1}`)}">
+
+        <div class="user-form-actions">
+          <button
+            type="button"
+            class="button button-danger"
+            data-remove-size>
+            حذف الحجم
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `).join('');
+}
+
+function addProductSize() {
+  if (!canManageProducts()) {
+    toast('إضافة الأحجام متاحة لمن لديه صلاحية إدارة المنتجات.', 'error');
+    return;
+  }
+
+  if (!isGrillBranch($('#productBranch').value || activeBranch)) {
+    toast('الأحجام الإضافية مخصصة لفرع المشاوي.', 'error');
+    return;
+  }
+
+  const list = $('#productSizesList');
+
+  if (!list) return;
+
+  const empty = list.querySelector('[data-empty-sizes]');
+  if (empty) empty.remove();
+
+  const row = document.createElement('div');
+
+  row.className = 'product-size-row';
+  row.dataset.sizeRow = '';
+
+  row.innerHTML = `
+    <div class="user-form-grid">
+
+      <label>
+        اسم الحجم بالعربية
+        <input
+          type="text"
+          data-size-label
+          maxlength="100"
+          placeholder="مثلاً: كيلو">
+      </label>
+
+      <label>
+        اسم الحجم بالإنجليزية
+        <input
+          type="text"
+          data-size-label-en
+          maxlength="100"
+          dir="ltr"
+          placeholder="Example: Kilo">
+      </label>
+
+      <label>
+        السعر بالدينار العراقي
+        <input
+          type="number"
+          data-size-price
+          min="0"
+          step="250"
+          value="0">
+      </label>
+
+      <input
+        type="hidden"
+        data-size-value
+        value="size_${crypto.randomUUID()}">
+
+      <div class="user-form-actions">
+        <button
+          type="button"
+          class="button button-danger"
+          data-remove-size>
+          حذف الحجم
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  list.appendChild(row);
+}
+
+function collectProductSizes() {
+  if (!isGrillBranch($('#productBranch').value || activeBranch)) {
+    return null;
+  }
+
+  const rows = [
+    ...document.querySelectorAll('#productSizesList [data-size-row]')
+  ];
+
+  const result = [];
+
+  rows.forEach((row, index) => {
+    const label = row.querySelector('[data-size-label]')?.value.trim() || '';
+    const labelEn = row.querySelector('[data-size-label-en]')?.value.trim() || '';
+    const priceRaw = row.querySelector('[data-size-price]')?.value;
+    const value = row.querySelector('[data-size-value]')?.value ||
+      `size_${index + 1}`;
+
+    const price = Number(priceRaw);
+
+    if (!label && !labelEn && !priceRaw) return;
+
+    if (!label) {
+      throw new Error(`اكتب الاسم العربي للحجم رقم ${index + 1}.`);
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(`تحقق من سعر الحجم: ${label}.`);
+    }
+
+    result.push({
+      value,
+      label,
+      label_en: labelEn,
+      price
+    });
+  });
+
+  return result;
 }
 
 /* =====================================================
@@ -193,17 +437,10 @@ function canManageUsers() {
 function canResetUserPassword(user) {
   if (!user || !currentProfile) return false;
 
-  if (String(user.id) === String(currentProfile.id)) {
-    return false;
-  }
+  if (String(user.id) === String(currentProfile.id)) return false;
+  if (SERVER_OWNER_IDS.has(user.id)) return false;
 
-  if (SERVER_OWNER_IDS.has(user.id)) {
-    return false;
-  }
-
-  if (isServerOwner) {
-    return true;
-  }
+  if (isServerOwner) return true;
 
   return (
     isOwner &&
@@ -232,9 +469,7 @@ async function resetUserPassword(userId) {
     return;
   }
 
-  const confirmation = prompt(
-    'أعد كتابة كلمة المرور الجديدة للتأكيد:'
-  );
+  const confirmation = prompt('أعد كتابة كلمة المرور الجديدة للتأكيد:');
 
   if (confirmation === null) return;
 
@@ -253,10 +488,7 @@ async function resetUserPassword(userId) {
     toast('تم تغيير كلمة مرور الحساب بنجاح.');
 
   } catch (error) {
-    toast(
-      `تعذر تغيير كلمة المرور: ${error.message}`,
-      'error'
-    );
+    toast(`تعذر تغيير كلمة المرور: ${error.message}`, 'error');
   }
 }
 
@@ -270,22 +502,13 @@ function configureCreateRoleOptions() {
 
   const existingValue = select.value;
 
-  const optionDefinitions = [
-    {
-      value: 'staff',
-      text: 'موظف'
-    },
-    {
-      value: 'manager',
-      text: 'مدير فرع'
-    },
-    {
-      value: 'owner',
-      text: 'صاحب المطعم'
-    }
+  const definitions = [
+    { value: 'staff', text: 'موظف' },
+    { value: 'manager', text: 'مدير فرع' },
+    { value: 'owner', text: 'صاحب المطعم' }
   ];
 
-  optionDefinitions.forEach(item => {
+  definitions.forEach(item => {
     const exists = [...select.options].some(
       option => option.value === item.value
     );
@@ -305,26 +528,20 @@ function configureCreateRoleOptions() {
 
   [...select.options].forEach(option => {
     if (
-      option.value === 'manager' ||
-      option.value === 'owner'
+      !isServerOwner &&
+      ['manager', 'owner'].includes(option.value)
     ) {
-      if (!isServerOwner) {
-        option.remove();
-      }
+      option.remove();
     }
   });
 
-  const valueStillExists = [...select.options].some(
+  select.value = [...select.options].some(
     option => option.value === existingValue
-  );
-
-  select.value = valueStillExists
-    ? existingValue
-    : 'staff';
+  ) ? existingValue : 'staff';
 }
 
 /* =====================================================
-   إظهار وإخفاء الأقسام حسب الصلاحيات
+   إظهار الأقسام حسب الصلاحيات
 ===================================================== */
 
 function applyDashboardPermissions() {
@@ -368,16 +585,6 @@ function applyDashboardPermissions() {
     conversationsLink.hidden = !hasPermission('can_manage_conversations');
   }
 
-  const priceInput = $('#productPrice');
-
-  if (priceInput) {
-    priceInput.disabled = !canManagePrices();
-  }
-
-  if (!canManageProducts() && canManagePrices()) {
-    $('#newProductButton').hidden = true;
-  }
-
   $('#branchSelect').disabled = isManager();
   $('#productBranch').disabled = isManager();
   $('#offerBranch').disabled = isManager();
@@ -387,18 +594,22 @@ function applyDashboardPermissions() {
   }
 
   configureCreateRoleOptions();
+  setProductFormPermissions();
 }
 
 function setProductFormPermissions() {
-  const editing = Boolean($('#productId').value);
-  const fullProductAccess = canManageProducts();
+  const id = $('#productId')?.value;
+  const editing = Boolean(id);
+  const fullAccess = canManageProducts();
   const priceAccess = canManagePrices();
 
   const controls = [
     '#productBranch',
     '#productCategory',
     '#productName',
+    '#productNameEn',
     '#productDescription',
+    '#productDescriptionEn',
     '#productOrder',
     '#productImage',
     '#productAvailable'
@@ -406,22 +617,44 @@ function setProductFormPermissions() {
 
   controls.forEach(selector => {
     const element = $(selector);
-    if (element) element.disabled = !fullProductAccess;
+    if (element) element.disabled = !fullAccess;
   });
 
-  $('#productPrice').disabled = !priceAccess;
+  const priceInput = $('#productPrice');
+  if (priceInput) priceInput.disabled = !priceAccess;
 
-  $('#saveProductButton').disabled =
-    !editing
-      ? !fullProductAccess
-      : !(fullProductAccess || priceAccess);
+  const sizesPanel = $('#productSizesPanel');
 
-  $('#saveProductButton').textContent =
-    !fullProductAccess && priceAccess && editing
-      ? 'حفظ السعر'
-      : editing
-        ? 'حفظ التعديلات'
-        : 'حفظ المنتج';
+  if (sizesPanel) {
+    sizesPanel.hidden = !isGrillBranch(
+      $('#productBranch')?.value || activeBranch
+    );
+
+    sizesPanel.querySelectorAll('input, button').forEach(element => {
+      element.disabled = !fullAccess;
+    });
+  }
+
+  const addSizeButton = $('#addProductSizeButton');
+
+  if (addSizeButton) {
+    addSizeButton.disabled = !fullAccess;
+  }
+
+  const saveButton = $('#saveProductButton');
+
+  if (saveButton) {
+    saveButton.disabled = !editing
+      ? !fullAccess
+      : !(fullAccess || priceAccess);
+
+    saveButton.textContent =
+      !fullAccess && priceAccess && editing
+        ? 'حفظ السعر'
+        : editing
+          ? 'حفظ التعديلات'
+          : 'حفظ المنتج';
+  }
 }
 
 /* =====================================================
@@ -434,11 +667,7 @@ async function signIn(event) {
   const status = $('#loginMessage');
 
   if (!client) {
-    message(
-      status,
-      'أكمل بيانات Supabase داخل supabase-config.js أولاً.',
-      'error'
-    );
+    message(status, 'أكمل بيانات Supabase داخل supabase-config.js أولاً.', 'error');
     return;
   }
 
@@ -456,14 +685,11 @@ async function signIn(event) {
     if (error) throw error;
 
     sessionUser = data.user;
+
     await authorizeAndLoad();
 
   } catch (error) {
-    message(
-      status,
-      `تعذر تسجيل الدخول: ${error.message}`,
-      'error'
-    );
+    message(status, `تعذر تسجيل الدخول: ${error.message}`, 'error');
   } finally {
     setBusy(button, false);
   }
@@ -516,8 +742,7 @@ async function authorizeAndLoad() {
   }
 
   currentProfile = profile;
-
-  isServerOwner = SERVER_OWNER_IDS.has(profile.id);
+  isServerOwner = SERVER_OWNER_IDS.has(sessionUser.id);
   isOwner = isServerOwner || profile.role === 'owner';
 
   ownPermissions = {};
@@ -549,16 +774,12 @@ async function manageUsers(payload) {
         const body = await error.context.json();
         details = body.error || body.message || details;
       }
-    } catch (_) {
-      // نستخدم رسالة الخطأ الأصلية
-    }
+    } catch (_) {}
 
     throw new Error(details);
   }
 
-  if (data?.error) {
-    throw new Error(data.error);
-  }
+  if (data?.error) throw new Error(data.error);
 
   return data || {};
 }
@@ -604,11 +825,7 @@ async function loadUsers() {
   const body = $('#usersTable');
 
   body.innerHTML = `
-    <tr>
-      <td colspan="5" class="empty-cell">
-        جارٍ تحميل المستخدمين...
-      </td>
-    </tr>
+    <tr><td colspan="5" class="empty-cell">جارٍ تحميل المستخدمين...</td></tr>
   `;
 
   message($('#usersMessage'), '');
@@ -616,10 +833,7 @@ async function loadUsers() {
   try {
     const response = await manageUsers({ action: 'list' });
 
-    users = Array.isArray(response.users)
-      ? response.users
-      : [];
-
+    users = Array.isArray(response.users) ? response.users : [];
     permissionsByUser = normalizePermissions(response);
 
     ownPermissions = {};
@@ -634,9 +848,7 @@ async function loadUsers() {
       response.canDeleteStaff === true ||
       ownPermissions.can_delete_staff === true;
 
-    if (response.isOwner === true) {
-      isOwner = true;
-    }
+    if (response.isOwner === true) isOwner = true;
 
     $('#usersCount').textContent = users.length;
 
@@ -649,11 +861,7 @@ async function loadUsers() {
 
   } catch (error) {
     body.innerHTML = `
-      <tr>
-        <td colspan="5" class="empty-cell">
-          تعذر تحميل المستخدمين.
-        </td>
-      </tr>
+      <tr><td colspan="5" class="empty-cell">تعذر تحميل المستخدمين.</td></tr>
     `;
 
     message(
@@ -665,20 +873,20 @@ async function loadUsers() {
 }
 
 function roleLabel(role) {
-  if (role === 'server_owner') return 'مالك السيرفر';
-  if (role === 'owner') return 'صاحب المطعم';
-  if (role === 'manager') return 'مدير فرع';
-  if (role === 'staff') return 'موظف';
-  if (role === 'customer') return 'زبون';
+  const labels = {
+    server_owner: 'مالك السيرفر',
+    owner: 'صاحب المطعم',
+    manager: 'مدير فرع',
+    staff: 'موظف',
+    customer: 'زبون'
+  };
 
-  return role || '—';
+  return labels[role] || role || '—';
 }
 
 function canDeleteUser(user) {
   if (!user) return false;
-
   if (SERVER_OWNER_IDS.has(user.id)) return false;
-
   if (user.id === currentProfile?.id) return false;
 
   if (isServerOwner) return true;
@@ -726,64 +934,28 @@ function renderUsers() {
       );
 
     const roleActions = canChangeRole
-      ? `
-        <button
-          type="button"
-          class="button button-quiet"
-          data-change-role="${escapeHTML(user.id)}">
-          تغيير الرتبة
-        </button>
-      `
+      ? `<button type="button" class="button button-quiet" data-change-role="${escapeHTML(user.id)}">تغيير الرتبة</button>`
       : '';
 
     const permissionAction =
       isOwner && user.role === 'manager'
-        ? `
-          <button
-            type="button"
-            class="button button-quiet"
-            data-edit-permissions="${escapeHTML(user.id)}">
-            الصلاحيات
-          </button>
-        `
+        ? `<button type="button" class="button button-quiet" data-edit-permissions="${escapeHTML(user.id)}">الصلاحيات</button>`
         : '';
 
     const passwordAction = canResetUserPassword(user)
-      ? `
-        <button
-          type="button"
-          class="button button-quiet"
-          data-reset-password="${escapeHTML(user.id)}">
-          تغيير رمز السر
-        </button>
-      `
+      ? `<button type="button" class="button button-quiet" data-reset-password="${escapeHTML(user.id)}">تغيير رمز السر</button>`
       : '';
 
     const deleteAction = deleteAllowed
-      ? `
-        <button
-          type="button"
-          class="button button-danger"
-          data-delete-user="${escapeHTML(user.id)}">
-          حذف
-        </button>
-      `
+      ? `<button type="button" class="button button-danger" data-delete-user="${escapeHTML(user.id)}">حذف</button>`
       : '';
 
     return `
       <tr>
         <td>${escapeHTML(user.full_name || 'بدون اسم')}</td>
-
         <td>${escapeHTML(user.email || '—')}</td>
-
         <td>${escapeHTML(branchName(user.branch_id))}</td>
-
-        <td>
-          <span class="user-role">
-            ${escapeHTML(roleLabel(user.role))}
-          </span>
-        </td>
-
+        <td><span class="user-role">${escapeHTML(roleLabel(user.role))}</span></td>
         <td>
           <div class="user-actions">
             ${permissionAction}
@@ -820,43 +992,26 @@ async function createUser(event) {
   const role = $('#newUserRole').value;
 
   if (!name || !email || !password) {
-    message(
-      $('#createUserMessage'),
-      'أكمل الاسم والبريد الإلكتروني وكلمة المرور.',
-      'error'
-    );
+    message($('#createUserMessage'), 'أكمل الاسم والبريد الإلكتروني وكلمة المرور.', 'error');
     return;
   }
 
   if (password.length < 8) {
-    message(
-      $('#createUserMessage'),
-      'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
-      'error'
-    );
+    message($('#createUserMessage'), 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.', 'error');
     return;
   }
 
   if (['staff', 'manager'].includes(role) && !branchId) {
-    message(
-      $('#createUserMessage'),
-      'اختر الفرع لهذا الحساب.',
-      'error'
-    );
+    message($('#createUserMessage'), 'اختر الفرع لهذا الحساب.', 'error');
     return;
   }
 
-  // مالك السيرفر فقط يستطيع إنشاء مدير أو صاحب مطعم
   const allowedRoles = isServerOwner
     ? ['staff', 'manager', 'owner']
     : ['staff'];
 
   if (!allowedRoles.includes(role)) {
-    message(
-      $('#createUserMessage'),
-      'نوع الحساب غير مسموح لك بإنشائه.',
-      'error'
-    );
+    message($('#createUserMessage'), 'نوع الحساب غير مسموح لك بإنشائه.', 'error');
     return;
   }
 
@@ -876,22 +1031,13 @@ async function createUser(event) {
     $('#createUserForm').reset();
     configureCreateRoleOptions();
 
-    message(
-      $('#createUserMessage'),
-      'تم إنشاء الحساب بنجاح.',
-      'success'
-    );
-
+    message($('#createUserMessage'), 'تم إنشاء الحساب بنجاح.', 'success');
     toast('تم إنشاء الحساب بنجاح.');
 
     await loadUsers();
 
   } catch (error) {
-    message(
-      $('#createUserMessage'),
-      `تعذر إنشاء الحساب: ${error.message}`,
-      'error'
-    );
+    message($('#createUserMessage'), `تعذر إنشاء الحساب: ${error.message}`, 'error');
   } finally {
     setBusy(button, false);
   }
@@ -907,10 +1053,7 @@ async function changeUserRole(userId) {
     return;
   }
 
-  const user = users.find(item =>
-    String(item.id) === String(userId)
-  );
-
+  const user = users.find(item => String(item.id) === String(userId));
   if (!user) return;
 
   if (SERVER_OWNER_IDS.has(user.id)) {
@@ -918,16 +1061,11 @@ async function changeUserRole(userId) {
     return;
   }
 
-  if (
-    !isServerOwner &&
-    ['owner', 'server_owner'].includes(user.role)
-  ) {
+  if (!isServerOwner && ['owner', 'server_owner'].includes(user.role)) {
     toast('ليس لديك صلاحية تغيير رتبة هذا الحساب.', 'error');
     return;
   }
 
-  // مالك السيرفر يستطيع تعيين جميع الرتب المسموحة
-  // صاحب المطعم يستطيع اختيار موظف أو زبون فقط
   const allowedRoles = isServerOwner
     ? ['owner', 'manager', 'staff', 'customer']
     : ['staff', 'customer'];
@@ -949,14 +1087,9 @@ async function changeUserRole(userId) {
   if (role === user.role) return;
 
   try {
-    await manageUsers({
-      action: 'set_role',
-      userId,
-      role
-    });
+    await manageUsers({ action: 'set_role', userId, role });
 
     toast('تم تغيير رتبة المستخدم.');
-
     await loadUsers();
 
   } catch (error) {
@@ -974,9 +1107,7 @@ function openPermissionsEditor(userId) {
     return;
   }
 
-  const user = users.find(item =>
-    String(item.id) === String(userId)
-  );
+  const user = users.find(item => String(item.id) === String(userId));
 
   if (!user || user.role !== 'manager') return;
 
@@ -988,8 +1119,7 @@ function openPermissionsEditor(userId) {
     `${user.full_name || 'مدير الفرع'} — ${user.email || ''}`;
 
   document.querySelectorAll('[data-permission]').forEach(input => {
-    const key = input.dataset.permission;
-    input.checked = permissions[key] === true;
+    input.checked = permissions[input.dataset.permission] === true;
   });
 
   message($('#permissionsMessage'), '');
@@ -1011,9 +1141,7 @@ async function saveUserPermissions() {
   const userId = $('#permissionsUserId').value;
   if (!userId) return;
 
-  const user = users.find(item =>
-    String(item.id) === String(userId)
-  );
+  const user = users.find(item => String(item.id) === String(userId));
 
   if (!user || user.role !== 'manager') {
     toast('يمكن تعديل صلاحيات المديرين فقط.', 'error');
@@ -1040,22 +1168,13 @@ async function saveUserPermissions() {
 
     permissionsByUser[userId] = permissions;
 
-    message(
-      $('#permissionsMessage'),
-      'تم حفظ الصلاحيات بنجاح.',
-      'success'
-    );
-
+    message($('#permissionsMessage'), 'تم حفظ الصلاحيات بنجاح.', 'success');
     toast('تم تحديث صلاحيات المدير.');
 
     await loadUsers();
 
   } catch (error) {
-    message(
-      $('#permissionsMessage'),
-      `تعذر حفظ الصلاحيات: ${error.message}`,
-      'error'
-    );
+    message($('#permissionsMessage'), `تعذر حفظ الصلاحيات: ${error.message}`, 'error');
   } finally {
     setBusy(button, false);
   }
@@ -1066,26 +1185,19 @@ async function saveUserPermissions() {
 ===================================================== */
 
 async function deleteUser(userId) {
-  const user = users.find(item =>
-    String(item.id) === String(userId)
-  );
+  const user = users.find(item => String(item.id) === String(userId));
 
   if (!user || !canDeleteUser(user)) {
     toast('ليس لديك صلاحية حذف هذا المستخدم.', 'error');
     return;
   }
 
-  const confirmed = confirm(
-    `هل أنت متأكد من حذف حساب ${user.full_name || user.email}؟`
-  );
-
-  if (!confirmed) return;
+  if (!confirm(`هل أنت متأكد من حذف حساب ${user.full_name || user.email}؟`)) {
+    return;
+  }
 
   try {
-    await manageUsers({
-      action: 'delete',
-      userId
-    });
+    await manageUsers({ action: 'delete', userId });
 
     toast('تم حذف الحساب بنجاح.');
 
@@ -1139,7 +1251,7 @@ async function loadBranches() {
   $('#productBranch').innerHTML = branchOptions;
 
   $('#offerBranch').innerHTML =
-    `<option value="">كل الفروع</option>` + branchOptions;
+    `<option value="">كل الفروع</option>${branchOptions}`;
 
   $('#branchSelect').value = activeBranch;
   $('#productBranch').value = activeBranch;
@@ -1164,16 +1276,23 @@ async function loadBranches() {
 }
 
 /* =====================================================
-   التصنيفات
+   التصنيفات — عربي وإنجليزي
 ===================================================== */
+
+function getNextCategoryOrder() {
+  return categories.reduce(
+    (max, item) => Math.max(max, Number(item.sort_order) || 0),
+    0
+  ) + 1;
+}
 
 async function loadCategories() {
   const { data, error } = await client
     .from('categories')
     .select('*')
     .eq('branch_id', activeBranch)
-    .order('sort_order')
-    .order('name');
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
 
   if (error) {
     toast(`تعذر تحميل التصنيفات: ${error.message}`, 'error');
@@ -1182,16 +1301,24 @@ async function loadCategories() {
 
   categories = data || [];
 
+  const orderInput = $('#newCategoryOrder');
+
+  if (orderInput) {
+    orderInput.value = String(getNextCategoryOrder());
+  }
+
   renderCategorySelect();
   renderCategoriesList();
 }
 
 function renderCategorySelect(selectedId = '') {
   const select = $('#productCategory');
+  if (!select) return;
 
   select.innerHTML = categories.map(category => `
     <option value="${escapeHTML(category.id)}">
       ${escapeHTML(category.name)}
+      ${category.name_en ? ` — ${escapeHTML(category.name_en)}` : ''}
     </option>
   `).join('');
 
@@ -1203,24 +1330,43 @@ function renderCategorySelect(selectedId = '') {
 }
 
 function renderCategoriesList() {
-  $('#categoriesList').innerHTML = categories.length
+  const list = $('#categoriesList');
+  if (!list) return;
+
+  list.innerHTML = categories.length
     ? categories.map(category => `
         <div class="category-chip" data-category-id="${escapeHTML(category.id)}">
-          <span>${escapeHTML(category.name)}</span>
+
+          <span>
+            <strong>${escapeHTML(category.name)}</strong>
+
+            <small dir="ltr">
+              ${escapeHTML(category.name_en || 'No English name')}
+            </small>
+
+            <small>
+              ترتيب العرض: ${Number(category.sort_order) || 0}
+            </small>
+          </span>
 
           <button
             type="button"
-            data-rename-category="${escapeHTML(category.id)}"
-            aria-label="تعديل ${escapeHTML(category.name)}">
-            تعديل الاسم
+            data-order-category="${escapeHTML(category.id)}">
+            ترتيب العرض
           </button>
 
           <button
             type="button"
-            data-delete-category="${escapeHTML(category.id)}"
-            aria-label="حذف ${escapeHTML(category.name)}">
+            data-rename-category="${escapeHTML(category.id)}">
+            تعديل الاسمين
+          </button>
+
+          <button
+            type="button"
+            data-delete-category="${escapeHTML(category.id)}">
             حذف
           </button>
+
         </div>
       `).join('')
     : '<p class="muted">ماكو تصنيفات بهذا الفرع.</p>';
@@ -1237,30 +1383,34 @@ async function addCategory(event) {
   }
 
   const name = $('#newCategoryName').value.trim();
-  if (!name) return;
+  const nameEn = $('#newCategoryNameEn').value.trim();
 
-  const slug = slugify(name);
+  if (!name) {
+    toast('اكتب اسم القسم بالعربية.', 'error');
+    return;
+  }
 
-  const maxOrder = categories.reduce(
-    (max, item) => Math.max(max, item.sort_order || 0),
-    0
+  const requestedOrder = Number.parseInt(
+    $('#newCategoryOrder').value || '0',
+    10
   );
+
+  const sortOrder = Number.isInteger(requestedOrder) && requestedOrder > 0
+    ? requestedOrder
+    : getNextCategoryOrder();
 
   const { error } = await client
     .from('categories')
     .insert({
       branch_id: activeBranch,
       name,
-      slug,
-      sort_order: maxOrder + 1
+      name_en: nameEn || null,
+      slug: slugify(name),
+      sort_order: sortOrder
     });
 
   if (error) {
-    message(
-      $('#categoryMessage'),
-      `تعذرت الإضافة: ${error.message}`,
-      'error'
-    );
+    message($('#categoryMessage'), `تعذرت الإضافة: ${error.message}`, 'error');
     return;
   }
 
@@ -1268,7 +1418,83 @@ async function addCategory(event) {
 
   await loadCategories();
 
-  toast('تمت إضافة التصنيف.');
+  toast('تمت إضافة التصنيف باللغتين.');
+}
+
+async function changeCategoryOrder(id) {
+  if (!canManageCategories()) {
+    toast('ليس لديك صلاحية تعديل ترتيب التصنيفات.', 'error');
+    return;
+  }
+
+  const category = categories.find(item => String(item.id) === String(id));
+  if (!category) return;
+
+  const sortedCategories = [...categories].sort((a, b) => {
+    const orderA = Number(a.sort_order) || 0;
+    const orderB = Number(b.sort_order) || 0;
+
+    return orderA - orderB ||
+      String(a.name).localeCompare(String(b.name));
+  });
+
+  const currentIndex = sortedCategories.findIndex(item =>
+    String(item.id) === String(id)
+  );
+
+  const answer = prompt(
+    `تغيير ترتيب عرض القسم: ${category.name}\n\nالترتيب الحالي: ${currentIndex + 1}\n\nأدخل الترتيب الجديد من 1 إلى ${sortedCategories.length}:`,
+    String(currentIndex + 1)
+  );
+
+  if (answer === null) return;
+
+  const cleanValue = answer.trim();
+  const newOrder = Number(cleanValue);
+
+  if (
+    cleanValue === '' ||
+    !Number.isInteger(newOrder) ||
+    newOrder < 1 ||
+    newOrder > sortedCategories.length
+  ) {
+    toast(`أدخل رقماً من 1 إلى ${sortedCategories.length}.`, 'error');
+    return;
+  }
+
+  if (newOrder === currentIndex + 1) return;
+
+  const [movedCategory] = sortedCategories.splice(currentIndex, 1);
+  sortedCategories.splice(newOrder - 1, 0, movedCategory);
+
+  const buttons = document.querySelectorAll(
+    '[data-order-category], [data-rename-category], [data-delete-category]'
+  );
+
+  buttons.forEach(button => button.disabled = true);
+
+  try {
+    const { error } = await client.rpc('reorder_categories', {
+      p_branch_id: activeBranch,
+      p_category_ids: sortedCategories.map(item => item.id)
+    });
+
+    if (error) throw error;
+
+    await loadCategories();
+
+    toast('تم تغيير ترتيب القسم وتحديث بقية الأقسام.');
+
+  } catch (error) {
+    console.error('Category reorder error:', error);
+
+    await loadCategories();
+
+    toast(`تعذر تحديث ترتيب الأقسام: ${error.message}`, 'error');
+
+  } finally {
+    buttons.forEach(button => button.disabled = false);
+  }
 }
 
 async function renameCategory(id) {
@@ -1277,29 +1503,35 @@ async function renameCategory(id) {
     return;
   }
 
-  const category = categories.find(item =>
-    String(item.id) === String(id)
-  );
-
+  const category = categories.find(item => String(item.id) === String(id));
   if (!category) return;
 
-  const name = prompt('اكتب الاسم الجديد للتصنيف:', category.name);
+  const name = prompt('الاسم العربي الجديد:', category.name);
   if (name === null) return;
 
-  const clean = name.trim();
+  const cleanName = name.trim();
 
-  if (!clean) {
-    toast('اسم التصنيف لا يمكن أن يكون فارغًا.', 'error');
+  if (!cleanName) {
+    toast('اسم التصنيف العربي لا يمكن أن يكون فارغاً.', 'error');
     return;
   }
+
+  const nameEn = prompt(
+    'الاسم الإنجليزي الجديد (يمكن تركه فارغاً):',
+    category.name_en || ''
+  );
+
+  if (nameEn === null) return;
 
   const { error } = await client
     .from('categories')
     .update({
-      name: clean,
-      slug: slugify(clean)
+      name: cleanName,
+      name_en: nameEn.trim() || null,
+      slug: slugify(cleanName)
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('branch_id', activeBranch);
 
   if (error) {
     toast(`تعذر تعديل التصنيف: ${error.message}`, 'error');
@@ -1309,7 +1541,7 @@ async function renameCategory(id) {
   await loadCategories();
   await loadProducts();
 
-  toast('تم تعديل التصنيف.');
+  toast('تم تعديل اسمي التصنيف.');
 }
 
 async function deleteCategory(id) {
@@ -1318,9 +1550,7 @@ async function deleteCategory(id) {
     return;
   }
 
-  const category = categories.find(item =>
-    String(item.id) === String(id)
-  );
+  const category = categories.find(item => String(item.id) === String(id));
 
   if (
     !category ||
@@ -1332,7 +1562,8 @@ async function deleteCategory(id) {
   const { error } = await client
     .from('categories')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('branch_id', activeBranch);
 
   if (error) {
     toast(`تعذر حذف التصنيف. تأكد أنه فارغ. ${error.message}`, 'error');
@@ -1350,27 +1581,19 @@ async function deleteCategory(id) {
 
 async function loadProducts() {
   $('#productsTable').innerHTML = `
-    <tr>
-      <td colspan="6" class="empty-cell">
-        جارٍ تحميل المنتجات...
-      </td>
-    </tr>
+    <tr><td colspan="6" class="empty-cell">جارٍ تحميل المنتجات...</td></tr>
   `;
 
   const { data, error } = await client
     .from('products')
-    .select('*, categories(name), branches(name)')
+    .select('*, categories(name,name_en), branches(name)')
     .eq('branch_id', activeBranch)
     .order('sort_order')
     .order('name');
 
   if (error) {
     $('#productsTable').innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-cell">
-          تعذر تحميل المنتجات.
-        </td>
-      </tr>
+      <tr><td colspan="6" class="empty-cell">تعذر تحميل المنتجات.</td></tr>
     `;
 
     toast(`تعذر تحميل المنتجات: ${error.message}`, 'error');
@@ -1397,38 +1620,31 @@ async function loadProducts() {
 }
 
 function renderProducts() {
-  const query = $('#productSearch').value.trim().toLocaleLowerCase('ar');
+  const query = $('#productSearch').value.trim().toLocaleLowerCase();
 
-  const shown = products.filter(product =>
-    `${product.name} ${product.description || ''} ${product.categories?.name || ''}`
-      .toLocaleLowerCase('ar')
-      .includes(query)
-  );
+  const shown = products.filter(product => {
+    const searchable = [
+      product.name,
+      product.name_en,
+      product.description,
+      product.description_en,
+      product.categories?.name,
+      product.categories?.name_en
+    ].join(' ').toLocaleLowerCase();
+
+    return searchable.includes(query);
+  });
 
   $('#productCount').textContent = shown.length;
 
   $('#productsTable').innerHTML = shown.length
     ? shown.map(product => {
         const editButton = canEditAnyProduct()
-          ? `
-            <button
-              type="button"
-              class="button button-quiet"
-              data-edit-product="${escapeHTML(product.id)}">
-              تعديل
-            </button>
-          `
+          ? `<button type="button" class="button button-quiet" data-edit-product="${escapeHTML(product.id)}">تعديل</button>`
           : '';
 
         const deleteButton = canManageProducts()
-          ? `
-            <button
-              type="button"
-              class="button button-danger"
-              data-delete-product="${escapeHTML(product.id)}">
-              حذف
-            </button>
-          `
+          ? `<button type="button" class="button button-danger" data-delete-product="${escapeHTML(product.id)}">حذف</button>`
           : '';
 
         const availabilityButton = canManageProducts()
@@ -1446,6 +1662,8 @@ function renderProducts() {
             </span>
           `;
 
+        const sizes = normalizeSizeOptions(product.extra);
+
         return `
           <tr>
             <td>
@@ -1457,11 +1675,16 @@ function renderProducts() {
             </td>
 
             <td class="product-cell">
-              ${escapeHTML(product.name)}
-              <small>${escapeHTML(product.description || '')}</small>
+              <strong>${escapeHTML(product.name)}</strong>
+              ${product.name_en ? `<small dir="ltr">${escapeHTML(product.name_en)}</small>` : ''}
+              ${product.description ? `<small>${escapeHTML(product.description)}</small>` : ''}
+              ${sizes.length ? `<small>عدد الأحجام: ${sizes.length}</small>` : ''}
             </td>
 
-            <td>${escapeHTML(product.categories?.name || '—')}</td>
+            <td>
+              ${escapeHTML(product.categories?.name || '—')}
+              ${product.categories?.name_en ? `<small dir="ltr">${escapeHTML(product.categories.name_en)}</small>` : ''}
+            </td>
 
             <td class="price-cell">${money(product.price)}</td>
 
@@ -1477,11 +1700,7 @@ function renderProducts() {
         `;
       }).join('')
     : `
-      <tr>
-        <td colspan="6" class="empty-cell">
-          لا توجد منتجات مطابقة.
-        </td>
-      </tr>
+      <tr><td colspan="6" class="empty-cell">لا توجد منتجات مطابقة.</td></tr>
     `;
 }
 
@@ -1498,12 +1717,19 @@ function resetProductForm() {
   $('#productOrder').value = '0';
   $('#productPrice').value = '0';
 
+  $('#productNameEn').value = '';
+  $('#productDescriptionEn').value = '';
+
   $('#editorTitle').textContent = 'إضافة منتج';
   $('#saveProductButton').textContent = 'حفظ المنتج';
+
+  $('#productImage').value = '';
 
   $('#imagePreviewWrap').hidden = true;
   $('#imagePreview').removeAttribute('src');
   $('#imageFileLabel').textContent = '';
+
+  renderProductSizes([]);
 
   message($('#editorMessage'), '');
 
@@ -1523,24 +1749,30 @@ function fillProductForm(product) {
 
   renderCategorySelect(product.category_id);
 
-  $('#productCategory').value = product.category_id;
-  $('#productName').value = product.name;
+  $('#productCategory').value = product.category_id || '';
+
+  $('#productName').value = product.name || '';
+  $('#productNameEn').value = product.name_en || '';
+
   $('#productDescription').value = product.description || '';
-  $('#productPrice').value = product.price;
+  $('#productDescriptionEn').value = product.description_en || '';
+
+  $('#productPrice').value = product.price ?? 0;
   $('#productOrder').value = product.sort_order || 0;
-  $('#productAvailable').checked = product.is_available;
+  $('#productAvailable').checked = product.is_available !== false;
 
   currentImageUrl = product.image_url || '';
   currentImagePath = product.image_path || '';
 
+  $('#productImage').value = '';
+
   $('#editorTitle').textContent = 'تعديل المنتج';
+
+  renderProductSizes(normalizeSizeOptions(product.extra));
 
   if (currentImageUrl) {
     $('#imagePreview').src = currentImageUrl;
-
-    $('#imageFileLabel').textContent =
-      'الصورة الحالية (يمكن اختيار صورة جديدة)';
-
+    $('#imageFileLabel').textContent = 'الصورة الحالية (يمكن اختيار صورة جديدة)';
     $('#imagePreviewWrap').hidden = false;
   } else {
     $('#imagePreviewWrap').hidden = true;
@@ -1605,25 +1837,30 @@ async function uploadProductImage(file, branchId) {
 async function saveProduct(event) {
   event.preventDefault();
 
-  const id = $('#productId').value;
+  const id = $('#productId').value.trim();
   const fullAccess = canManageProducts();
   const priceAccess = canManagePrices();
 
   if (!fullAccess && !(id && priceAccess)) {
+    message($('#editorMessage'), 'ليس لديك صلاحية تعديل المنتج أو سعره.', 'error');
+    return;
+  }
+
+  const existingProduct = id
+    ? products.find(item => String(item.id) === String(id))
+    : null;
+
+  if (id && !existingProduct) {
     message(
       $('#editorMessage'),
-      'ليس لديك صلاحية حفظ هذا المنتج.',
+      'لم يتم العثور على المنتج في القائمة. حدّث القائمة وحاول مجدداً.',
       'error'
     );
     return;
   }
 
   if (fullAccess && !categories.length) {
-    message(
-      $('#editorMessage'),
-      'أضف تصنيفًا لهذا الفرع أولًا.',
-      'error'
-    );
+    message($('#editorMessage'), 'أضف تصنيفاً لهذا الفرع أولاً.', 'error');
     return;
   }
 
@@ -1633,19 +1870,62 @@ async function saveProduct(event) {
   message($('#editorMessage'), '');
 
   try {
+    const price = Number($('#productPrice').value);
+
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error('تحقق من السعر المدخل.');
+    }
+
+    /*
+      ننسخ extra القديم كاملاً حتى لا نفقد أي بيانات
+      أخرى مثل options أو mealUpgrade أو source_price.
+    */
+    const extra = {
+      ...(existingProduct?.extra &&
+      typeof existingProduct.extra === 'object'
+        ? existingProduct.extra
+        : {})
+    };
+
+    if (fullAccess) {
+      extra.requires_price_confirmation = price <= 0;
+
+      if (Object.prototype.hasOwnProperty.call(extra, 'source_price')) {
+        extra.source_price = price > 0 ? price : null;
+      }
+    }
+
     let payload;
 
+    /*
+      مدير الأسعار فقط:
+      يحدّث السعر الأساسي فقط.
+      لا يرسل extra ولا الأسماء ولا الأحجام.
+    */
     if (!fullAccess && id && priceAccess) {
-      const price = Number($('#productPrice').value);
-
-      if (!Number.isFinite(price) || price < 0) {
-        throw new Error('تحقق من السعر.');
-      }
-
       payload = { price };
 
     } else {
       const branchId = $('#productBranch').value;
+      const categoryId = $('#productCategory').value;
+
+      const name = $('#productName').value.trim();
+      const nameEn = $('#productNameEn').value.trim();
+
+      const description = $('#productDescription').value.trim();
+      const descriptionEn = $('#productDescriptionEn').value.trim();
+
+      if (!branchId) throw new Error('اختر الفرع.');
+      if (!categoryId) throw new Error('اختر التصنيف.');
+      if (!name) throw new Error('اكتب اسم المنتج بالعربية.');
+
+      /*
+        تحديث الأحجام لفرع المشاوي فقط.
+        في بقية الفروع نترك size_options القديمة كما هي.
+      */
+      if (isGrillBranch(branchId)) {
+        extra.size_options = collectProductSizes();
+      }
 
       const image = await uploadProductImage(
         $('#productImage').files[0],
@@ -1654,49 +1934,81 @@ async function saveProduct(event) {
 
       payload = {
         branch_id: branchId,
-        category_id: $('#productCategory').value,
-        name: $('#productName').value.trim(),
-        description: $('#productDescription').value.trim(),
-        price: Number($('#productPrice').value),
-        sort_order: Number.parseInt($('#productOrder').value || '0', 10) || 0,
+        category_id: categoryId,
+
+        name,
+        name_en: nameEn || null,
+
+        description,
+        description_en: descriptionEn || null,
+
+        price,
+        extra,
+
+        sort_order:
+          Number.parseInt($('#productOrder').value || '0', 10) || 0,
+
         is_available: $('#productAvailable').checked,
+
         image_url: image.image_url,
         image_path: image.image_path
       };
-
-      if (!payload.name) {
-        throw new Error('اكتب اسم المنتج.');
-      }
-
-      if (!Number.isFinite(payload.price) || payload.price < 0) {
-        throw new Error('تحقق من سعر المنتج.');
-      }
-
-      currentImageUrl = image.image_url;
-      currentImagePath = image.image_path;
     }
 
-    const query = id
-      ? client.from('products').update(payload).eq('id', id)
-      : client.from('products').insert(payload);
+    let result;
 
-    const { error } = await query;
+    if (id) {
+      let query = client
+        .from('products')
+        .update(payload)
+        .eq('id', id);
 
-    if (error) throw error;
+      const branchId = fullAccess
+        ? $('#productBranch').value
+        : existingProduct.branch_id;
+
+      if (branchId) {
+        query = query.eq('branch_id', branchId);
+      }
+
+      result = await query.select('id').maybeSingle();
+
+    } else {
+      result = await client
+        .from('products')
+        .insert(payload)
+        .select('id')
+        .single();
+    }
+
+    if (result.error) throw result.error;
+
+    if (!result.data?.id) {
+      throw new Error(
+        'لم يتم تحديث أي منتج. تحقق من صلاحيات UPDATE وسياسات RLS في جدول products.'
+      );
+    }
 
     resetProductForm();
 
     await loadCategories();
     await loadProducts();
 
-    toast(id ? 'تم تحديث المنتج.' : 'تمت إضافة المنتج.');
+    toast(
+      id
+        ? 'تم تحديث المنتج بنجاح.'
+        : 'تمت إضافة المنتج بنجاح.'
+    );
 
   } catch (error) {
+    console.error('Save product error:', error);
+
     message(
       $('#editorMessage'),
       `تعذر حفظ المنتج: ${error.message}`,
       'error'
     );
+
   } finally {
     setBusy(button, false);
     setProductFormPermissions();
@@ -1709,16 +2021,14 @@ async function toggleAvailability(id) {
     return;
   }
 
-  const product = products.find(item =>
-    String(item.id) === String(id)
-  );
-
+  const product = products.find(item => String(item.id) === String(id));
   if (!product) return;
 
   const { error } = await client
     .from('products')
     .update({ is_available: !product.is_available })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('branch_id', activeBranch);
 
   if (error) {
     toast(`تعذر تحديث الحالة: ${error.message}`, 'error');
@@ -1730,7 +2040,7 @@ async function toggleAvailability(id) {
   toast(
     product.is_available
       ? 'تم إخفاء المنتج من المنيو.'
-      : 'أصبح المنتج متاحًا للطلب.'
+      : 'أصبح المنتج متاحاً للطلب.'
   );
 }
 
@@ -1740,21 +2050,17 @@ async function deleteProduct(id) {
     return;
   }
 
-  const product = products.find(item =>
-    String(item.id) === String(id)
-  );
+  const product = products.find(item => String(item.id) === String(id));
 
-  if (
-    !product ||
-    !confirm(`متأكد تريد حذف «${product.name}» نهائيًا؟`)
-  ) {
+  if (!product || !confirm(`متأكد تريد حذف «${product.name}» نهائياً؟`)) {
     return;
   }
 
   const { error } = await client
     .from('products')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('branch_id', activeBranch);
 
   if (error) {
     toast(`تعذر حذف المنتج: ${error.message}`, 'error');
@@ -1814,17 +2120,11 @@ function offerStatus(offer) {
     return { label: 'متوقف', className: 'no' };
   }
 
-  if (
-    offer.starts_at &&
-    new Date(offer.starts_at).getTime() > now
-  ) {
+  if (offer.starts_at && new Date(offer.starts_at).getTime() > now) {
     return { label: 'مجدول', className: 'scheduled' };
   }
 
-  if (
-    offer.ends_at &&
-    new Date(offer.ends_at).getTime() < now
-  ) {
+  if (offer.ends_at && new Date(offer.ends_at).getTime() < now) {
     return { label: 'منتهي', className: 'no' };
   }
 
@@ -1833,11 +2133,7 @@ function offerStatus(offer) {
 
 async function loadOffers() {
   $('#offersTable').innerHTML = `
-    <tr>
-      <td colspan="8" class="empty-cell">
-        جارٍ تحميل العروض...
-      </td>
-    </tr>
+    <tr><td colspan="8" class="empty-cell">جارٍ تحميل العروض...</td></tr>
   `;
 
   const { data, error } = await client
@@ -1848,11 +2144,7 @@ async function loadOffers() {
 
   if (error) {
     $('#offersTable').innerHTML = `
-      <tr>
-        <td colspan="8" class="empty-cell">
-          تعذر تحميل العروض.
-        </td>
-      </tr>
+      <tr><td colspan="8" class="empty-cell">تعذر تحميل العروض.</td></tr>
     `;
 
     toast(`تعذر تحميل العروض: ${error.message}`, 'error');
@@ -1897,13 +2189,8 @@ function renderOffers() {
 
             <td>${escapeHTML(offer.branches?.name || 'كل الفروع')}</td>
 
-            <td class="price-cell original-price">
-              ${money(offer.original_price)}
-            </td>
-
-            <td class="price-cell">
-              ${money(offer.offer_price)}
-            </td>
+            <td class="price-cell original-price">${money(offer.original_price)}</td>
+            <td class="price-cell">${money(offer.offer_price)}</td>
 
             <td class="offer-dates">
               من: ${escapeHTML(localDateTime(offer.starts_at))}
@@ -1915,38 +2202,22 @@ function renderOffers() {
               <button
                 type="button"
                 class="availability ${status.className}"
-                data-toggle-offer="${escapeHTML(offer.id)}"
-                aria-label="تغيير حالة العرض">
+                data-toggle-offer="${escapeHTML(offer.id)}">
                 ${status.label}
               </button>
             </td>
 
             <td>
               <div class="table-actions">
-                <button
-                  type="button"
-                  class="button button-quiet"
-                  data-edit-offer="${escapeHTML(offer.id)}">
-                  تعديل
-                </button>
-
-                <button
-                  type="button"
-                  class="button button-danger"
-                  data-delete-offer="${escapeHTML(offer.id)}">
-                  حذف
-                </button>
+                <button type="button" class="button button-quiet" data-edit-offer="${escapeHTML(offer.id)}">تعديل</button>
+                <button type="button" class="button button-danger" data-delete-offer="${escapeHTML(offer.id)}">حذف</button>
               </div>
             </td>
           </tr>
         `;
       }).join('')
     : `
-      <tr>
-        <td colspan="8" class="empty-cell">
-          لا توجد عروض بعد.
-        </td>
-      </tr>
+      <tr><td colspan="8" class="empty-cell">لا توجد عروض بعد.</td></tr>
     `;
 }
 
@@ -1964,6 +2235,7 @@ function resetOfferForm() {
   $('#offerEditorTitle').textContent = 'إضافة عرض جديد';
   $('#saveOfferButton').textContent = 'حفظ العرض';
 
+  $('#offerImage').value = '';
   $('#offerImagePreviewWrap').hidden = true;
   $('#offerImagePreview').removeAttribute('src');
   $('#offerImageFileLabel').textContent = '';
@@ -1998,10 +2270,7 @@ function fillOfferForm(offer) {
 
   if (currentOfferImageUrl) {
     $('#offerImagePreview').src = currentOfferImageUrl;
-
-    $('#offerImageFileLabel').textContent =
-      'الصورة الحالية (يمكن اختيار صورة جديدة)';
-
+    $('#offerImageFileLabel').textContent = 'الصورة الحالية (يمكن اختيار صورة جديدة)';
     $('#offerImagePreviewWrap').hidden = false;
   } else {
     $('#offerImagePreviewWrap').hidden = true;
@@ -2094,9 +2363,7 @@ async function saveOffer(event) {
     }
 
     if (offerPrice > originalPrice) {
-      throw new Error(
-        'سعر العرض يجب أن يكون أقل من أو يساوي السعر الأصلي.'
-      );
+      throw new Error('سعر العرض يجب أن يكون أقل من أو يساوي السعر الأصلي.');
     }
 
     const startsAt = startsRaw ? new Date(startsRaw) : null;
@@ -2111,15 +2378,10 @@ async function saveOffer(event) {
     }
 
     if (startsAt && endsAt && endsAt <= startsAt) {
-      throw new Error(
-        'تاريخ نهاية العرض يجب أن يكون بعد تاريخ البداية.'
-      );
+      throw new Error('تاريخ نهاية العرض يجب أن يكون بعد تاريخ البداية.');
     }
 
-    const image = await uploadOfferImage(
-      $('#offerImage').files[0]
-    );
-
+    const image = await uploadOfferImage($('#offerImage').files[0]);
     const selectedBranch = $('#offerBranch').value || null;
 
     const payload = {
@@ -2162,11 +2424,7 @@ async function saveOffer(event) {
     toast(id ? 'تم تحديث العرض.' : 'تمت إضافة العرض.');
 
   } catch (error) {
-    message(
-      $('#offerEditorMessage'),
-      `تعذر حفظ العرض: ${error.message}`,
-      'error'
-    );
+    message($('#offerEditorMessage'), `تعذر حفظ العرض: ${error.message}`, 'error');
   } finally {
     setBusy(button, false);
   }
@@ -2178,10 +2436,7 @@ async function toggleOffer(id) {
     return;
   }
 
-  const offer = offers.find(item =>
-    String(item.id) === String(id)
-  );
-
+  const offer = offers.find(item => String(item.id) === String(id));
   if (!offer) return;
 
   const { error } = await client
@@ -2205,14 +2460,9 @@ async function deleteOffer(id) {
     return;
   }
 
-  const offer = offers.find(item =>
-    String(item.id) === String(id)
-  );
+  const offer = offers.find(item => String(item.id) === String(id));
 
-  if (
-    !offer ||
-    !confirm(`متأكد تريد حذف العرض «${offer.name}» نهائيًا؟`)
-  ) {
+  if (!offer || !confirm(`متأكد تريد حذف العرض «${offer.name}» نهائياً؟`)) {
     return;
   }
 
@@ -2288,17 +2538,18 @@ function wireEvents() {
 
       await loadProducts();
     }
+
+    renderProductSizes([]);
+    setProductFormPermissions();
   });
 
   /* المستخدمون */
 
   $('#createUserForm').addEventListener('submit', createUser);
-
   $('#refreshUsersButton').addEventListener('click', loadUsers);
 
   $('#usersTable').addEventListener('click', async event => {
     const button = event.target.closest('button');
-
     if (!button) return;
 
     if (button.dataset.editPermissions) {
@@ -2318,14 +2569,10 @@ function wireEvents() {
     }
   });
 
-  $('#savePermissionsButton').addEventListener(
-    'click',
-    saveUserPermissions
-  );
+  $('#savePermissionsButton').addEventListener('click', saveUserPermissions);
 
   $('#closePermissionsButton').addEventListener('click', () => {
     $('#permissionsEditor').hidden = true;
-
     message($('#permissionsMessage'), '');
   });
 
@@ -2352,7 +2599,6 @@ function wireEvents() {
 
   $('#productsTable').addEventListener('click', async event => {
     const button = event.target.closest('button');
-
     if (!button) return;
 
     if (button.dataset.editProduct) {
@@ -2376,14 +2622,37 @@ function wireEvents() {
     if (!canManageProducts()) return;
 
     const file = $('#productImage').files[0];
-
     if (!file) return;
 
     $('#imagePreview').src = URL.createObjectURL(file);
-
     $('#imageFileLabel').textContent = file.name;
-
     $('#imagePreviewWrap').hidden = false;
+  });
+
+  /* الأحجام */
+
+  $('#addProductSizeButton').addEventListener('click', addProductSize);
+
+  $('#productSizesList').addEventListener('click', event => {
+    const button = event.target.closest('[data-remove-size]');
+    if (!button) return;
+
+    if (!canManageProducts()) {
+      toast('ليس لديك صلاحية تعديل الأحجام.', 'error');
+      return;
+    }
+
+    button.closest('[data-size-row]')?.remove();
+
+    const list = $('#productSizesList');
+
+    if (!list.querySelector('[data-size-row]')) {
+      list.innerHTML = `
+        <p class="muted" data-empty-sizes>
+          لا توجد أحجام مضافة لهذا المنتج.
+        </p>
+      `;
+    }
   });
 
   /* العروض */
@@ -2409,19 +2678,15 @@ function wireEvents() {
     if (!canManageOffers()) return;
 
     const file = $('#offerImage').files[0];
-
     if (!file) return;
 
     $('#offerImagePreview').src = URL.createObjectURL(file);
-
     $('#offerImageFileLabel').textContent = file.name;
-
     $('#offerImagePreviewWrap').hidden = false;
   });
 
   $('#offersTable').addEventListener('click', async event => {
     const button = event.target.closest('button');
-
     if (!button) return;
 
     if (button.dataset.editOffer) {
@@ -2447,8 +2712,11 @@ function wireEvents() {
 
   $('#categoriesList').addEventListener('click', async event => {
     const button = event.target.closest('button');
-
     if (!button) return;
+
+    if (button.dataset.orderCategory) {
+      await changeCategoryOrder(button.dataset.orderCategory);
+    }
 
     if (button.dataset.renameCategory) {
       await renameCategory(button.dataset.renameCategory);
@@ -2473,10 +2741,7 @@ async function boot() {
 
       $('#loginForm button[type="submit"]').disabled = true;
 
-      message(
-        $('#loginMessage'),
-        'أكمل إعداد Supabase أولًا.'
-      );
+      message($('#loginMessage'), 'أكمل إعداد Supabase أولاً.');
 
       return;
     }
@@ -2504,10 +2769,7 @@ async function boot() {
   } catch (error) {
     console.error('Admin boot error:', error);
 
-    toast(
-      `حدث خطأ أثناء تشغيل اللوحة: ${error.message}`,
-      'error'
-    );
+    toast(`حدث خطأ أثناء تشغيل اللوحة: ${error.message}`, 'error');
 
   } finally {
     window.hidePageLoader?.();

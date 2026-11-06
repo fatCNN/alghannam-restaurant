@@ -10,7 +10,6 @@
     <title>مطعم الغنام | فرع المشاوي</title>
 
     <link rel="stylesheet" href="grill.css">
-    <link rel="stylesheet" href="site-theme.css">
     <link rel="stylesheet" href="dashboard/loader.css">
 
     <link rel="icon" type="image/png" href="image/logo.png">
@@ -83,38 +82,6 @@
         </nav>
     </header>
 
-    <!-- معلومات المطعم والتوصيل -->
-    <section class="top-info-bar"
-             aria-label="معلومات المطعم والتوصيل">
-
-        <div class="top-info-brand">
-
-            <img class="top-info-logo"
-                 src="image/logo.png"
-                 alt="شعار مطعم الغنام">
-
-            <div class="top-info-text">
-                <strong>خصومات توصل 50%</strong>
-                <span>- عروض على منتجات مختارة</span>
-            </div>
-
-        </div>
-
-        <div class="top-info-divider" aria-hidden="true"></div>
-
-        <div class="top-info-delivery">
-
-            <span class="delivery-icon" aria-hidden="true"></span>
-
-            <div class="delivery-text">
-                <strong>التوصيل</strong>
-                <span>عبر الموقع</span>
-            </div>
-
-            <span class="delivery-check" aria-hidden="true">✓</span>
-
-        </div>
-    </section>
 
     <!-- المحتوى الرئيسي -->
     <main class="container">
@@ -193,6 +160,21 @@
                 </button>
 
             </div>
+        </section>
+
+        <section
+            class="grill-offers-section"
+            id="grillOffersSection"
+            hidden
+        >
+            <div class="grill-offers-heading">
+                <h2 id="grillOffersTitle">عروضنا المميزة</h2>
+            </div>
+
+            <div
+                class="grill-offers-list"
+                id="grillOffersList"
+            ></div>
         </section>
 
         <!-- قائمة الطعام -->

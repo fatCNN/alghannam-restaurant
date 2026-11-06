@@ -1,7 +1,7 @@
 
 // =====================================================
 // مطعم الغنّام — المساعد الذكي ليلى
-// استخدام اتصال Supabase المشترك
+// Supabase + بحث المنتجات والأسعار بالعربي والإنجليزي
 // =====================================================
 
 import {
@@ -45,6 +45,23 @@ const branches = {
     }
 };
 
+const BRANCH_KEYWORDS = {
+    grill: [
+        'مشاوي', 'مشويات', 'كباب', 'كص', 'دجاج مشوي',
+        'لحم مشوي', 'تكة', 'غنم'
+    ],
+
+    fastfood: [
+        'وجبات سريعة', 'سريع', 'بركر', 'برغر',
+        'بيتزا', 'شاورما', 'ريزو', 'كنتاكي',
+        'ستربس', 'صاج', 'فنكر', 'بطاطا'
+    ],
+
+    falafel: [
+        'فلافل', 'لفة فلافل', 'صاج فلافل'
+    ]
+};
+
 let complaintText = '';
 let complaintMode = false;
 let waitingForComplaint = false;
@@ -59,6 +76,7 @@ let conversationReady = false;
 
 let assistantSettings = {
     assistant_name: 'ليلى',
+
     welcome_message:
         welcomeElement?.textContent ||
         'هلا والله بيك بمطعم الغنّام! 🌷',
@@ -68,7 +86,7 @@ let assistantSettings = {
 
     fallback_message:
         'عذرًا، ما لكيت جواب واضح لسؤالك. 🌷\n\n' +
-        'تگدر تسأل عن الفروع والدوام والمنيو والعروض، ' +
+        'تگدر تسأل عن الفروع والدوام والمنيو والأسعار والعروض، ' +
         'أو تضغط «تقديم شكوى» حتى توصل ملاحظتك إلى واتساب الفرع.',
 
     assistant_enabled: true
@@ -331,10 +349,6 @@ async function refreshConversationHistory({ replace = false } = {}) {
                 sender,
                 row.id
             );
-        }
-
-        if (data?.conversation?.status === 'closed') {
-            // تبقى واجهة الزبون متاحة لمواصلة المحادثة.
         }
 
     } catch (error) {
@@ -750,6 +764,432 @@ function startStaffContact() {
 
 
 // =====================================================
+// أدوات معالجة النص العربي والإنجليزي
+// =====================================================
+
+function normalizeText(value = '') {
+    return String(value)
+        .toLowerCase()
+        .replace(/[أإآٱ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[ًٌٍَُِّْـ]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+
+const STOP_WORDS = new Set([
+    'كم', 'سعر', 'اسعار', 'السعر', 'بكم', 'شكد',
+    'شنو', 'شنوهو', 'شنوهي', 'عندكم', 'عندك',
+    'موجود', 'متوفر', 'متوفره', 'المنيو', 'منيو',
+    'قائمه', 'الاكل', 'اكل', 'الوجبه', 'وجبه',
+    'ممكن', 'اريد', 'اعرف', 'معرفه', 'هو', 'هي',
+    'هل', 'لو', 'سمحت', 'رجاء', 'فضلا', 'من',
+    'في', 'ب', 'ال', 'يا', 'علي', 'عن',
+    'the', 'a', 'an', 'is', 'what', 'how',
+    'price', 'prices', 'of', 'for', 'please',
+    'do', 'you', 'have', 'available'
+]);
+
+
+function extractSearchTerms(message) {
+    const normalized = normalizeText(message);
+
+    return normalized
+        .split(' ')
+        .filter(word =>
+            word.length >= 2 &&
+            !STOP_WORDS.has(word)
+        )
+        .slice(0, 6);
+}
+
+
+function detectBranchId(message) {
+    const text = normalizeText(message);
+
+    for (const [branchId, keywords] of Object.entries(BRANCH_KEYWORDS)) {
+        if (keywords.some(keyword =>
+            text.includes(normalizeText(keyword))
+        )) {
+            return branchId;
+        }
+    }
+
+    if (
+        text.includes('فرع المشاوي') ||
+        text.includes('فرع الكباب') ||
+        text.includes('المشويات')
+    ) {
+        return 'grill';
+    }
+
+    if (text.includes('فرع الفلافل')) {
+        return 'falafel';
+    }
+
+    if (
+        text.includes('فرع الوجبات') ||
+        text.includes('الوجبات السريعه')
+    ) {
+        return 'fastfood';
+    }
+
+    return null;
+}
+
+
+// =====================================================
+// ترجمة خيارات المنتجات
+// =====================================================
+
+function translateOptionLabel(label) {
+    const translations = {
+        '1 Kg': 'كيلو واحد',
+        'Half Kg': 'نصف كيلو',
+        'Quarter Kg': 'ربع كيلو',
+        'Dine-In': 'داخل المطعم',
+        'Takeaway': 'سفري',
+        'Meal': 'وجبة',
+        'Small': 'صغير',
+        'Medium': 'وسط',
+        'Large': 'كبير',
+        'Single': 'مفرد',
+        'Double': 'دبل'
+    };
+
+    return translations[label] || label;
+}
+
+
+// =====================================================
+// تنسيق السعر
+// =====================================================
+
+function formatPrice(value) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        return null;
+    }
+
+    return number.toLocaleString('en-US') + ' د.ع';
+}
+
+
+// =====================================================
+// تحديد اسم الفرع
+// =====================================================
+
+function getBranchName(product) {
+    if (product.branches?.name) {
+        return product.branches.name;
+    }
+
+    const names = {
+        grill: 'المشويات والكباب',
+        fastfood: 'الوجبات السريعة',
+        falafel: 'الفلافل'
+    };
+
+    return names[product.branch_id] || product.branch_id || 'غير محدد';
+}
+
+
+// =====================================================
+// تقييم مدى تطابق المنتج مع السؤال
+// =====================================================
+
+function scoreProduct(product, terms) {
+    const name = normalizeText(product.name || '');
+    const nameEn = normalizeText(product.name_en || '');
+    const description = normalizeText(product.description || '');
+    const descriptionEn = normalizeText(product.description_en || '');
+
+    let score = 0;
+
+    for (const term of terms) {
+        if (name === term || nameEn === term) {
+            score += 15;
+        } else if (name.includes(term)) {
+            score += 10;
+        } else if (nameEn.includes(term)) {
+            score += 9;
+        } else if (description.includes(term)) {
+            score += 3;
+        } else if (descriptionEn.includes(term)) {
+            score += 3;
+        }
+    }
+
+    if (
+        terms.length > 1 &&
+        terms.every(term =>
+            name.includes(term) || nameEn.includes(term)
+        )
+    ) {
+        score += 8;
+    }
+
+    return score;
+}
+
+
+// =====================================================
+// البحث في منتجات Supabase
+// =====================================================
+
+async function fetchProductsForTerm(term) {
+    const { data, error } = await supabase
+        .from('products')
+        .select(`
+            id,
+            name,
+            name_en,
+            description,
+            description_en,
+            price,
+            branch_id,
+            category_id,
+            is_available,
+            sort_order,
+            extra,
+            categories(name,name_en),
+            branches(name)
+        `)
+        .eq('is_available', true)
+        .or(
+            `name.ilike.%${term}%,name_en.ilike.%${term}%,description.ilike.%${term}%,description_en.ilike.%${term}%`
+        )
+        .order('sort_order')
+        .limit(30);
+
+    if (error) {
+        throw error;
+    }
+
+    return data || [];
+}
+
+
+async function searchProducts(message) {
+    if (!supabase) {
+        return [];
+    }
+
+    const terms = extractSearchTerms(message);
+
+    if (!terms.length) {
+        return [];
+    }
+
+    const results = new Map();
+
+    // البحث بالعبارة كاملة أولاً
+    const normalizedPhrase = normalizeText(message);
+
+    const phraseTerms = normalizedPhrase
+        .split(' ')
+        .filter(word =>
+            word.length >= 2 &&
+            !STOP_WORDS.has(word)
+        );
+
+    const searches = [];
+
+    if (phraseTerms.length > 1) {
+        searches.push(phraseTerms.join(' '));
+    }
+
+    // ثم البحث بكل كلمة مهمة
+    searches.push(...terms);
+
+    for (const term of [...new Set(searches)].slice(0, 5)) {
+        try {
+            const products = await fetchProductsForTerm(term);
+
+            for (const product of products) {
+                if (product.id) {
+                    results.set(product.id, product);
+                }
+            }
+
+        } catch (error) {
+            console.warn(
+                'تعذر البحث باستخدام الكلمة:',
+                term,
+                error.message || error
+            );
+        }
+    }
+
+    const requestedBranch = detectBranchId(message);
+
+    let products = [...results.values()];
+
+    if (requestedBranch) {
+        products = products.filter(
+            product => product.branch_id === requestedBranch
+        );
+    }
+
+    return products
+        .map(product => ({
+            product,
+            score: scoreProduct(product, terms)
+        }))
+        .filter(item => item.score > 0)
+        .sort((a, b) =>
+            b.score - a.score ||
+            (a.product.sort_order || 0) - (b.product.sort_order || 0)
+        )
+        .slice(0, 8)
+        .map(item => item.product);
+}
+
+
+// =====================================================
+// بناء تفاصيل سعر المنتج
+// =====================================================
+
+function buildProductPriceText(product) {
+    const extra = product.extra && typeof product.extra === 'object'
+        ? product.extra
+        : {};
+
+    const lines = [];
+
+    lines.push(`🍽️ ${product.name}`);
+
+    if (product.name_en) {
+        lines.push(`الاسم بالإنجليزية: ${product.name_en}`);
+    }
+
+    if (product.description) {
+        lines.push(`التفاصيل: ${product.description}`);
+    }
+
+    if (product.description_en) {
+        lines.push(`Description: ${product.description_en}`);
+    }
+
+    // السعر يحتاج تأكيداً
+    if (extra.requires_price_confirmation === true) {
+        lines.push(
+            'السعر: يحتاج تأكيد من الفرع قبل الطلب.'
+        );
+
+    } else {
+        const options =
+            extra.options &&
+            typeof extra.options === 'object' &&
+            !Array.isArray(extra.options)
+                ? extra.options
+                : null;
+
+        // المنتجات ذات الخيارات المتعددة
+        if (options && Object.keys(options).length) {
+            lines.push('الخيارات والأسعار:');
+
+            for (const [label, value] of Object.entries(options)) {
+                const price = formatPrice(value);
+
+                lines.push(
+                    `• ${translateOptionLabel(label)}: ${price || 'يرجى التأكد من السعر'}`
+                );
+            }
+
+        } else {
+            const price = formatPrice(product.price);
+
+            if (price) {
+                lines.push(`السعر: ${price}`);
+            } else {
+                lines.push('السعر: غير مسجل حاليًا، يرجى التأكد من الفرع.');
+            }
+        }
+    }
+
+    // ترقية الوجبة
+    if (
+        extra.mealUpgrade === true &&
+        Number(extra.meal_upgrade_price) > 0
+    ) {
+        lines.push(
+            `ترقية إلى وجبة: إضافة ${formatPrice(extra.meal_upgrade_price)} على السعر الأساسي.`
+        );
+    }
+
+    // الفرع
+    lines.push(`الفرع: ${getBranchName(product)}`);
+
+    // القسم
+    if (product.categories?.name) {
+        lines.push(`القسم: ${product.categories.name}`);
+    }
+
+    if (product.categories?.name_en) {
+        lines.push(`Category: ${product.categories.name_en}`);
+    }
+
+    return lines.join('\n');
+}
+
+
+// =====================================================
+// البحث عن أسعار المنتجات والرد على الزبون
+// =====================================================
+
+async function searchProductPrice(message) {
+    if (!supabase) {
+        return false;
+    }
+
+    const terms = extractSearchTerms(message);
+
+    if (!terms.length) {
+        return false;
+    }
+
+    try {
+        const products = await searchProducts(message);
+
+        if (!products.length) {
+            return false;
+        }
+
+        const requestedBranch = detectBranchId(message);
+
+        const heading = requestedBranch
+            ? 'لكيت هذي الأصناف بفرعك المطلوب: 🍽️'
+            : 'لكيت هذي الأصناف القريبة من سؤالك بالمنيو الحالي: 🍽️';
+
+        addMessage(
+            heading + '\n\n' +
+            products
+                .map((product, index) =>
+                    `${index + 1}. ${buildProductPriceText(product)}`
+                )
+                .join('\n\n━━━━━━━━━━━━━━\n\n') +
+            '\n\nالأسعار والمعلومات حسب البيانات المسجلة بالمنيو.'
+        );
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            'حدث خطأ أثناء البحث عن المنتجات:',
+            error.message || error
+        );
+
+        return false;
+    }
+}
+
+
+// =====================================================
 // قراءة أسماء الفروع
 // =====================================================
 
@@ -878,95 +1318,14 @@ async function replyWithOffers() {
 
 
 // =====================================================
-// البحث عن أسعار المنتجات
-// =====================================================
-
-async function searchProductPrice(message) {
-    if (!supabase) {
-        return false;
-    }
-
-    const cleaned = message
-        .replace(
-            /كم|سعر|أسعار|السعر|بكم|شنو|شكد|عندكم|عندك|موجود|متوفر|المنيو|منيو|قائمة|الأكل|الاكل|وجبة|الوجبة|ممكن|أريد|اريد|اعرف|معرفة|هو|هي|؟|\?/g,
-            ' '
-        )
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    const terms = cleaned
-        .split(' ')
-        .filter(word => word.length >= 2)
-        .slice(-4);
-
-    if (!terms.length) {
-        return false;
-    }
-
-    const search = terms.join(' ');
-
-    let query = supabase
-        .from('products')
-        .select(
-            'name,price,branch_id,categories(name),branches(name)'
-        )
-        .eq('is_available', true)
-        .ilike('name', `%${search}%`)
-        .limit(8);
-
-    let { data, error } = await query;
-
-    if (
-        !error &&
-        (!data || !data.length) &&
-        terms.length > 1
-    ) {
-        ({ data, error } = await supabase
-            .from('products')
-            .select(
-                'name,price,branch_id,categories(name),branches(name)'
-            )
-            .eq('is_available', true)
-            .ilike(
-                'name',
-                `%${terms[terms.length - 1]}%`
-            )
-            .limit(8));
-    }
-
-    if (error || !data?.length) {
-        return false;
-    }
-
-    addMessage(
-        'لكيت هذي الأصناف القريبة من سؤالك بالمنيو الحالي: 🍽️\n\n' +
-        data.map((item, index) =>
-            `${index + 1}. ${item.name}\n` +
-            `السعر: ${Number(item.price).toLocaleString('en-US')} د.ع\n` +
-            `الفرع: ${item.branches?.name || item.branch_id}` +
-            (
-                item.categories?.name
-                    ? `\nالقسم: ${item.categories.name}`
-                    : ''
-            )
-        ).join('\n\n') +
-        '\n\nالأسعار حسب المنيو المسجل حاليًا، وتأكد من الفرع قبل الطلب.'
-    );
-
-    return true;
-}
-
-
-// =====================================================
 // تحديد رد ليلى
 // =====================================================
 
 async function getBotReply(message) {
-    const text = message.trim().toLowerCase();
+    const text = normalizeText(message);
 
     if (
         text === '#' ||
-        text.includes('أريد موظف') ||
         text.includes('اريد موظف') ||
         text.includes('موظف حقيقي')
     ) {
@@ -975,9 +1334,8 @@ async function getBotReply(message) {
     }
 
     if (
-        text.includes('شكوى') ||
+        text.includes('شكوي') ||
         text.includes('شكوه') ||
-        text.includes('أشتكي') ||
         text.includes('اشتكي') ||
         text.includes('اعتراض')
     ) {
@@ -1021,7 +1379,6 @@ async function getBotReply(message) {
     if (
         text.includes('طلب') ||
         text.includes('توصيل') ||
-        text.includes('أوردر') ||
         text.includes('اوردر')
     ) {
         addMessage(
@@ -1033,34 +1390,9 @@ async function getBotReply(message) {
     }
 
     if (
-        text.includes('منيو') ||
-        text.includes('قائمة') ||
-        text.includes('أكل') ||
-        text.includes('اكل') ||
-        text.includes('سعر') ||
-        text.includes('أسعار') ||
-        text.includes('بكم') ||
-        text.includes('شكد')
-    ) {
-        const found = await searchProductPrice(message);
-
-        if (found) {
-            return;
-        }
-
-        addMessage(
-            'تگدر تشوف المنيو والأسعار من صفحات الفروع. ' +
-            'اكتب اسم الوجبة اللي تريد تعرف سعرها، أو اسألني عن عرض حالي.'
-        );
-
-        return;
-    }
-
-    if (
         text.includes('مرحبا') ||
         text.includes('هلا') ||
         text.includes('السلام') ||
-        text.includes('أهلا') ||
         text.includes('اهلا')
     ) {
         addMessage(
@@ -1077,6 +1409,29 @@ async function getBotReply(message) {
     ) {
         addMessage(
             'العفو، تدلل! 💚 نورت مطعم الغنّام.'
+        );
+
+        return;
+    }
+
+    // البحث عن المنتجات حتى لو لم يذكر الزبون كلمة سعر أو منيو
+    const found = await searchProductPrice(message);
+
+    if (found) {
+        return;
+    }
+
+    if (
+        text.includes('منيو') ||
+        text.includes('قائمه') ||
+        text.includes('اكل') ||
+        text.includes('سعر') ||
+        text.includes('بكم') ||
+        text.includes('شكد')
+    ) {
+        addMessage(
+            'ما لكيت الصنف بهذا الاسم بالمنيو المسجل. 🌷\n\n' +
+            'جرب تكتب اسم الوجبة بشكل أوضح، أو حدد الفرع اللي تقصده.'
         );
 
         return;

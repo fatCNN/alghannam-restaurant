@@ -1,15 +1,19 @@
+
 import {
   loadBranchMenu,
-  ensureMenuDescriptionStyle,
-  getStoredImageName
+  loadBranchOffers,
+  ensureMenuDescriptionStyle
 } from "./menu-db.js";
 
 /* =====================================================
    مطعم الغنّام — فرع الوجبات السريعة
-   القائمة المحلية احتياطية، وSupabase هو مصدر الترجمات.
+   مصدر المنيو والصور والأسعار والعروض: Supabase فقط
 ===================================================== */
+
 (() => {
   "use strict";
+
+  const BRANCH_ID = "fastfood";
 
   const STORAGE_KEY = "alghannam_fastfood_cart_v1";
   const COUPON_KEY = "alghannam_fastfood_coupon_v1";
@@ -19,115 +23,65 @@ import {
   const WHATSAPP_NUMBERS = ["07760000552", "07860000556"];
   const COUPON_CODE = "GHANNAM15";
   const COUPON_RATE = 0.15;
-  const IMAGE_FOLDER = "imagefastfood/";
-  const MEAL_UPGRADE_PRICE = 1500;
-
-  const products = [
-    { id:"shawarma-beef-kilo", name:"كيلو شاورما لحم", price:30000, category:"الشاورما", image:"shawarma-beef-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-beef-half-kilo", name:"نصف كيلو شاورما لحم", price:15000, category:"الشاورما", image:"shawarma-beef-half-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-beef-quarter-kilo", name:"ربع كيلو شاورما لحم", price:7500, category:"الشاورما", image:"shawarma-beef-quarter-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-chicken-kilo", name:"كيلو شاورما دجاج", price:20000, category:"الشاورما", image:"shawarma-chicken-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-chicken-half-kilo", name:"نصف كيلو شاورما دجاج", price:10000, category:"الشاورما", image:"shawarma-chicken-half-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-chicken-quarter-kilo", name:"ربع كيلو شاورما دجاج", price:6000, category:"الشاورما", image:"shawarma-chicken-quarter-kilo.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-chicken-plate", name:"نفر شاورما دجاج", price:12000, category:"الشاورما", image:"shawarma-chicken-plate.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-beef-plate", name:"نفر شاورما لحم", price:16000, category:"الشاورما", image:"shawarma-beef-plate.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-beef-half-plate", name:"نصف نفر شاورما لحم", price:7000, category:"الشاورما", image:"shawarma-beef-half-plate.png", emoji:"🥙", mealUpgrade:false },
-    { id:"shawarma-chicken-half-plate", name:"نصف نفر شاورما دجاج", price:8000, category:"الشاورما", image:"shawarma-chicken-half-plate.png", emoji:"🥙", mealUpgrade:false },
-    { id:"kas-beef-wrap", name:"لفة كص لحم", price:3000, category:"الشاورما", image:"kas-beef-wrap.png", emoji:"🥙", mealUpgrade:false },
-    { id:"kas-chicken-wrap", name:"لفة كص دجاج", price:2500, category:"الشاورما", image:"kas-chicken-wrap.png", emoji:"🥙", mealUpgrade:false },
-
-    { id:"kentucky-3-pieces", name:"وجبة كنتاكي 3 قطع", price:6000, category:"الكنتاكي والستربس", image:"kentucky-3-pieces.png", emoji:"🍗", mealUpgrade:false },
-    { id:"kentucky-7-pieces", name:"وجبة كنتاكي 7 قطع", price:12000, category:"الكنتاكي والستربس", image:"kentucky-7-pieces.png", emoji:"🍗", mealUpgrade:false },
-    { id:"kentucky-14-pieces", name:"وجبة كنتاكي 14 قطعة", price:24000, category:"الكنتاكي والستربس", image:"kentucky-14-pieces.png", emoji:"🍗", mealUpgrade:false },
-    { id:"strips-4-pieces", name:"وجبة ستربس 4 قطع", price:6000, category:"الكنتاكي والستربس", image:"strips-4-pieces.png", emoji:"🍗", mealUpgrade:false },
-    { id:"strips-8-pieces", name:"وجبة ستربس 8 قطع", price:12000, category:"الكنتاكي والستربس", image:"strips-8-pieces.png", emoji:"🍗", mealUpgrade:false },
-
-    { id:"zinger", name:"زنكر", price:3500, category:"السندويشات", image:"zinger.png", emoji:"🥪", mealUpgrade:true },
-    { id:"scallop", name:"سكالوب", price:3500, category:"السندويشات", image:"scallop.png", emoji:"🥪", mealUpgrade:true },
-    { id:"fajita-beef", name:"فاهيتا لحم", price:3500, category:"السندويشات", image:"fajita-beef.png", emoji:"🥪", mealUpgrade:true },
-    { id:"fajita-chicken", name:"فاهيتا دجاج", price:5000, category:"السندويشات", image:"fajita-chicken.png", emoji:"🥪", mealUpgrade:true },
-    { id:"double-super-ghannam-burger", name:"بركر دبل سوبر الغنام", price:4000, category:"السندويشات", image:"double-super-ghannam-burger.png", emoji:"🥪", mealUpgrade:true },
-    { id:"twister", name:"تويستر", price:5000, category:"السندويشات", image:"twister.png", emoji:"🥪", mealUpgrade:true },
-
-    { id:"rizo-kentucky", name:"ريزو كنتاكي", price:5000, category:"الريزو", image:"rizo-kentucky.png", emoji:"🍚", mealUpgrade:false },
-    { id:"rizo-beef-shawarma", name:"ريزو شاورما لحم", price:5000, category:"الريزو", image:"rizo-beef-shawarma.png", emoji:"🍚", mealUpgrade:false },
-    { id:"rizo-chicken-shawarma", name:"ريزو شاورما دجاج", price:5000, category:"الريزو", image:"rizo-chicken-shawarma.png", emoji:"🍚", mealUpgrade:false },
-
-    { id:"fries-plate", name:"طبق فنكر", price:2000, category:"الفنكر", image:"fries-plate.png", emoji:"🍟", mealUpgrade:false },
-    { id:"cheese-fries", name:"فنكر بالجبن", price:2500, category:"الفنكر", image:"cheese-fries.png", emoji:"🍟", mealUpgrade:false },
-    { id:"mexican-fries", name:"فنكر مكسيك", price:3000, category:"الفنكر", image:"mexican-fries.png", emoji:"🍟", mealUpgrade:false },
-    { id:"fries-cup", name:"قدح فنكر", price:1000, category:"الفنكر", image:"fries-cup.png", emoji:"🍟", mealUpgrade:false },
-
-    { id:"pizza-beef", name:"بيتزا لحم", price:7000, category:"البيتزا", image:"pizza-beef.png", emoji:"🍕", mealUpgrade:false },
-    { id:"pizza-chicken", name:"بيتزا دجاج", price:7000, category:"البيتزا", image:"pizza-chicken.png", emoji:"🍕", mealUpgrade:false },
-    { id:"pizza-vegetable", name:"بيتزا خضار", price:7000, category:"البيتزا", image:"pizza-vegetable.png", emoji:"🍕", mealUpgrade:false },
-    { id:"pizza-mixed", name:"بيتزا مشكل", price:7000, category:"البيتزا", image:"pizza-mixed.png", emoji:"🍕", mealUpgrade:false },
-    { id:"pizza-pepperoni", name:"بيتزا ببروني", price:7000, category:"البيتزا", image:"pizza-pepperoni.png", emoji:"🍕", mealUpgrade:false },
-    { id:"pizza-zaatar", name:"بيتزا زعتر", price:7000, category:"البيتزا", image:"pizza-zaatar.png", emoji:"🍕", mealUpgrade:false },
-
-    { id:"burger-classic", name:"بركر كلاسيك", price:3500, category:"البركر", image:"burger-classic.png", emoji:"🍔", mealUpgrade:true },
-    { id:"burger-cheese", name:"تشيز بركر", price:3500, category:"البركر", image:"burger-cheese.png", emoji:"🍔", mealUpgrade:true },
-    { id:"burger-mexican", name:"مكسيك بركر", price:3500, category:"البركر", image:"burger-mexican.png", emoji:"🍔", mealUpgrade:true },
-    { id:"burger-bbq", name:"باربكيو بركر", price:3500, category:"البركر", image:"burger-bbq.png", emoji:"🍔", mealUpgrade:true },
-    { id:"burger-chicken", name:"بركر دجاج", price:3000, category:"البركر", image:"burger-chicken.png", emoji:"🍔", mealUpgrade:true },
-
-    { id:"saj-beef-arabic", name:"صاج لحم عربي", price:4000, category:"الصاج", image:"saj-beef-arabic.png", emoji:"🫓", mealUpgrade:false },
-    { id:"saj-chicken-arabic", name:"صاج دجاج عربي", price:4000, category:"الصاج", image:"saj-chicken-arabic.png", emoji:"🫓", mealUpgrade:false },
-    { id:"saj-beef-italian", name:"صاج إيطالي لحم", price:6000, category:"الصاج", image:"saj-beef-italian.png", emoji:"🫓", mealUpgrade:false },
-    { id:"saj-chicken-italian", name:"صاج إيطالي دجاج", price:6000, category:"الصاج", image:"saj-chicken-italian.png", emoji:"🫓", mealUpgrade:false },
-    { id:"saj-family-arabic", name:"صاج عائلي عربي", price:10000, category:"الصاج", image:"saj-family-arabic.png", emoji:"🫓", mealUpgrade:false },
-
-    { id:"falafel-wrap", name:"لفة فلافل", price:1000, category:"الفلافل", image:"falafel-wrap.png", emoji:"🥙", mealUpgrade:false },
-    { id:"falafel-saj", name:"صاج فلافل", price:1500, category:"الفلافل", image:"falafel-saj.png", emoji:"🥙", mealUpgrade:false },
-    { id:"falafel-meal", name:"وجبة فلافل", price:3000, category:"الفلافل", image:"falafel-meal.png", emoji:"🥙", mealUpgrade:false },
-    { id:"falafel-10", name:"فلافل 10 حبات", price:1000, category:"الفلافل", image:"falafel-10.png", emoji:"🥙", mealUpgrade:false },
-
-    { id:"appetizers-small", name:"صحن مقبلات صغير", price:2000, category:"المقبلات", image:"appetizers-small.png", emoji:"🥗", mealUpgrade:false },
-    { id:"appetizers-medium", name:"صحن مقبلات وسط", price:3000, category:"المقبلات", image:"appetizers-medium.png", emoji:"🥗", mealUpgrade:false },
-    { id:"appetizers-plate", name:"طبق مقبلات", price:1000, category:"المقبلات", image:"appetizers-plate.png", emoji:"🥗", mealUpgrade:false },
-    { id:"appetizers-family", name:"صحن مقبلات عائلي", price:null, category:"المقبلات", image:"appetizers-family.png", emoji:"🥗", mealUpgrade:false },
-
-    { id:"cheese-addon", name:"جبن", price:500, category:"الإضافات", image:"cheese-addon.png", emoji:"🧀", mealUpgrade:false },
-    { id:"shawarma-fat", name:"صحن لية شاورما", price:500, category:"الإضافات", image:"shawarma-fat.png", emoji:"🧀", mealUpgrade:false },
-    { id:"rice-plate", name:"طبق رز", price:500, category:"الإضافات", image:"rice-plate.png", emoji:"🧀", mealUpgrade:false },
-    { id:"salad-plate", name:"صحن زلاطة", price:1000, category:"الإضافات", image:"salad-plate.png", emoji:"🧀", mealUpgrade:false },
-
-    { id:"garlic-sauce", name:"ثومية", price:null, category:"الصوص", image:"garlic-sauce.png", emoji:"🥣", mealUpgrade:false },
-    { id:"spicy-sauce", name:"سبايسي", price:null, category:"الصوص", image:"spicy-sauce.png", emoji:"🥣", mealUpgrade:false },
-    { id:"burger-sauce", name:"صوص بركر", price:null, category:"الصوص", image:"burger-sauce.png", emoji:"🥣", mealUpgrade:false },
-    { id:"cheese-sauce", name:"صوص جبن", price:null, category:"الصوص", image:"cheese-sauce.png", emoji:"🥣", mealUpgrade:false },
-
-    { id:"pepsi", name:"بيبسي", price:500, category:"المشروبات", image:"pepsi.png", emoji:"🥤", mealUpgrade:false },
-    { id:"seven-up", name:"سفن أب", price:null, category:"المشروبات", image:"seven-up.png", emoji:"🥤", mealUpgrade:false },
-    { id:"machine-pepsi", name:"بيبسي مكينة", price:1000, category:"المشروبات", image:"machine-pepsi.png", emoji:"🥤", mealUpgrade:false },
-    { id:"machine-laban", name:"لبن مكينة", price:1000, category:"المشروبات", image:"machine-laban.png", emoji:"🥤", mealUpgrade:false },
-    { id:"water", name:"ماء", price:250, category:"المشروبات", image:"water.png", emoji:"🥤", mealUpgrade:false }
-  ];
 
   const $ = (selector, root = document) => root.querySelector(selector);
-  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
-  const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-  })[char]);
+  const $$ = (selector, root = document) =>
+    Array.from(root.querySelectorAll(selector));
+
+  const escapeHTML = value =>
+    String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
 
   function safeStorageGet(key, fallback = "") {
-    try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
-  }
-  function safeStorageSet(key, value) {
-    try { localStorage.setItem(key, value); } catch (error) { console.warn("تعذر حفظ البيانات:", error); }
-  }
-  function safeStorageRemove(key) {
-    try { localStorage.removeItem(key); } catch (error) { console.warn("تعذر حذف البيانات:", error); }
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch {
+      return fallback;
+    }
   }
 
-  let currentLanguage = safeStorageGet(LANGUAGE_KEY, "ar") === "en" ? "en" : "ar";
+  function safeStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn("تعذر حفظ البيانات:", error);
+    }
+  }
+
+  function safeStorageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn("تعذر حذف البيانات:", error);
+    }
+  }
+
+  let currentLanguage =
+    safeStorageGet(LANGUAGE_KEY, "ar") === "en" ? "en" : "ar";
+
   let currentSearch = "";
   let activeCategory = "";
+
+  let products = [];
+  let categories = [];
   let cart = [];
-  let activeCoupon = safeStorageGet(COUPON_KEY, "").toUpperCase() === COUPON_CODE;
+  let offers = [];
+
+  let activeCoupon =
+    safeStorageGet(COUPON_KEY, "").toUpperCase() === COUPON_CODE;
+
   let lastCartFocus = null;
   let audioContext = null;
   let categoryEnglish = new Map();
+
+  let menuLoading = true;
+  let menuError = "";
+  let categoryObserver = null;
 
   const menuElement = $("#fastfoodMenu");
   const categoryNav = $("#categoryNav");
@@ -141,398 +95,1276 @@ import {
   const viewToggleButton = $("#toggleProductView");
   const viewToggleIcon = $("#viewToggleIcon");
 
+  // عناصر العروض المضافة إلى fastfood.html
+  const offersSection = $("#fastfoodOffersSection");
+  const offersContainer = $("#fastfoodOffers");
+  const offersTitle = $("#fastfoodOffersTitle");
+  const offersSubtitle = $("#fastfoodOffersSubtitle");
+
   const ui = {
     ar: {
-      pageTitle:"مطعم الغنّام | فرع الوجبات السريعة",
-      pageDescription:"منيو مطعم الغنّام - فرع الوجبات السريعة، شاورما وبركر وبيتزا وطلبات عبر واتساب",
-      brandName:"مطعم الغنّام", branchName:"فرع الوجبات السريعة", branchFullName:"مطعم الغنّام — فرع الوجبات السريعة",
-      logoAlt:"شعار مطعم الغنّام", brandAria:"العودة إلى مطعم الغنّام",
-      mainNavAria:"التنقل الرئيسي", headerActionsAria:"إعدادات الموقع", languageToggleAria:"تغيير اللغة",
-      openMenuAria:"فتح القائمة", backHome:"العودة إلى الرئيسية", menu:"المنيو",
-      heroEyebrow:"مطعم الغنّام • طعم شعبي أصيل", heroTitle:"الوجبات السريعة",
-      heroDescription:"شاورما • كنتاكي • سندويشات • بركر • بيتزا", browseMenu:"تصفح المنيو الآن",
-      searchSectionAria:"البحث في المنيو", searchPagePlaceholder:"ابحث عن شاورما أو بركر أو بيتزا...",
-      searchInputAria:"ابحث عن منتجات الوجبات السريعة", categoriesAria:"أقسام المنيو",
-      viewSettingsAria:"إعدادات عرض المنيو", productsAria:"المنتجات", loadingMenu:"جارٍ تحميل قائمة الوجبات السريعة...",
-      openCartAria:"فتح سلة المشتريات", viewCart:"عرض السلة", cartTitle:"سلة مشترياتك 🛒",
-      closeCartAria:"إغلاق السلة", currentOrder:"طلبك الحالي", addToOrder:"أضف إلى طلبك",
-      menuAddons:"إضافات من المنيو", swipeBrowse:"اسحب للتصفح ←", loadingAddons:"جارٍ تحميل الإضافات...",
-      couponCode:"🎟️ كود الخصم", enterCouponPlaceholder:"أدخل كود الخصم", applyCoupon:"تطبيق",
-      summaryAria:"ملخص الحساب", subtotalLabel:"المجموع الفرعي", discountLabel:"الخصم",
-      finalTotalLabel:"الإجمالي النهائي", customerInfo:"معلومات الزبون", nameLabel:"الاسم",
-      namePlaceholder:"الاسم الكامل", phoneLabel:"رقم الهاتف", phonePlaceholder:"رقم الهاتف",
-      addressLabel:"العنوان", addressPlaceholder:"منطقة السكن وأقرب نقطة دالة",
-      notesLabel:"ملاحظات إضافية", notesPlaceholder:"أي ملاحظات على الطلب",
-      sendWhatsApp:"إرسال الطلب عبر واتساب", continueShopping:"مواصلة التسوق", totalLabel:"الإجمالي",
-      closeMenuAria:"إغلاق القائمة", sideMenuTitle:"القائمة", navigationTitle:"التنقل",
-      homePage:"الصفحة الرئيسية", returnBranches:"العودة إلى صفحة الفروع", foodMenu:"قائمة الطعام",
-      goToMenu:"الانتقال إلى المنيو", shoppingCart:"سلة المشتريات", viewItemsTotal:"عرض المنتجات والإجمالي",
-      restaurantInfo:"معلومات المطعم", currency:"العملة", currencyName:"الدينار العراقي (د.ع)",
-      helpComplaints:"المساعدة والشكاوى", helpDescription:"للاستفسارات وتقديم الشكاوى",
-      branchPhones:"أرقام الفرع", branchLocation:"موقع الفرع", openMap:"افتح الخريطة لمعرفة موقع الفرع",
-      closeMenu:"إغلاق القائمة", allPricesIQD:"جميع الأسعار بالدينار العراقي", backHomePage:"العودة إلى الصفحة الرئيسية",
-      search:"ابحث عن وجبتك...", add:"أضف إلى السلة", pending:"بانتظار تحديد السعر",
-      unconfirmed:"السعر غير مؤكد", meal:"تحويلها إلى وجبة", mealOnly:"الصنف فقط",
-      mealIncludes:"الوجبة تشمل الفنكر والمشروب", empty:"السلة فارغة، اختَر الأصناف التي تريدها.",
-      noResults:"ما لقينا منتجات تطابق بحثك.", item:"صنف", items:"أصناف", inCart:"في السلة",
-      subtotal:"المجموع الفرعي", discount:"الخصم", total:"الإجمالي", notes:"ملاحظات",
-      mealText:"وجبة (فنكر ومشروب)", mealLabel:"وجبة", addAddon:"أضف للسلة", noAddons:"لا توجد إضافات أخرى متاحة حالياً.",
-      decrease:"تقليل الكمية", increase:"زيادة الكمية", remove:"حذف الصنف",
-      enterCoupon:"أدخل كود الخصم أولاً.", invalidCoupon:"الكود غير صحيح.",
-      applied:"تم تطبيق خصم 15% بنجاح.", addFirst:"أضف أصنافاً إلى السلة أولاً.",
-      addBeforeOrder:"أضف صنفاً واحداً على الأقل قبل إرسال الطلب.",
-      opening:"سيتم فتح واتساب لإكمال إرسال الطلب.",
-      whatsappError:"تعذر فتح واتساب. اسمح بفتح النوافذ المنبثقة ثم حاول مجدداً.",
-      noCoupon:"لا يوجد", noNotes:"لا توجد", orderTitle:"طلب جديد — مطعم الغنّام / فرع الوجبات السريعة",
-      customer:"الاسم", phone:"الهاتف", address:"العنوان", details:"تفاصيل الطلب",
-      contact:"أرقام التواصل", savedCoupon:"كود GHANNAM15 محفوظ: خصم 15%.",
-      switchGrid:"التبديل إلى عرض البطاقات", switchList:"التبديل إلى العرض الأفقي",
-      grid:"عرض البطاقات", list:"العرض الأفقي"
+      pageTitle: "مطعم الغنّام | فرع الوجبات السريعة",
+      pageDescription: "منيو مطعم الغنّام - فرع الوجبات السريعة",
+      brandName: "مطعم الغنّام",
+      branchName: "فرع الوجبات السريعة",
+      branchFullName: "مطعم الغنّام — فرع الوجبات السريعة",
+      logoAlt: "شعار مطعم الغنّام",
+      brandAria: "العودة إلى مطعم الغنّام",
+      mainNavAria: "التنقل الرئيسي",
+      headerActionsAria: "إعدادات الموقع",
+      languageToggleAria: "تغيير اللغة",
+      openMenuAria: "فتح القائمة",
+      backHome: "العودة إلى الرئيسية",
+      menu: "المنيو",
+      heroEyebrow: "مطعم الغنّام • طعم شعبي أصيل",
+      heroTitle: "الوجبات السريعة",
+      heroDescription: "شاورما • كنتاكي • سندويشات • بركر • بيتزا",
+      browseMenu: "تصفح المنيو الآن",
+      searchSectionAria: "البحث في المنيو",
+      searchPagePlaceholder: "ابحث عن شاورما أو بركر أو بيتزا...",
+      searchInputAria: "ابحث عن منتجات الوجبات السريعة",
+      categoriesAria: "أقسام المنيو",
+      viewSettingsAria: "إعدادات عرض المنيو",
+      productsAria: "المنتجات",
+      loadingMenu: "جارٍ تحميل قائمة الوجبات السريعة...",
+      openCartAria: "فتح سلة المشتريات",
+      viewCart: "عرض السلة",
+      cartTitle: "سلة مشترياتك 🛒",
+      closeCartAria: "إغلاق السلة",
+      currentOrder: "طلبك الحالي",
+      addToOrder: "أضف إلى طلبك",
+      menuAddons: "إضافات من المنيو",
+      swipeBrowse: "اسحب للتصفح ←",
+      loadingAddons: "جارٍ تحميل الإضافات...",
+      couponCode: "🎟️ كود الخصم",
+      enterCouponPlaceholder: "أدخل كود الخصم",
+      applyCoupon: "تطبيق",
+      summaryAria: "ملخص الحساب",
+      subtotalLabel: "المجموع الفرعي",
+      discountLabel: "الخصم",
+      finalTotalLabel: "الإجمالي النهائي",
+      customerInfo: "معلومات الزبون",
+      nameLabel: "الاسم",
+      namePlaceholder: "الاسم الكامل",
+      phoneLabel: "رقم الهاتف",
+      phonePlaceholder: "رقم الهاتف",
+      addressLabel: "العنوان",
+      addressPlaceholder: "منطقة السكن وأقرب نقطة دالة",
+      notesLabel: "ملاحظات إضافية",
+      notesPlaceholder: "أي ملاحظات على الطلب",
+      sendWhatsApp: "إرسال الطلب عبر واتساب",
+      continueShopping: "مواصلة التسوق",
+      totalLabel: "الإجمالي",
+      closeMenuAria: "إغلاق القائمة",
+      sideMenuTitle: "القائمة",
+      navigationTitle: "التنقل",
+      homePage: "الصفحة الرئيسية",
+      returnBranches: "العودة إلى صفحة الفروع",
+      foodMenu: "قائمة الطعام",
+      goToMenu: "الانتقال إلى المنيو",
+      shoppingCart: "سلة المشتريات",
+      viewItemsTotal: "عرض المنتجات والإجمالي",
+      restaurantInfo: "معلومات المطعم",
+      currency: "العملة",
+      currencyName: "الدينار العراقي (د.ع)",
+      helpComplaints: "المساعدة والشكاوى",
+      helpDescription: "للاستفسارات وتقديم الشكاوى",
+      branchPhones: "أرقام الفرع",
+      branchLocation: "موقع الفرع",
+      openMap: "افتح الخريطة لمعرفة موقع الفرع",
+      closeMenu: "إغلاق القائمة",
+      allPricesIQD: "جميع الأسعار بالدينار العراقي",
+      backHomePage: "العودة إلى الصفحة الرئيسية",
+      search: "ابحث عن وجبتك...",
+      add: "أضف إلى السلة",
+      pending: "بانتظار تحديد السعر",
+      unconfirmed: "السعر غير مؤكد",
+      meal: "تحويلها إلى وجبة",
+      mealOnly: "الصنف فقط",
+      mealIncludes: "الوجبة تشمل الفنكر والمشروب",
+      empty: "السلة فارغة، اختَر الأصناف التي تريدها.",
+      noResults: "ما لقينا منتجات تطابق بحثك.",
+      item: "صنف",
+      items: "أصناف",
+      inCart: "في السلة",
+      subtotal: "المجموع الفرعي",
+      discount: "الخصم",
+      total: "الإجمالي",
+      notes: "ملاحظات",
+      mealText: "وجبة (فنكر ومشروب)",
+      mealLabel: "وجبة",
+      addAddon: "أضف للسلة",
+      noAddons: "لا توجد إضافات أخرى متاحة حالياً.",
+      decrease: "تقليل الكمية",
+      increase: "زيادة الكمية",
+      remove: "حذف الصنف",
+      enterCoupon: "أدخل كود الخصم أولاً.",
+      invalidCoupon: "الكود غير صحيح.",
+      applied: "تم تطبيق خصم 15% بنجاح.",
+      addFirst: "أضف أصنافاً إلى السلة أولاً.",
+      addBeforeOrder: "أضف صنفاً واحداً على الأقل قبل إرسال الطلب.",
+      opening: "سيتم فتح واتساب لإكمال إرسال الطلب.",
+      whatsappError: "تعذر فتح واتساب. اسمح بفتح النوافذ المنبثقة ثم حاول مجدداً.",
+      noCoupon: "لا يوجد",
+      noNotes: "لا توجد",
+      orderTitle: "طلب جديد — مطعم الغنّام / فرع الوجبات السريعة",
+      customer: "الاسم",
+      phone: "الهاتف",
+      address: "العنوان",
+      details: "تفاصيل الطلب",
+      contact: "أرقام التواصل",
+      savedCoupon: "كود GHANNAM15 محفوظ: خصم 15%.",
+      switchGrid: "التبديل إلى عرض البطاقات",
+      switchList: "التبديل إلى العرض الأفقي",
+      grid: "عرض البطاقات",
+      list: "العرض الأفقي",
+      selectOption: "اختر الخيار",
+      chooseOption: "يرجى اختيار أحد الخيارات",
+      loadingError: "تعذر تحميل المنيو من قاعدة البيانات.",
+      noProducts: "لا توجد منتجات متاحة حالياً.",
+      unavailable: "هذا المنتج غير متاح حالياً.",
+      offersTitle: " عروضنا المميزة",
+      offersSubtitle: "استمتع بأفضل عروض مطعم الغنّام",
+      offerPlaceholder: "",
+      offerPrice: "سعر العرض",
+      originalPrice: "السعر السابق"
     },
+
     en: {
-      pageTitle:"Al Ghannam Restaurant | Fast Food Branch",
-      pageDescription:"Al Ghannam fast food menu: shawarma, burgers, pizza, and WhatsApp ordering.",
-      brandName:"Al Ghannam Restaurant", branchName:"Fast Food Branch", branchFullName:"Al Ghannam Restaurant — Fast Food Branch",
-      logoAlt:"Al Ghannam Restaurant logo", brandAria:"Back to Al Ghannam Restaurant",
-      mainNavAria:"Main navigation", headerActionsAria:"Website settings", languageToggleAria:"Change language",
-      openMenuAria:"Open menu", backHome:"Back to Home", menu:"Menu",
-      heroEyebrow:"Al Ghannam Restaurant • Authentic Local Flavor", heroTitle:"Fast Food",
-      heroDescription:"Shawarma • Kentucky • Sandwiches • Burgers • Pizza", browseMenu:"Browse the Menu",
-      searchSectionAria:"Search the menu", searchPagePlaceholder:"Search for shawarma, burgers, or pizza...",
-      searchInputAria:"Search fast food products", categoriesAria:"Menu categories",
-      viewSettingsAria:"Menu display settings", productsAria:"Products", loadingMenu:"Loading the fast food menu...",
-      openCartAria:"Open shopping cart", viewCart:"View Cart", cartTitle:"Your Shopping Cart 🛒",
-      closeCartAria:"Close cart", currentOrder:"Your Current Order", addToOrder:"Add to Your Order",
-      menuAddons:"Menu Add-ons", swipeBrowse:"Swipe to browse →", loadingAddons:"Loading add-ons...",
-      couponCode:"🎟️ Discount Code", enterCouponPlaceholder:"Enter discount code", applyCoupon:"Apply",
-      summaryAria:"Order summary", subtotalLabel:"Subtotal", discountLabel:"Discount",
-      finalTotalLabel:"Grand Total", customerInfo:"Customer Information", nameLabel:"Name",
-      namePlaceholder:"Full name", phoneLabel:"Phone Number", phonePlaceholder:"Phone number",
-      addressLabel:"Address", addressPlaceholder:"Your area and nearest landmark",
-      notesLabel:"Additional Notes", notesPlaceholder:"Any notes about your order",
-      sendWhatsApp:"Send Order via WhatsApp", continueShopping:"Continue Shopping", totalLabel:"Total",
-      closeMenuAria:"Close menu", sideMenuTitle:"Menu", navigationTitle:"Navigation",
-      homePage:"Home Page", returnBranches:"Return to branches page", foodMenu:"Food Menu",
-      goToMenu:"Go to menu", shoppingCart:"Shopping Cart", viewItemsTotal:"View items and total",
-      restaurantInfo:"Restaurant Information", currency:"Currency", currencyName:"Iraqi Dinar (IQD)",
-      helpComplaints:"Help & Complaints", helpDescription:"For inquiries and complaints",
-      branchPhones:"Branch Phone Numbers", branchLocation:"Branch Location", openMap:"Open the map to find the branch",
-      closeMenu:"Close Menu", allPricesIQD:"All prices are in Iraqi Dinars", backHomePage:"Return to Home Page",
-      search:"Search for your meal...", add:"Add to cart", pending:"Price pending",
-      unconfirmed:"Price not confirmed", meal:"Upgrade to a meal", mealOnly:"Item only",
-      mealIncludes:"Meal includes fries and a drink", empty:"Your cart is empty. Choose the items you want.",
-      noResults:"No products match your search.", item:"item", items:"items", inCart:"in cart",
-      subtotal:"Subtotal", discount:"Discount", total:"Grand total", notes:"Notes",
-      mealText:"Meal (fries and a drink)", mealLabel:"Meal", addAddon:"Add to cart", noAddons:"No other add-ons are currently available.",
-      decrease:"Decrease quantity", increase:"Increase quantity", remove:"Remove item",
-      enterCoupon:"Enter the discount code first.", invalidCoupon:"Invalid discount code.",
-      applied:"15% discount applied successfully.", addFirst:"Add items to your cart first.",
-      addBeforeOrder:"Add at least one item before submitting your order.",
-      opening:"Opening WhatsApp to complete your order.",
-      whatsappError:"Could not open WhatsApp. Allow pop-ups and try again.",
-      noCoupon:"None", noNotes:"None", orderTitle:"New Order — Al Ghannam Restaurant / Fast Food Branch",
-      customer:"Name", phone:"Phone", address:"Address", details:"Order details",
-      contact:"Contact numbers", savedCoupon:"GHANNAM15 saved: 15% discount.",
-      switchGrid:"Switch to grid view", switchList:"Switch to horizontal view",
-      grid:"Grid view", list:"Horizontal view"
+      pageTitle: "Al Ghannam Restaurant | Fast Food Branch",
+      pageDescription: "Al Ghannam fast food menu",
+      brandName: "Al Ghannam Restaurant",
+      branchName: "Fast Food Branch",
+      branchFullName: "Al Ghannam Restaurant — Fast Food Branch",
+      logoAlt: "Al Ghannam Restaurant logo",
+      brandAria: "Back to Al Ghannam Restaurant",
+      mainNavAria: "Main navigation",
+      headerActionsAria: "Website settings",
+      languageToggleAria: "Change language",
+      openMenuAria: "Open menu",
+      backHome: "Back to Home",
+      menu: "Menu",
+      heroEyebrow: "Al Ghannam Restaurant • Authentic Local Flavor",
+      heroTitle: "Fast Food",
+      heroDescription: "Shawarma • Kentucky • Sandwiches • Burgers • Pizza",
+      browseMenu: "Browse the Menu",
+      searchSectionAria: "Search the menu",
+      searchPagePlaceholder: "Search for shawarma, burgers, or pizza...",
+      searchInputAria: "Search fast food products",
+      categoriesAria: "Menu categories",
+      viewSettingsAria: "Menu display settings",
+      productsAria: "Products",
+      loadingMenu: "Loading the fast food menu...",
+      openCartAria: "Open shopping cart",
+      viewCart: "View Cart",
+      cartTitle: "Your Shopping Cart 🛒",
+      closeCartAria: "Close cart",
+      currentOrder: "Your Current Order",
+      addToOrder: "Add to Your Order",
+      menuAddons: "Menu Add-ons",
+      swipeBrowse: "Swipe to browse →",
+      loadingAddons: "Loading add-ons...",
+      couponCode: "🎟️ Discount Code",
+      enterCouponPlaceholder: "Enter discount code",
+      applyCoupon: "Apply",
+      summaryAria: "Order summary",
+      subtotalLabel: "Subtotal",
+      discountLabel: "Discount",
+      finalTotalLabel: "Grand Total",
+      customerInfo: "Customer Information",
+      nameLabel: "Name",
+      namePlaceholder: "Full name",
+      phoneLabel: "Phone Number",
+      phonePlaceholder: "Phone number",
+      addressLabel: "Address",
+      addressPlaceholder: "Your area and nearest landmark",
+      notesLabel: "Additional Notes",
+      notesPlaceholder: "Any notes about your order",
+      sendWhatsApp: "Send Order via WhatsApp",
+      continueShopping: "Continue Shopping",
+      totalLabel: "Total",
+      closeMenuAria: "Close menu",
+      sideMenuTitle: "Menu",
+      navigationTitle: "Navigation",
+      homePage: "Home Page",
+      returnBranches: "Return to branches page",
+      foodMenu: "Food Menu",
+      goToMenu: "Go to menu",
+      shoppingCart: "Shopping Cart",
+      viewItemsTotal: "View items and total",
+      restaurantInfo: "Restaurant Information",
+      currency: "Currency",
+      currencyName: "Iraqi Dinar (IQD)",
+      helpComplaints: "Help & Complaints",
+      helpDescription: "For inquiries and complaints",
+      branchPhones: "Branch Phone Numbers",
+      branchLocation: "Branch Location",
+      openMap: "Open the map to find the branch",
+      closeMenu: "Close Menu",
+      allPricesIQD: "All prices are in Iraqi Dinars",
+      backHomePage: "Return to the home page",
+      search: "Search for your meal...",
+      add: "Add to cart",
+      pending: "Price pending",
+      unconfirmed: "Price not confirmed",
+      meal: "Upgrade to a meal",
+      mealOnly: "Item only",
+      mealIncludes: "Meal includes fries and a drink",
+      empty: "Your cart is empty. Choose the items you want.",
+      noResults: "No products match your search.",
+      item: "item",
+      items: "items",
+      inCart: "in cart",
+      subtotal: "Subtotal",
+      discount: "Discount",
+      total: "Grand total",
+      notes: "Notes",
+      mealText: "Meal (fries and a drink)",
+      mealLabel: "Meal",
+      addAddon: "Add to cart",
+      noAddons: "No other add-ons are currently available.",
+      decrease: "Decrease quantity",
+      increase: "Increase quantity",
+      remove: "Remove item",
+      enterCoupon: "Enter the discount code first.",
+      invalidCoupon: "Invalid discount code.",
+      applied: "15% discount applied successfully.",
+      addFirst: "Add items to your cart first.",
+      addBeforeOrder: "Add at least one item before submitting your order.",
+      opening: "Opening WhatsApp to complete your order.",
+      whatsappError: "Could not open WhatsApp. Allow pop-ups and try again.",
+      noCoupon: "None",
+      noNotes: "None",
+      orderTitle: "New Order — Al Ghannam Restaurant / Fast Food Branch",
+      customer: "Name",
+      phone: "Phone",
+      address: "Address",
+      details: "Order details",
+      contact: "Contact numbers",
+      savedCoupon: "GHANNAM15 saved: 15% discount.",
+      switchGrid: "Switch to grid view",
+      switchList: "Switch to horizontal view",
+      grid: "Grid view",
+      list: "Horizontal view",
+      selectOption: "Choose an option",
+      chooseOption: "Please choose an option",
+      loadingError: "Could not load the menu from the database.",
+      noProducts: "No products are currently available.",
+      unavailable: "This product is currently unavailable.",
+      offersTitle: " Featured Offers",
+      offersSubtitle: "Enjoy the best offers from Al Ghannam",
+      offerPlaceholder: "",
+      offerPrice: "Offer price",
+      originalPrice: "Original price"
     }
   };
 
   const t = key => ui[currentLanguage][key] ?? ui.ar[key] ?? key;
+
   const money = value => {
     const amount = Math.max(0, Math.round(Number(value) || 0));
+
     return currentLanguage === "en"
       ? `${amount.toLocaleString("en-US")} IQD`
       : `${amount.toLocaleString("en-US")} د.ع`;
   };
-  const productName = product => currentLanguage === "en"
-    ? (product.name_en || product.name_ar || product.name || "")
-    : (product.name_ar || product.name || "");
-  const productDescription = product => currentLanguage === "en"
-    ? (product.description_en || product.description_ar || product.description || "")
-    : (product.description_ar || product.description || "");
-  const categoryName = category => currentLanguage === "en"
-    ? (categoryEnglish.get(category) || category)
-    : category;
-  const getProduct = id => products.find(product => String(product.id) === String(id));
-  const effectivePrice = (product, meal = false) => {
-    if (!product || product.price == null || !Number.isFinite(Number(product.price))) return null;
-    return Number(product.price) + (meal && product.mealUpgrade ? MEAL_UPGRADE_PRICE : 0);
-  };
+
+  const productName = product =>
+    currentLanguage === "en"
+      ? (product.name_en || product.name_ar || product.name || "")
+      : (product.name_ar || product.name || "");
+
+  const productDescription = product =>
+    currentLanguage === "en"
+      ? (product.description_en || product.description_ar || product.description || "")
+      : (product.description_ar || product.description || "");
+
+  const categoryName = category =>
+    currentLanguage === "en"
+      ? (categoryEnglish.get(category) || category)
+      : category;
+
+  const getProduct = id =>
+    products.find(product => String(product.id) === String(id));
+
   const productEmoji = product => product?.emoji || "🍽️";
+
+  /* =====================================================
+     العروض — من جدول offers في Supabase
+  ===================================================== */
+
+  function updateOffersHeading() {
+    if (offersTitle) {
+      offersTitle.textContent = t("offersTitle");
+    }
+
+    if (offersSubtitle) {
+      offersSubtitle.textContent = t("offersSubtitle");
+    }
+  }
+
+  function offerImageSource(offer) {
+    const candidate = String(offer?.image_url || "").trim();
+
+    if (!candidate || !/^https?:\/\//i.test(candidate)) {
+      return "";
+    }
+
+    return candidate;
+  }
+
+  function offerCardHTML(offer) {
+    const name = String(offer.name || "").trim();
+    const description = String(offer.description || "").trim();
+    const image = offerImageSource(offer);
+
+    const offerPrice = Number(offer.offer_price);
+    const originalPrice = Number(offer.original_price);
+
+    const hasOfferPrice =
+      offer.offer_price !== null &&
+      offer.offer_price !== undefined &&
+      offer.offer_price !== "" &&
+      Number.isFinite(offerPrice);
+
+    const hasOriginalPrice =
+      offer.original_price !== null &&
+      offer.original_price !== undefined &&
+      offer.original_price !== "" &&
+      Number.isFinite(originalPrice);
+
+    const imageHTML = image
+      ? `
+        <img
+          class="fastfood-offer-image"
+          src="${escapeHTML(image)}"
+          alt="${escapeHTML(name || t("offerPlaceholder"))}"
+          loading="lazy"
+          onerror="
+            this.style.display='none';
+            const fallback=this.nextElementSibling;
+            if(fallback) fallback.style.display='flex';
+          ">
+
+        <div class="fastfood-offer-placeholder" style="display:none">
+          ${escapeHTML(t("offerPlaceholder"))}
+        </div>
+      `
+      : `
+        <div class="fastfood-offer-placeholder">
+          ${escapeHTML(t("offerPlaceholder"))}
+        </div>
+      `;
+
+    return `
+      <article class="fastfood-offer-card">
+
+        <div class="fastfood-offer-image-box">
+          ${imageHTML}
+        </div>
+
+        <div class="fastfood-offer-info">
+
+          ${name ? `
+            <h3 class="fastfood-offer-name">
+              ${escapeHTML(name)}
+            </h3>
+          ` : ""}
+
+          ${description ? `
+            <p class="fastfood-offer-description">
+              ${escapeHTML(description)}
+            </p>
+          ` : ""}
+
+          ${(hasOfferPrice || hasOriginalPrice) ? `
+            <div class="fastfood-offer-prices">
+
+              ${hasOfferPrice ? `
+                <span class="fastfood-offer-current-price">
+                  ${escapeHTML(money(offerPrice))}
+                </span>
+              ` : ""}
+
+              ${hasOriginalPrice ? `
+                <span class="fastfood-offer-original-price">
+                  ${escapeHTML(money(originalPrice))}
+                </span>
+              ` : ""}
+
+            </div>
+          ` : ""}
+
+        </div>
+      </article>
+    `;
+  }
+
+  function renderOffers(rows = []) {
+    if (!offersSection || !offersContainer) return;
+
+    offers = Array.isArray(rows) ? rows : [];
+
+    updateOffersHeading();
+
+    if (!offers.length) {
+      offersContainer.innerHTML = "";
+      offersSection.hidden = true;
+      return;
+    }
+
+    offersContainer.innerHTML = offers
+      .map(offerCardHTML)
+      .join("");
+
+    offersSection.hidden = false;
+  }
+
+  async function refreshOffersFromDatabase() {
+    if (!offersSection || !offersContainer) {
+      console.warn(
+        "قسم العروض غير موجود في fastfood.html. تحقق من إضافة fastfoodOffersSection وfastfoodOffers."
+      );
+      return false;
+    }
+
+    try {
+      const result = await loadBranchOffers(BRANCH_ID);
+
+      renderOffers(Array.isArray(result) ? result : []);
+
+      console.info(
+        `تم تحميل ${offers.length} عرضاً لفرع الوجبات السريعة.`
+      );
+
+      return true;
+
+    } catch (error) {
+      // فشل العروض لا يؤثر على المنيو أو السلة.
+      console.error("تعذر تحميل عروض الفرع:", error);
+
+      offers = [];
+      renderOffers([]);
+
+      return false;
+    }
+  }
+
+  function getCategoryKey(category) {
+    return String(category.id || category.name);
+  }
+
+  function getCategorySectionId(category) {
+    const key = getCategoryKey(category);
+
+    return `fastfood-category-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  }
+
+  function getProductOptions(product) {
+    const options = product?.options;
+
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      return [];
+    }
+
+    return Object.entries(options).map(([key, value]) => {
+      const isObject = value && typeof value === "object";
+
+      const price = isObject
+        ? Number(value.price)
+        : Number(value);
+
+      const labelAr = isObject
+        ? (value.label_ar || value.label || key)
+        : key;
+
+      const labelEn = isObject
+        ? (value.label_en || value.label || key)
+        : key;
+
+      return {
+        key,
+        label: currentLanguage === "en" ? labelEn : labelAr,
+        price: Number.isFinite(price) && price >= 0 ? price : null
+      };
+    });
+  }
+
+  function getSelectedOption(product, optionKey) {
+    return getProductOptions(product).find(
+      option => String(option.key) === String(optionKey)
+    ) || null;
+  }
+
+  function getBasePrice(product, optionKey = "") {
+    if (!product || product.requires_price_confirmation) return null;
+
+    const options = getProductOptions(product);
+
+    if (options.length) {
+      if (!optionKey) return null;
+      return getSelectedOption(product, optionKey)?.price ?? null;
+    }
+
+    if (
+      product.price === null ||
+      product.price === undefined ||
+      product.price === ""
+    ) {
+      return null;
+    }
+
+    const price = Number(product.price);
+
+    return Number.isFinite(price) && price >= 0 ? price : null;
+  }
+
+  function effectivePrice(product, meal = false, optionKey = "") {
+    const basePrice = getBasePrice(product, optionKey);
+
+    if (basePrice === null) return null;
+
+    const upgradePrice = Number(product.meal_upgrade_price || 0);
+
+    return basePrice + (
+      meal && product.mealUpgrade
+        ? Math.max(0, upgradePrice)
+        : 0
+    );
+  }
 
   function applyStaticTranslations() {
     document.documentElement.lang = currentLanguage;
-    document.documentElement.dir = currentLanguage === "en" ? "ltr" : "rtl";
+    document.documentElement.dir =
+      currentLanguage === "en" ? "ltr" : "rtl";
 
     const languageButton = $("#languageToggle");
+
     if (languageButton) {
-      languageButton.textContent = currentLanguage === "en" ? "AR" : "EN";
-      languageButton.setAttribute("aria-label", currentLanguage === "en" ? "Switch to Arabic" : "Switch to English");
+      languageButton.textContent =
+        currentLanguage === "en" ? "AR" : "EN";
+
+      languageButton.setAttribute(
+        "aria-label",
+        currentLanguage === "en" ? "Switch to Arabic" : "Switch to English"
+      );
     }
+
     if (searchInput) searchInput.placeholder = t("search");
 
     $$("[data-i18n]").forEach(element => {
       const key = element.dataset.i18n;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.textContent = t(key);
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.textContent = t(key);
+      }
     });
+
     $$("[data-i18n-placeholder]").forEach(element => {
       const key = element.dataset.i18nPlaceholder;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.placeholder = t(key);
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.placeholder = t(key);
+      }
     });
+
     $$("[data-i18n-title]").forEach(element => {
       const key = element.dataset.i18nTitle;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.title = t(key);
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.title = t(key);
+      }
     });
+
     $$("[data-i18n-aria]").forEach(element => {
       const key = element.dataset.i18nAria;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.setAttribute("aria-label", t(key));
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.setAttribute("aria-label", t(key));
+      }
     });
+
     $$("[data-i18n-alt]").forEach(element => {
       const key = element.dataset.i18nAlt;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.alt = t(key);
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.alt = t(key);
+      }
     });
+
     $$("[data-i18n-meta]").forEach(element => {
       const key = element.dataset.i18nMeta;
-      if (ui[currentLanguage][key] || ui.ar[key]) element.setAttribute("content", t(key));
+
+      if (ui[currentLanguage][key] || ui.ar[key]) {
+        element.setAttribute("content", t(key));
+      }
     });
+
     const pageTitle = $("title[data-i18n-title]");
-    if (pageTitle) pageTitle.textContent = t(pageTitle.dataset.i18nTitle);
+
+    if (pageTitle) {
+      pageTitle.textContent = t(pageTitle.dataset.i18nTitle);
+    }
+
+    updateOffersHeading();
   }
 
   function getSavedProductView() {
-    return safeStorageGet(PRODUCT_VIEW_KEY, "grid") === "list" ? "list" : "grid";
+    return safeStorageGet(PRODUCT_VIEW_KEY, "grid") === "list"
+      ? "list"
+      : "grid";
   }
+
   function updateProductView(view) {
     const selected = view === "list" ? "list" : "grid";
+
     menuElement?.classList.toggle("list-view", selected === "list");
     menuElement?.classList.toggle("grid-view", selected === "grid");
+
     if (viewToggleButton) {
-      viewToggleButton.setAttribute("aria-pressed", String(selected === "list"));
-      viewToggleButton.title = selected === "list" ? t("switchGrid") : t("switchList");
-      viewToggleButton.setAttribute("aria-label", viewToggleButton.title);
+      viewToggleButton.setAttribute(
+        "aria-pressed",
+        String(selected === "list")
+      );
+
+      viewToggleButton.title =
+        selected === "list" ? t("switchGrid") : t("switchList");
+
+      viewToggleButton.setAttribute(
+        "aria-label",
+        viewToggleButton.title
+      );
     }
-    if (viewToggleIcon && viewToggleIcon.tagName.toLowerCase() !== "svg") {
+
+    if (
+      viewToggleIcon &&
+      viewToggleIcon.tagName.toLowerCase() !== "svg"
+    ) {
       viewToggleIcon.textContent = selected === "list" ? "▦" : "☰";
     }
+
     safeStorageSet(PRODUCT_VIEW_KEY, selected);
+  }
+
+  function itemKey(row) {
+    return [
+      row.id,
+      row.meal ? "1" : "0",
+      encodeURIComponent(row.optionKey || "")
+    ].join("|");
+  }
+
+  function parseItemKey(key) {
+    const parts = String(key || "").split("|");
+
+    let optionKey = "";
+
+    try {
+      optionKey = decodeURIComponent(parts[2] || "");
+    } catch {
+      optionKey = parts[2] || "";
+    }
+
+    return {
+      id: parts[0] || "",
+      meal: parts[1] === "1",
+      optionKey
+    };
   }
 
   function loadCart() {
     try {
       const saved = JSON.parse(safeStorageGet(STORAGE_KEY, "[]"));
+
       if (!Array.isArray(saved)) return [];
+
       return saved.map(row => {
         const product = getProduct(row?.id);
         const qty = Math.floor(Number(row?.qty));
-        if (!product || product.price == null || !Number.isFinite(qty)) return null;
+
+        if (!product || !Number.isFinite(qty) || qty < 1) {
+          return null;
+        }
+
+        const optionKey = String(row.optionKey || "");
+        const options = getProductOptions(product);
+
+        if (
+          options.length &&
+          !getSelectedOption(product, optionKey)
+        ) {
+          return null;
+        }
+
+        if (
+          !options.length &&
+          getBasePrice(product) === null
+        ) {
+          return null;
+        }
+
         return {
           id: product.id,
-          qty: Math.max(1, Math.min(99, qty)),
-          meal: Boolean(row.meal && product.mealUpgrade)
+          qty: Math.min(99, qty),
+          meal: Boolean(row.meal && product.mealUpgrade),
+          optionKey
         };
       }).filter(Boolean);
     } catch {
       return [];
     }
   }
-  function saveCart() { safeStorageSet(STORAGE_KEY, JSON.stringify(cart)); }
-  function qtyOf(id, meal = false) {
-    return cart.find(row => String(row.id) === String(id) && Boolean(row.meal) === Boolean(meal))?.qty || 0;
+
+  function saveCart() {
+    safeStorageSet(STORAGE_KEY, JSON.stringify(cart));
   }
-  function rowPrice(row) { return effectivePrice(getProduct(row.id), row.meal) || 0; }
-  function subtotal() { return cart.reduce((sum, row) => sum + rowPrice(row) * row.qty, 0); }
-  function totalQty() { return cart.reduce((sum, row) => sum + row.qty, 0); }
-  function discountAmount() { return activeCoupon ? Math.round(subtotal() * COUPON_RATE) : 0; }
-  function grandTotal() { return Math.max(0, subtotal() - discountAmount()); }
-  function itemKey(row) { return `${row.id}|${row.meal ? "1" : "0"}`; }
-  function parseItemKey(key) {
-    const [id, flag] = String(key || "").split("|");
-    return { id, meal: flag === "1" };
+
+  function qtyOf(id, meal = false, optionKey = "") {
+    return cart.find(row =>
+      String(row.id) === String(id) &&
+      Boolean(row.meal) === Boolean(meal) &&
+      String(row.optionKey || "") === String(optionKey || "")
+    )?.qty || 0;
   }
+
+  function rowPrice(row) {
+    return effectivePrice(
+      getProduct(row.id),
+      row.meal,
+      row.optionKey
+    ) || 0;
+  }
+
+  function subtotal() {
+    return cart.reduce(
+      (sum, row) => sum + rowPrice(row) * row.qty,
+      0
+    );
+  }
+
+  function totalQty() {
+    return cart.reduce((sum, row) => sum + row.qty, 0);
+  }
+
+  function discountAmount() {
+    return activeCoupon ? Math.round(subtotal() * COUPON_RATE) : 0;
+  }
+
+  function grandTotal() {
+    return Math.max(0, subtotal() - discountAmount());
+  }
+
   function setText(selector, value) {
     const element = $(selector);
+
     if (element) element.textContent = value;
   }
 
   function playBellSound() {
     try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
       if (!AudioContextClass) return;
-      if (!audioContext || audioContext.state === "closed") audioContext = new AudioContextClass();
+
+      if (!audioContext || audioContext.state === "closed") {
+        audioContext = new AudioContextClass();
+      }
+
       const play = () => {
         const now = audioContext.currentTime;
+
         [880, 1320].forEach((frequency, index) => {
           const oscillator = audioContext.createOscillator();
           const gain = audioContext.createGain();
           const start = now + index * 0.1;
+
           oscillator.type = "sine";
           oscillator.frequency.setValueAtTime(frequency, start);
+
           gain.gain.setValueAtTime(0.0001, start);
           gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.32);
+
           oscillator.connect(gain);
           gain.connect(audioContext.destination);
+
           oscillator.start(start);
           oscillator.stop(start + 0.34);
         });
       };
-      if (audioContext.state === "suspended") audioContext.resume().then(play).catch(() => {});
-      else play();
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume().then(play).catch(() => {});
+      } else {
+        play();
+      }
     } catch (error) {
       console.warn("تعذر تشغيل صوت التنبيه:", error);
     }
   }
 
   function getCategories() {
-    return [...new Set(products.map(product => product.category).filter(Boolean))];
+    return categories.filter(category => category && category.name);
+  }
+
+  function getCategoryForProduct(product) {
+    if (product.category_id) {
+      return categories.find(
+        category => String(category.id) === String(product.category_id)
+      ) || null;
+    }
+
+    return categories.find(
+      category => category.name === product.category
+    ) || null;
   }
 
   function imageSource(product) {
-    const candidate = String(
-    product.image_url || product.image || ""
-    ).trim();
+    const candidate = String(product?.image_url || "").trim();
 
-    if (!candidate) return "";
-
-    // الصور ذات الروابط الخارجية
-    if (/^(https?:\/\/|data:|blob:)/i.test(candidate)) {
-      return candidate;
+    if (!candidate || !/^https?:\/\//i.test(candidate)) {
+      return "";
     }
 
-    // إزالة / من بداية المسار حتى لا يخرج من مجلد المشروع
-    const cleanPath = candidate.replace(/^\/+/, "");
+    return candidate;
+  }
 
-    // إذا كان الاسم مثل pro21.png نضيف مجلد صور الوجبات السريعة
-    const imagePath = cleanPath.includes("/")
-      ? cleanPath
-      : IMAGE_FOLDER + cleanPath;
-    // إنشاء رابط صحيح يعمل محلياً وعلى GitHub Pages
-    return new URL(imagePath, new URL(".", window.location.href)).href;
+  function imageHTML(product, className = "", alt = "") {
+    const image = imageSource(product);
+    const imageClass = className ? `class="${escapeHTML(className)}"` : "";
+
+    if (!image) {
+      return `
+        <div class="${escapeHTML(className || "product-placeholder")} image-placeholder">
+          ${escapeHTML(productEmoji(product))}
+        </div>
+      `;
+    }
+
+    return `
+      <img
+        ${imageClass}
+        src="${escapeHTML(image)}"
+        alt="${escapeHTML(alt || productName(product))}"
+        loading="lazy"
+        onerror="
+          this.style.display='none';
+          const fallback=this.nextElementSibling;
+          if(fallback) fallback.style.display='flex';
+        ">
+
+      <div class="image-placeholder"
+        style="display:none">
+        ${escapeHTML(productEmoji(product))}
+      </div>
+    `;
+  }
+
+  function renderOptionSelector(product) {
+    const options = getProductOptions(product);
+
+    if (!options.length) return "";
+
+    return `
+      <label class="product-option-label"
+        for="product-option-${escapeHTML(product.id)}">
+        ${escapeHTML(t("selectOption"))}
+      </label>
+
+      <select
+        id="product-option-${escapeHTML(product.id)}"
+        data-product-option="${escapeHTML(product.id)}"
+        aria-label="${escapeHTML(productName(product))}">
+
+        <option value="">${escapeHTML(t("selectOption"))}</option>
+
+        ${options.map(option => `
+          <option
+            value="${escapeHTML(option.key)}"
+            ${option.price === null ? "disabled" : ""}>
+            ${escapeHTML(option.label)}
+            ${option.price !== null
+              ? ` — ${escapeHTML(money(option.price))}`
+              : ""}
+          </option>
+        `).join("")}
+      </select>
+    `;
+  }
+
+  function renderMealSelector(product) {
+    if (!product.mealUpgrade) return "";
+
+    const upgradePrice = Number(product.meal_upgrade_price || 0);
+
+    return `
+      <label class="product-option-label"
+        for="meal-option-${escapeHTML(product.id)}">
+        ${escapeHTML(t("mealOnly"))}
+      </label>
+
+      <select
+        id="meal-option-${escapeHTML(product.id)}"
+        data-meal-select="${escapeHTML(product.id)}"
+        aria-label="${escapeHTML(productName(product))}">
+
+        <option value="single">
+          ${escapeHTML(t("mealOnly"))}
+        </option>
+
+        <option value="meal">
+          ${escapeHTML(t("meal"))}
+          (+${escapeHTML(money(upgradePrice))})
+        </option>
+      </select>
+
+      <small class="meal-upgrade-note">
+        ${escapeHTML(t("mealIncludes"))}
+      </small>
+    `;
   }
 
   function productCardHTML(product) {
-    const price = effectivePrice(product, false);
-    const canOrder = price !== null && product.is_available !== false;
-    const image = imageSource(product);
+    const options = getProductOptions(product);
+
+    const basePrice = getBasePrice(
+      product,
+      options.length ? options[0]?.key : ""
+    );
+
+    const canOrder =
+      product.is_available !== false &&
+      (
+        options.length
+          ? options.some(option => option.price !== null)
+          : basePrice !== null
+      );
+
     const name = productName(product);
     const description = productDescription(product);
-    const selectedQty = qtyOf(product.id, false) + qtyOf(product.id, true);
-    const mealOptions = product.mealUpgrade ? `
-      <label class="product-option-label" for="meal-option-${escapeHTML(product.id)}">${escapeHTML(t("mealOnly"))}</label>
-      <select id="meal-option-${escapeHTML(product.id)}" data-meal-select="${escapeHTML(product.id)}" aria-label="${escapeHTML(name)}">
-        <option value="single">${escapeHTML(t("mealOnly"))}</option>
-        <option value="meal">${escapeHTML(t("meal"))} (+${money(MEAL_UPGRADE_PRICE)})</option>
-      </select>
-      <small class="meal-upgrade-note">${escapeHTML(t("mealIncludes"))}</small>
-    ` : "";
+
+    const selectedQty = cart
+      .filter(row => String(row.id) === String(product.id))
+      .reduce((sum, row) => sum + row.qty, 0);
+
+    const displayedPrice = options.length
+      ? t("selectOption")
+      : basePrice !== null
+        ? money(basePrice)
+        : t("unconfirmed");
 
     return `
-      <article class="product-card" data-product-id="${escapeHTML(product.id)}">
+      <article class="product-card"
+        data-product-id="${escapeHTML(product.id)}">
+
         <div class="product-image-box">
-          ${image ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ""}
-          <div class="product-placeholder" ${image ? 'style="display:none"' : ""}>${escapeHTML(productEmoji(product))}</div>
+          ${imageHTML(product, "product-image", name)}
         </div>
+
         <div class="product-details">
           <h3 class="product-name">${escapeHTML(name)}</h3>
-          ${description ? `<p class="ghannam-db-description">${escapeHTML(description)}</p>` : ""}
+
+          ${description ? `
+            <p class="ghannam-db-description">
+              ${escapeHTML(description)}
+            </p>
+          ` : ""}
+
           <div class="product-price">
-            ${canOrder ? money(price) : `<span class="price-unconfirmed">${escapeHTML(t("unconfirmed"))}</span>`}
+            ${canOrder
+              ? escapeHTML(displayedPrice)
+              : `<span class="price-unconfirmed">${escapeHTML(t("unconfirmed"))}</span>`
+            }
           </div>
-          ${mealOptions}
+
+          ${renderOptionSelector(product)}
+          ${renderMealSelector(product)}
+
           <div class="product-actions">
-            <button type="button" class="add-to-cart-button" data-add="${escapeHTML(product.id)}" ${canOrder ? "" : `disabled title="${escapeHTML(t("pending"))}"`}>
+            <button
+              type="button"
+              class="add-to-cart-button"
+              data-add="${escapeHTML(product.id)}"
+              ${canOrder ? "" : `disabled title="${escapeHTML(t("pending"))}"`}>
               ${canOrder ? escapeHTML(t("add")) : escapeHTML(t("pending"))}
             </button>
-            ${selectedQty ? `<span class="product-quantity">${selectedQty} ${escapeHTML(t("inCart"))}</span>` : ""}
+
+            ${selectedQty ? `
+              <span class="product-quantity">
+                ${selectedQty} ${escapeHTML(t("inCart"))}
+              </span>
+            ` : ""}
           </div>
         </div>
       </article>
     `;
   }
 
-  function renderCategories(visibleCategories = getCategories()) {
+  /* =====================================================
+     الأقسام والتنقل بينها
+  ===================================================== */
+
+  function renderCategories(visibleCategories = categories) {
     if (!categoryNav) return;
-    categoryNav.innerHTML = visibleCategories.map(category => `
-      <button type="button"
-        class="category-pill ${activeCategory === category ? "active" : ""}"
-        data-category="${escapeHTML(category)}">
-        ${escapeHTML(categoryName(category))}
-      </button>
-    `).join("");
+
+    categoryNav.innerHTML = visibleCategories.map(category => {
+      const key = getCategoryKey(category);
+
+      return `
+        <button
+          type="button"
+          class="category-pill ${activeCategory === key ? "active" : ""}"
+          data-category="${escapeHTML(key)}"
+          aria-current="${activeCategory === key ? "true" : "false"}">
+
+          ${escapeHTML(categoryName(category.name))}
+        </button>
+      `;
+    }).join("");
   }
+
+  function observeMenuSections() {
+    if (categoryObserver) {
+      categoryObserver.disconnect();
+      categoryObserver = null;
+    }
+
+    if (!("IntersectionObserver" in window) || !menuElement) return;
+
+    const sections = $$(".menu-section", menuElement);
+
+    if (!sections.length) return;
+
+    categoryObserver = new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) =>
+          a.boundingClientRect.top - b.boundingClientRect.top
+        );
+
+      if (!visible.length) return;
+
+      const key = visible[0].target.dataset.categorySection;
+
+      if (key && activeCategory !== key) {
+        activeCategory = key;
+        renderCategories();
+      }
+    }, {
+      root: null,
+      rootMargin: "-140px 0px -60% 0px",
+      threshold: 0
+    });
+
+    sections.forEach(section => {
+      categoryObserver.observe(section);
+    });
+  }
+
+  function scrollToCategory(category) {
+    if (!category) return;
+
+    const section = document.getElementById(
+      getCategorySectionId(category)
+    );
+
+    if (!section) return;
+
+    activeCategory = getCategoryKey(category);
+    renderCategories();
+
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  /* =====================================================
+     عرض المنيو
+  ===================================================== */
 
   function renderMenu() {
     if (!menuElement) return;
-    const query = currentSearch.trim().toLocaleLowerCase();
-    const filtered = products.filter(product => {
-      const searchable = [
-        product.name, product.name_ar, product.name_en,
-        product.description, product.description_ar, product.description_en,
-        product.category, product.category_en
-      ].filter(Boolean).join(" ").toLocaleLowerCase();
-      const categoryMatch = !activeCategory || product.category === activeCategory;
-      return categoryMatch && (!query || searchable.includes(query));
-    });
 
-    if (!filtered.length) {
-      menuElement.innerHTML = `<p class="empty-message">${escapeHTML(t("noResults"))}</p>`;
-      renderCategories(activeCategory ? [activeCategory] : []);
+    if (menuLoading) {
+      menuElement.innerHTML = `
+        <p class="empty-message">${escapeHTML(t("loadingMenu"))}</p>
+      `;
+      renderCategories([]);
       return;
     }
 
-    const categories = getCategories().filter(category =>
-      filtered.some(product => product.category === category)
-    );
+    if (menuError) {
+      menuElement.innerHTML = `
+        <p class="empty-message">${escapeHTML(t("loadingError"))}</p>
+      `;
+      renderCategories([]);
+      return;
+    }
 
-    menuElement.innerHTML = categories.map(category => {
-      const rows = filtered.filter(product => product.category === category);
+    if (!products.length) {
+      menuElement.innerHTML = `
+        <p class="empty-message">${escapeHTML(t("noProducts"))}</p>
+      `;
+      renderCategories([]);
+      return;
+    }
+
+    const query = currentSearch.trim().toLocaleLowerCase();
+
+    // البحث فقط هو الذي يفلتر المنتجات.
+    // اختيار القسم لا يخفي بقية الأقسام.
+    const filteredProducts = products.filter(product => {
+      const searchable = [
+        product.name,
+        product.name_ar,
+        product.name_en,
+        product.description,
+        product.description_ar,
+        product.description_en,
+        product.category,
+        product.category_en
+      ].filter(Boolean).join(" ").toLocaleLowerCase();
+
+      return !query || searchable.includes(query);
+    });
+
+    if (!filteredProducts.length) {
+      menuElement.innerHTML = `
+        <p class="empty-message">${escapeHTML(t("noResults"))}</p>
+      `;
+
+      renderCategories();
+      return;
+    }
+
+    const visibleCategories = categories.filter(category => {
+      return filteredProducts.some(product => {
+        if (product.category_id) {
+          return String(product.category_id) === String(category.id);
+        }
+
+        return product.category === category.name;
+      });
+    });
+
+    menuElement.innerHTML = visibleCategories.map(category => {
+      const rows = filteredProducts.filter(product => {
+        if (product.category_id) {
+          return String(product.category_id) === String(category.id);
+        }
+
+        return product.category === category.name;
+      });
+
       return `
-        <section class="menu-section" id="fastfood-category-${escapeHTML(category.replace(/\s+/g, "-"))}">
-          <h2 class="section-title">${escapeHTML(categoryName(category))}</h2>
-          <div class="product-grid">${rows.map(productCardHTML).join("")}</div>
+        <section
+          class="menu-section"
+          id="${escapeHTML(getCategorySectionId(category))}"
+          data-category-section="${escapeHTML(getCategoryKey(category))}">
+
+          <h2 class="section-title">
+            ${escapeHTML(categoryName(category.name))}
+          </h2>
+
+          <div class="product-grid">
+            ${rows.map(productCardHTML).join("")}
+          </div>
         </section>
       `;
     }).join("");
 
-    renderCategories(categories);
+    // نبقي شريط الأقسام كاملاً ظاهراً.
+    renderCategories();
+
     updateProductView(getSavedProductView());
+    observeMenuSections();
   }
+
+  /* =====================================================
+     إضافات السلة — الصور من image_url في Supabase
+  ===================================================== */
 
   function renderAddons() {
     if (!addonsList) return;
-    const addonCategories = ["الإضافات", "الصوص", "المشروبات", "الفنكر", "المقبلات"];
-    const suggestions = products.filter(product =>
-      addonCategories.includes(product.category) &&
-      product.price != null &&
-      product.is_available !== false &&
-      !cart.some(row => String(row.id) === String(product.id))
-    );
+
+    const addonCategories = [
+      "الإضافات",
+      "الصوص",
+      "المشروبات",
+      "الفنكر",
+      "المقبلات"
+    ];
+
+    const suggestions = products.filter(product => {
+      const categoryMatches = addonCategories.includes(product.category);
+
+      return (
+        categoryMatches &&
+        getBasePrice(product) !== null &&
+        product.is_available !== false &&
+        !cart.some(row => String(row.id) === String(product.id))
+      );
+    });
 
     addonsList.innerHTML = suggestions.length ? `
       <div class="addons-grid">
         ${suggestions.map(product => `
           <div class="addon-card">
-            <strong>${escapeHTML(productName(product))}</strong>
-            <span>${money(product.price)}</span>
-            <button type="button" data-addon="${escapeHTML(product.id)}">${escapeHTML(t("addAddon"))}</button>
+
+            <div class="addon-image-box">
+              ${imageHTML(
+                product,
+                "addon-image",
+                productName(product)
+              )}
+            </div>
+
+            <div class="addon-card-info">
+              <strong>${escapeHTML(productName(product))}</strong>
+
+              <span>
+                ${escapeHTML(money(getBasePrice(product)))}
+              </span>
+
+              <button
+                type="button"
+                data-addon="${escapeHTML(product.id)}">
+                ${escapeHTML(t("addAddon"))}
+              </button>
+            </div>
+
           </div>
         `).join("")}
       </div>
-    ` : `<p class="addons-empty">${escapeHTML(t("noAddons"))}</p>`;
+    ` : `
+      <p class="addons-empty">${escapeHTML(t("noAddons"))}</p>
+    `;
   }
+
+  /* =====================================================
+     السلة — عرض صورة كل منتج من قاعدة البيانات
+  ===================================================== */
 
   function renderCart() {
     const count = totalQty();
     const sub = subtotal();
     const discount = discountAmount();
     const total = grandTotal();
-    const countText = `${count} ${count === 1 ? t("item") : t("items")}`;
+
+    const countText =
+      `${count} ${count === 1 ? t("item") : t("items")}`;
 
     setText("#cartCount", countText);
     setText("#fastfoodTotal", money(total));
     setText("#fixedCartCount", count);
-    setText("#fixedCartSubtitle", count ? `${countText} ${t("inCart")}` : t("empty"));
+
+    setText(
+      "#fixedCartSubtitle",
+      count ? `${countText} ${t("inCart")}` : t("empty")
+    );
+
     setText("#fixedCartTotal", money(total));
     setText("#popupSubtotal", money(sub));
     setText("#popupDiscount", money(discount));
@@ -542,47 +1374,150 @@ import {
     fixedCartBar?.classList.toggle("has-items", count > 0);
 
     if (popupItems) {
-      popupItems.innerHTML = cart.length ? cart.map(row => {
-        const product = getProduct(row.id);
-        if (!product) return "";
-        const key = escapeHTML(itemKey(row));
-        const name = productName(product) + (row.meal ? ` — ${t("mealText")}` : "");
-        return `
-          <div class="cart-item" data-cart-key="${key}">
-            <div class="cart-item-info">
-              <div class="cart-item-name">${escapeHTML(name)}</div>
-              <div class="cart-item-price">${money(rowPrice(row))} × ${row.qty}</div>
-              <div class="cart-item-subtotal">${escapeHTML(t("total"))}: ${money(rowPrice(row) * row.qty)}</div>
-            </div>
-            <div class="quantity-controls">
-              <button type="button" data-qty="${key}" data-delta="-1" aria-label="${escapeHTML(t("decrease"))}">−</button>
-              <strong>${row.qty}</strong>
-              <button type="button" data-qty="${key}" data-delta="1" aria-label="${escapeHTML(t("increase"))}">+</button>
-              <button type="button" data-remove="${key}" aria-label="${escapeHTML(t("remove"))}">×</button>
-            </div>
-          </div>
-        `;
-      }).join("") : `<p class="empty-message">${escapeHTML(t("empty"))}</p>`;
+      popupItems.innerHTML = cart.length
+        ? cart.map(row => {
+            const product = getProduct(row.id);
+
+            if (!product) return "";
+
+            const option = getSelectedOption(product, row.optionKey);
+
+            const nameParts = [
+              productName(product),
+              option ? option.label : "",
+              row.meal ? t("mealText") : ""
+            ].filter(Boolean);
+
+            const name = nameParts.join(" — ");
+            const key = escapeHTML(itemKey(row));
+
+            return `
+              <div class="cart-item" data-cart-key="${key}">
+
+                <div class="cart-item-image-box">
+                  ${imageHTML(
+                    product,
+                    "cart-item-image",
+                    productName(product)
+                  )}
+                </div>
+
+                <div class="cart-item-info">
+                  <div class="cart-item-name">
+                    ${escapeHTML(name)}
+                  </div>
+
+                  <div class="cart-item-price">
+                    ${escapeHTML(money(rowPrice(row)))} × ${row.qty}
+                  </div>
+
+                  <div class="cart-item-subtotal">
+                    ${escapeHTML(t("total"))}:
+                    ${escapeHTML(money(rowPrice(row) * row.qty))}
+                  </div>
+                </div>
+
+                <div class="quantity-controls">
+                  <button
+                    type="button"
+                    data-qty="${key}"
+                    data-delta="-1"
+                    aria-label="${escapeHTML(t("decrease"))}">−</button>
+
+                  <strong>${row.qty}</strong>
+
+                  <button
+                    type="button"
+                    data-qty="${key}"
+                    data-delta="1"
+                    aria-label="${escapeHTML(t("increase"))}">+</button>
+
+                  <button
+                    type="button"
+                    data-remove="${key}"
+                    aria-label="${escapeHTML(t("remove"))}">×</button>
+                </div>
+
+              </div>
+            `;
+          }).join("")
+        : `<p class="empty-message">${escapeHTML(t("empty"))}</p>`;
     }
 
     const legacyItems = $("#fastfoodCartItems");
+
     if (legacyItems) {
       legacyItems.innerHTML = cart.map(row => {
         const product = getProduct(row.id);
-        return product ? `<p>${escapeHTML(productName(product))}${row.meal ? ` — ${escapeHTML(t("mealLabel"))}` : ""} × ${row.qty}</p>` : "";
+
+        if (!product) return "";
+
+        const option = getSelectedOption(product, row.optionKey);
+
+        return `
+          <p>
+            ${escapeHTML(productName(product))}
+            ${option ? ` — ${escapeHTML(option.label)}` : ""}
+            ${row.meal ? ` — ${escapeHTML(t("mealLabel"))}` : ""}
+            × ${row.qty}
+          </p>
+        `;
       }).join("");
     }
 
+    // تحديث صور واقتراحات الإضافات عند كل تغيير في السلة.
     renderAddons();
   }
 
-  function addToCart(id, meal = false) {
+  /* =====================================================
+     إدارة عناصر السلة
+  ===================================================== */
+
+  function addToCart(id, meal = false, optionKey = "") {
     const product = getProduct(id);
-    if (!product || product.price == null || product.is_available === false) return;
+
+    if (!product || product.is_available === false) {
+      alert(t("unavailable"));
+      return;
+    }
+
+    const options = getProductOptions(product);
+
+    if (options.length && !optionKey) {
+      alert(t("chooseOption"));
+      return;
+    }
+
+    const selectedPrice = effectivePrice(
+      product,
+      meal,
+      optionKey
+    );
+
+    if (selectedPrice === null) {
+      alert(t("unconfirmed"));
+      return;
+    }
+
     const selectedMeal = Boolean(meal && product.mealUpgrade);
-    const row = cart.find(item => String(item.id) === String(id) && Boolean(item.meal) === selectedMeal);
-    if (row) row.qty = Math.min(99, row.qty + 1);
-    else cart.push({ id: product.id, qty: 1, meal: selectedMeal });
+
+    const row = cart.find(item =>
+      String(item.id) === String(id) &&
+      Boolean(item.meal) === selectedMeal &&
+      String(item.optionKey || "") === String(optionKey || "")
+    );
+
+    if (row) {
+      row.qty = Math.min(99, row.qty + 1);
+    } else {
+      cart.push({
+        id: product.id,
+        qty: 1,
+        meal: selectedMeal,
+        optionKey: String(optionKey || "")
+      });
+    }
+
     saveCart();
     renderMenu();
     renderCart();
@@ -591,11 +1526,23 @@ import {
 
   function changeQty(key, amount) {
     const parsed = parseItemKey(key);
-    const row = cart.find(item => String(item.id) === parsed.id && Boolean(item.meal) === parsed.meal);
+
+    const row = cart.find(item =>
+      String(item.id) === parsed.id &&
+      Boolean(item.meal) === parsed.meal &&
+      String(item.optionKey || "") === parsed.optionKey
+    );
+
     if (!row) return;
+
     row.qty += Number(amount) || 0;
-    if (row.qty <= 0) cart = cart.filter(item => item !== row);
-    else row.qty = Math.min(99, row.qty);
+
+    if (row.qty <= 0) {
+      cart = cart.filter(item => item !== row);
+    } else {
+      row.qty = Math.min(99, row.qty);
+    }
+
     saveCart();
     renderMenu();
     renderCart();
@@ -603,76 +1550,119 @@ import {
 
   function removeFromCart(key) {
     const parsed = parseItemKey(key);
-    cart = cart.filter(item => !(String(item.id) === parsed.id && Boolean(item.meal) === parsed.meal));
+
+    cart = cart.filter(item => !(
+      String(item.id) === parsed.id &&
+      Boolean(item.meal) === parsed.meal &&
+      String(item.optionKey || "") === parsed.optionKey
+    ));
+
     saveCart();
     renderMenu();
     renderCart();
   }
 
+  /* =====================================================
+     فتح وإغلاق السلة
+  ===================================================== */
+
   function openCart() {
     if (!cartOverlay) return;
+
     lastCartFocus = document.activeElement;
+
     cartOverlay.hidden = false;
     cartOverlay.setAttribute("aria-hidden", "false");
+
     document.body.classList.add("cart-modal-open");
+
     renderCart();
+
     $("#closeCartModal")?.focus();
   }
 
   function closeCart() {
     if (!cartOverlay || cartOverlay.hidden) return;
+
     cartOverlay.hidden = true;
     cartOverlay.setAttribute("aria-hidden", "true");
+
     document.body.classList.remove("cart-modal-open");
-    if (lastCartFocus?.isConnected) lastCartFocus.focus();
-    else fixedCartBar?.focus();
+
+    if (lastCartFocus?.isConnected) {
+      lastCartFocus.focus();
+    } else {
+      fixedCartBar?.focus();
+    }
   }
+
+  /* =====================================================
+     الكوبون
+  ===================================================== */
 
   function applyCoupon() {
     const code = (couponInput?.value || "").trim().toUpperCase();
+
     if (!code) {
       activeCoupon = false;
       safeStorageRemove(COUPON_KEY);
+
       if (couponStatus) {
         couponStatus.textContent = t("enterCoupon");
         couponStatus.className = "coupon-error";
       }
+
       renderCart();
       return;
     }
+
     if (code !== COUPON_CODE) {
       activeCoupon = false;
       safeStorageRemove(COUPON_KEY);
+
       if (couponStatus) {
         couponStatus.textContent = t("invalidCoupon");
         couponStatus.className = "coupon-error";
       }
+
       renderCart();
       return;
     }
+
     if (!cart.length) {
       if (couponStatus) {
         couponStatus.textContent = t("addFirst");
         couponStatus.className = "coupon-error";
       }
+
       return;
     }
+
     activeCoupon = true;
     safeStorageSet(COUPON_KEY, COUPON_CODE);
+
     if (couponStatus) {
       couponStatus.textContent = t("applied");
       couponStatus.className = "coupon-success";
     }
+
     renderCart();
   }
 
+  /* =====================================================
+     إرسال الطلب إلى واتساب
+  ===================================================== */
+
   function submitOrder(event) {
     event.preventDefault();
+
     const form = event.currentTarget;
+
     if (!cart.length) {
       setText("#popupOrderStatus", t("addBeforeOrder"));
       return;
     }
+
     if (form && !form.reportValidity()) return;
 
     const name = $("#popupCustomerName")?.value.trim() || "";
@@ -684,9 +1674,18 @@ import {
 
     const lines = cart.map(row => {
       const product = getProduct(row.id);
+
       if (!product) return "";
-      const title = productName(product) + (row.meal ? ` (${t("mealText")})` : "");
-      return `• ${title} × ${row.qty} = ${money(rowPrice(row) * row.qty)}`;
+
+      const option = getSelectedOption(product, row.optionKey);
+
+      const title = [
+        productName(product),
+        option ? option.label : "",
+        row.meal ? t("mealText") : ""
+      ].filter(Boolean).join(" — ");
+
+      return `• ${title} × ${row.qty} = ${money(rowPrice(row))} × ${row.qty}`;
     }).filter(Boolean);
 
     const message = [
@@ -708,81 +1707,237 @@ import {
     ].join("\n");
 
     setText("#popupOrderStatus", t("opening"));
-    const waNumber = WHATSAPP_NUMBERS[0].replace(/\D/g, "").replace(/^0/, "");
-    const url = `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
+
+    const waNumber = WHATSAPP_NUMBERS[0]
+      .replace(/\D/g, "")
+      .replace(/^0/, "");
+
+    const url =
+      `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
+
     const opened = window.open(url, "_blank");
-    if (!opened) setText("#popupOrderStatus", t("whatsappError"));
+
+    if (!opened) {
+      setText("#popupOrderStatus", t("whatsappError"));
+    }
   }
 
+  /* =====================================================
+     تحميل المنيو من Supabase فقط
+  ===================================================== */
+
   async function refreshMenuFromDatabase() {
+    menuLoading = true;
+    menuError = "";
+
+    renderMenu();
+
     try {
-      const result = await loadBranchMenu("fastfood", currentLanguage);
-      const dbCategories = result?.categories || [];
-      const dbProducts = result?.products || [];
-      if (!dbProducts.length) {
-        console.warn("Supabase لم يرجع منتجات؛ ستبقى القائمة المحلية ظاهرة.");
-        return;
-      }
+      const result = await loadBranchMenu(
+        BRANCH_ID,
+        currentLanguage
+      );
+
+      const dbCategories = Array.isArray(result?.categories)
+        ? result.categories
+        : [];
+
+      const dbProducts = Array.isArray(result?.products)
+        ? result.products
+        : [];
 
       categoryEnglish = new Map();
-      dbCategories.forEach(category => {
-        const ar = category.name_ar || category.name || "";
-        const en = category.name_en || "";
-        if (ar && en) categoryEnglish.set(ar, en);
-      });
 
-      const mapped = dbProducts.map(row => {
-        const sourceId = row.extra?.source_product_id ?? row.id;
-        const local = products.find(item => String(item.id) === String(sourceId));
-        const price = row.extra?.requires_price_confirmation
-          ? null
-          : (row.price === null || row.price === "" ? null : Number(row.price));
+      categories = dbCategories
+        .filter(category => category.is_active !== false)
+        .map(category => {
+          const name = category.name_ar || category.name || "";
+          const nameEn = category.name_en || "";
 
-        return {
-          ...(local || {}),
-          id: sourceId,
-          dbId: row.id,
-          name: row.name_ar || row.name || local?.name || "",
-          name_ar: row.name_ar || row.name || local?.name || "",
-          name_en: row.name_en || "",
-          description: row.description_ar || row.description || "",
-          description_ar: row.description_ar || row.description || "",
-          description_en: row.description_en || "",
-          price: Number.isFinite(price) ? price : null,
-          category: row.category_name_ar || row.category_name || local?.category || "",
-          category_en: row.category_name_en || "",
-          image: getStoredImageName(row) || local?.image || "",
-          image_url: row.image_url || "",
-          emoji: row.extra?.emoji || local?.emoji || "🍽️",
-          mealUpgrade: typeof row.extra?.mealUpgrade === "boolean"
-            ? row.extra.mealUpgrade
-            : Boolean(local?.mealUpgrade),
-          is_available: row.is_available !== false
-        };
-      });
+          if (name && nameEn) {
+            categoryEnglish.set(name, nameEn);
+          }
 
-      products.splice(0, products.length, ...mapped);
+          return {
+            id: category.id,
+            name,
+            name_en: nameEn,
+            slug: category.slug || "",
+            sort_order: Number(category.sort_order || 0)
+          };
+        })
+        .filter(category => category.name)
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+      const mappedProducts = dbProducts
+        .filter(row => row.is_available !== false)
+        .map(row => {
+          const extra =
+            row.extra &&
+            typeof row.extra === "object" &&
+            !Array.isArray(row.extra)
+              ? row.extra
+              : {};
+
+          const rawPrice =
+            row.price === null ||
+            row.price === undefined ||
+            row.price === ""
+              ? null
+              : Number(row.price);
+
+          const requiresConfirmation =
+            extra.requires_price_confirmation === true;
+
+          const validPrice =
+            !requiresConfirmation &&
+            rawPrice !== null &&
+            Number.isFinite(rawPrice) &&
+            rawPrice >= 0
+              ? rawPrice
+              : null;
+
+          const categoryAr =
+            row.category_name_ar ||
+            row.category_name ||
+            "";
+
+          const categoryEn =
+            row.category_name_en ||
+            "";
+
+          if (categoryAr && categoryEn) {
+            categoryEnglish.set(categoryAr, categoryEn);
+          }
+
+          const options =
+            extra.options &&
+            typeof extra.options === "object" &&
+            !Array.isArray(extra.options)
+              ? extra.options
+              : null;
+
+          const mealUpgrade = extra.mealUpgrade === true;
+
+          const mealUpgradePrice =
+            Number(extra.meal_upgrade_price);
+
+          return {
+            id: row.id,
+            dbId: row.id,
+
+            name: row.name_ar || row.name || "",
+            name_ar: row.name_ar || row.name || "",
+            name_en: row.name_en || "",
+
+            description:
+              row.description_ar || row.description || "",
+
+            description_ar:
+              row.description_ar || row.description || "",
+
+            description_en:
+              row.description_en || "",
+
+            price: validPrice,
+
+            requires_price_confirmation: requiresConfirmation,
+
+            category: categoryAr,
+            category_en: categoryEn,
+            category_id: row.category_id || "",
+
+            // الصور من رابط Supabase فقط.
+            image_url: row.image_url || "",
+
+            emoji: extra.emoji || "🍽️",
+
+            options,
+            mealUpgrade,
+
+            meal_upgrade_price:
+              Number.isFinite(mealUpgradePrice) &&
+              mealUpgradePrice >= 0
+                ? mealUpgradePrice
+                : 0,
+
+            is_available: row.is_available !== false,
+            sort_order: Number(row.sort_order || 0),
+
+            extra
+          };
+        })
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+      products = mappedProducts;
+
+      // إعادة بناء السلة بالأسعار الحالية القادمة من قاعدة البيانات.
       cart = loadCart();
       saveCart();
-      if (activeCategory && !products.some(product => product.category === activeCategory)) {
+
+      if (
+        activeCategory &&
+        !categories.some(category =>
+          getCategoryKey(category) === activeCategory
+        )
+      ) {
         activeCategory = "";
       }
+
+      menuLoading = false;
+      menuError = "";
+
       renderMenu();
       renderCart();
-      console.info(`تم تحميل ${mapped.length} منتجاً من Supabase باللغة ${currentLanguage}.`);
+
+      console.info(
+        `تم تحميل ${products.length} منتجاً و${categories.length} تصنيفاً من Supabase.`
+      );
+
+      if (!products.length) {
+        console.warn("لا توجد منتجات متاحة لهذا الفرع في Supabase.");
+      }
+
+      return true;
+
     } catch (error) {
-      console.error("تعذر تحميل قائمة Supabase؛ ستبقى القائمة المحلية:", error);
+      products = [];
+      categories = [];
+      categoryEnglish.clear();
+
+      // لا نستخدم قائمة محلية احتياطية عند تعذر قاعدة البيانات.
+      cart = [];
+
+      menuLoading = false;
+      menuError = "database";
+
+      renderCategories([]);
+      renderMenu();
+      renderCart();
+
+      console.error("فشل تحميل منيو Supabase:", error);
+
+      return false;
     }
   }
 
   async function setLanguage(language) {
     currentLanguage = language === "en" ? "en" : "ar";
+
     safeStorageSet(LANGUAGE_KEY, currentLanguage);
+
     applyStaticTranslations();
+
+    // تغيير اللغة يعيد تحميل المنيو فقط.
+    // العروض تبقى محملة، ويتغير عنوان القسم.
     await refreshMenuFromDatabase();
-    renderMenu();
-    renderCart();
+
+    updateOffersHeading();
   }
+
+  /* =====================================================
+     الأحداث
+  ===================================================== */
 
   $("#languageToggle")?.addEventListener("click", () => {
     void setLanguage(currentLanguage === "ar" ? "en" : "ar");
@@ -790,38 +1945,80 @@ import {
 
   document.addEventListener("click", event => {
     const target = event.target;
+
     if (!(target instanceof Element)) return;
 
     const add = target.closest("[data-add]");
+
     if (add) {
       const id = add.dataset.add;
-      const selector = add.closest(".product-card")?.querySelector("[data-meal-select]");
-      addToCart(id, selector?.value === "meal");
+      const card = add.closest(".product-card");
+
+      const mealSelector =
+        card?.querySelector("[data-meal-select]");
+
+      const optionSelector =
+        card?.querySelector("[data-product-option]");
+
+      addToCart(
+        id,
+        mealSelector?.value === "meal",
+        optionSelector?.value || ""
+      );
+
       return;
     }
 
     const addon = target.closest("[data-addon]");
+
     if (addon) {
-      addToCart(addon.dataset.addon, false);
+      addToCart(addon.dataset.addon, false, "");
       return;
     }
 
     const qty = target.closest("[data-qty]");
+
     if (qty) {
-      changeQty(qty.dataset.qty, Number(qty.dataset.delta ?? qty.dataset.change));
+      changeQty(
+        qty.dataset.qty,
+        Number(qty.dataset.delta ?? qty.dataset.change)
+      );
+
       return;
     }
 
     const remove = target.closest("[data-remove]");
+
     if (remove) {
       removeFromCart(remove.dataset.remove);
       return;
     }
 
-    const category = target.closest("[data-category]");
-    if (category) {
-      activeCategory = category.dataset.category === activeCategory ? "" : category.dataset.category;
-      renderMenu();
+    // الضغط على القسم ينقل إلى مكانه دون إخفاء بقية المنيو.
+    const categoryButton = target.closest("[data-category]");
+
+    if (categoryButton) {
+      const categoryKey = categoryButton.dataset.category;
+
+      const selectedCategory = categories.find(category =>
+        getCategoryKey(category) === categoryKey
+      );
+
+      if (!selectedCategory) return;
+
+      // إذا كان البحث فعالاً، نلغيه حتى يظهر القسم المطلوب.
+      if (currentSearch) {
+        currentSearch = "";
+
+        if (searchInput) {
+          searchInput.value = "";
+        }
+
+        renderMenu();
+      }
+
+      scrollToCategory(selectedCategory);
+      return;
     }
   });
 
@@ -831,51 +2028,89 @@ import {
   });
 
   viewToggleButton?.addEventListener("click", () => {
-    updateProductView(getSavedProductView() === "grid" ? "list" : "grid");
+    updateProductView(
+      getSavedProductView() === "grid" ? "list" : "grid"
+    );
   });
 
   fixedCartBar?.addEventListener("click", openCart);
+
   $("#closeCartModal")?.addEventListener("click", closeCart);
+
   $("#continueShoppingButton")?.addEventListener("click", closeCart);
+
   cartOverlay?.addEventListener("click", event => {
-    if (event.target === cartOverlay) closeCart();
+    if (event.target === cartOverlay) {
+      closeCart();
+    }
   });
+
   $("#applyCouponButton")?.addEventListener("click", applyCoupon);
+
   couponInput?.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
       applyCoupon();
     }
   });
-  $("#popupOrderForm")?.addEventListener("submit", submitOrder);
-  $("#fastfoodOrderForm")?.addEventListener("submit", event => event.preventDefault());
 
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && cartOverlay && !cartOverlay.hidden) closeCart();
+  $("#popupOrderForm")?.addEventListener("submit", submitOrder);
+
+  $("#fastfoodOrderForm")?.addEventListener("submit", event => {
+    event.preventDefault();
   });
 
+  document.addEventListener("keydown", event => {
+    if (
+      event.key === "Escape" &&
+      cartOverlay &&
+      !cartOverlay.hidden
+    ) {
+      closeCart();
+    }
+  });
+
+  /* =====================================================
+     بدء الصفحة
+  ===================================================== */
+
   async function initialize() {
-    cart = loadCart();
+    cart = [];
+
     applyStaticTranslations();
+
     updateProductView(getSavedProductView());
+
     ensureMenuDescriptionStyle();
-    renderCategories();
+
+    menuLoading = true;
+
+    renderCategories([]);
     renderMenu();
     renderCart();
 
+    // إخفاء قسم العروض إلى أن تصل البيانات.
+    if (offersSection) {
+      offersSection.hidden = true;
+    }
+
     if (activeCoupon && couponInput) {
       couponInput.value = COUPON_CODE;
+
       if (couponStatus) {
         couponStatus.textContent = t("savedCoupon");
         couponStatus.className = "coupon-success";
       }
     }
 
-    await refreshMenuFromDatabase();
-    renderCategories();
-    renderMenu();
-    renderCart();
+    // تحميل المنيو والعروض بشكل مستقل.
+    // فشل أحدهما لا يمنع الآخر من العمل.
+    await Promise.allSettled([
+      refreshMenuFromDatabase(),
+      refreshOffersFromDatabase()
+    ]);
   }
 
   void initialize();
+
 })();

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /* =========================================================
    مطعم الغنّام — إدارة المستخدمين
+   Supabase Edge Function: manage-users
 
    الأدوار:
    server_owner : مالك السيرفر
@@ -19,13 +20,19 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// هويات مالكي السيرفر
+/* =========================================================
+   حسابات مالكي السيرفر
+========================================================= */
+
 const SERVER_OWNER_IDS = new Set([
-  "1488410c-39a5-417b-92f6-c68ee55c886d",
   "489c60eb-5ae5-4611-96d6-b1d911e2686c",
+  "1488410c-39a5-417b-92f6-c68ee55c886d",
 ]);
 
-// الصلاحيات المتاحة للمدير
+/* =========================================================
+   الصلاحيات المتاحة للمدير
+========================================================= */
+
 const permissionKeys = [
   "can_manage_menu",
   "can_manage_prices",
@@ -33,17 +40,23 @@ const permissionKeys = [
   "can_manage_orders",
   "can_manage_conversations",
   "can_manage_offers",
-  "can_manage_coupons",
   "can_manage_branch_staff",
   "can_delete_staff",
 ] as const;
 
-type UserRole =
-  | "server_owner"
-  | "owner"
-  | "manager"
-  | "staff"
-  | "customer";
+/* =========================================================
+   أنواع البيانات
+========================================================= */
+
+type CallerProfile = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: string;
+  branch_id: string | null;
+};
+
+type ApiKeyDictionary = Record<string, string>;
 
 /* =========================================================
    أدوات مساعدة
@@ -80,37 +93,118 @@ function defaultPermissions(userId: string) {
   return permissions;
 }
 
-function isAllowedRole(
-  role: unknown,
-): role is Exclude<UserRole, "server_owner"> {
-  return (
-    typeof role === "string" &&
-    ["owner", "manager", "staff", "customer"].includes(role)
-  );
-}
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
 
-function isProtectedServerOwner(
-  userId: string,
-  role?: string | null,
-) {
-  return (
-    SERVER_OWNER_IDS.has(userId) ||
-    role === "server_owner"
-  );
-}
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error
+  ) {
+    return String(error.message);
+  }
 
-function errorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "حدث خطأ غير متوقع.";
+  if (typeof error === "string") {
+    return error;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "تعذر تحديد تفاصيل الخطأ.";
+  }
 }
 
 /* =========================================================
-   تشغيل Edge Function
+   قراءة مفاتيح Supabase
+
+   المفاتيح الجديدة:
+   SUPABASE_SECRET_KEYS
+   SUPABASE_PUBLISHABLE_KEYS
+
+   هذه المتغيرات تحتوي JSON Dictionary،
+   وليست مفتاح API نصياً مباشراً.
+
+   ندعم أيضاً المفاتيح القديمة عند الحاجة.
+========================================================= */
+
+function getApiKeyFromDictionary(
+  envName: string,
+): string | null {
+  const rawValue = Deno.env.get(envName);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as ApiKeyDictionary;
+
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ) {
+      // المفتاح الافتراضي إن وجد
+      if (
+        typeof parsed.default === "string" &&
+        parsed.default.trim()
+      ) {
+        return parsed.default.trim();
+      }
+
+      // إذا لم يوجد default نبحث عن أول مفتاح صالح
+      const firstValidKey = Object.values(parsed).find(
+        (value) =>
+          typeof value === "string" &&
+          value.trim().length > 0,
+      );
+
+      if (firstValidKey) {
+        return firstValidKey.trim();
+      }
+    }
+  } catch {
+    // قد تكون القيمة مفتاحاً مباشراً وليس JSON
+    const trimmed = rawValue.trim();
+
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
+function getSupabaseKeys() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+
+  // المفتاح العام الجديد
+  const publishableKey =
+    getApiKeyFromDictionary("SUPABASE_PUBLISHABLE_KEYS") ||
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ||
+    Deno.env.get("SUPABASE_ANON_KEY");
+
+  // المفتاح السري الجديد
+  const secretKey =
+    getApiKeyFromDictionary("SUPABASE_SECRET_KEYS") ||
+    Deno.env.get("SUPABASE_SECRET_KEY") ||
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  return {
+    supabaseUrl,
+    publishableKey,
+    secretKey,
+  };
+}
+
+/* =========================================================
+   تشغيل الدالة
 ========================================================= */
 
 Deno.serve(async (req) => {
-  // CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders,
@@ -126,55 +220,50 @@ Deno.serve(async (req) => {
 
   try {
     /* =====================================================
-       1. إعداد Supabase
+       01 — إعدادات Supabase
     ===================================================== */
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const {
+      supabaseUrl,
+      publishableKey,
+      secretKey,
+    } = getSupabaseKeys();
 
-    if (!supabaseUrl || !anonKey || !serviceKey) {
-      console.error("SUPABASE_ENVIRONMENT_ERROR", {
-        hasUrl: !!supabaseUrl,
-        hasAnonKey: !!anonKey,
-        hasServiceKey: !!serviceKey,
+    if (!supabaseUrl || !publishableKey || !secretKey) {
+      console.error("Missing Supabase configuration:", {
+        hasUrl: Boolean(supabaseUrl),
+        hasPublishableKey: Boolean(publishableKey),
+        hasSecretKey: Boolean(secretKey),
       });
 
       return response(
         {
-          error: "إعدادات Supabase السرية غير مكتملة.",
+          error:
+            "إعدادات Supabase غير مكتملة. تحقق من إعدادات مفاتيح المشروع.",
         },
         500,
       );
     }
 
     /* =====================================================
-       2. التحقق من جلسة المستخدم
+       02 — التحقق من جلسة المستخدم
     ===================================================== */
 
-    const authHeader = req.headers.get("Authorization");
+    const authHeader =
+      req.headers.get("Authorization");
 
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("AUTHORIZATION_HEADER_MISSING");
-
       return response(
-        { error: "غير مصرح. يرجى تسجيل الدخول مجدداً." },
+        { error: "غير مصرح." },
         401,
       );
     }
 
-    const token = authHeader.slice(7).trim();
-
-    if (!token) {
-      return response(
-        { error: "رمز جلسة الدخول فارغ." },
-        401,
-      );
-    }
+    const token = authHeader.slice(7);
 
     const authClient = createClient(
       supabaseUrl,
-      anonKey,
+      publishableKey,
       {
         global: {
           headers: {
@@ -194,13 +283,13 @@ Deno.serve(async (req) => {
     } = await authClient.auth.getUser();
 
     if (authError || !authData.user) {
-      console.error("AUTHENTICATION_ERROR:", {
-        message: authError?.message,
-        status: authError?.status,
-      });
+      console.error(
+        "Authentication error:",
+        authError,
+      );
 
       return response(
-        { error: "جلسة الدخول غير صالحة. سجّل الدخول مجدداً." },
+        { error: "جلسة الدخول غير صالحة." },
         401,
       );
     }
@@ -208,12 +297,12 @@ Deno.serve(async (req) => {
     const callerId = authData.user.id;
 
     /* =====================================================
-       3. إنشاء عميل الإدارة
+       03 — إنشاء عميل الإدارة
     ===================================================== */
 
     const admin = createClient(
       supabaseUrl,
-      serviceKey,
+      secretKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -223,67 +312,67 @@ Deno.serve(async (req) => {
     );
 
     /* =====================================================
-       4. قراءة حساب المستخدم من profiles
-
-       نفرّق بين:
-       - خطأ في الاستعلام.
-       - عدم وجود سجل للحساب.
-    ===================================================== */
-
-    const {
-      data: caller,
-      error: callerError,
-    } = await admin
-      .from("profiles")
-      .select("id,email,full_name,role,branch_id")
-      .eq("id", callerId)
-      .maybeSingle();
-
-    if (callerError) {
-      console.error("CALLER_PROFILE_ERROR:", {
-        message: callerError.message,
-        code: callerError.code,
-        details: callerError.details,
-        hint: callerError.hint,
-        callerId,
-      });
-
-      return response(
-        {
-          error: "حدث خطأ أثناء قراءة صلاحيات الحساب.",
-          details: callerError.message,
-          code: callerError.code,
-        },
-        500,
-      );
-    }
-
-    if (!caller) {
-      console.error("CALLER_PROFILE_NOT_FOUND:", {
-        callerId,
-        email: authData.user.email,
-      });
-
-      return response(
-        {
-          error: "الحساب غير موجود في جدول profiles.",
-          callerId,
-        },
-        403,
-      );
-    }
-
-    /* =====================================================
-       5. تحديد الصلاحيات الأساسية
+       04 — التحقق من مالك السيرفر أولاً
     ===================================================== */
 
     const isServerOwner =
-      SERVER_OWNER_IDS.has(callerId) ||
-      caller.role === "server_owner";
+      SERVER_OWNER_IDS.has(callerId);
+
+    let caller: CallerProfile;
+
+    if (isServerOwner) {
+      caller = {
+        id: callerId,
+        email: authData.user.email ?? null,
+        full_name:
+          authData.user.user_metadata?.full_name ??
+          authData.user.user_metadata?.display_name ??
+          "Server Owner",
+        role: "server_owner",
+        branch_id: null,
+      };
+    } else {
+      const {
+        data: profile,
+        error: profileError,
+      } = await admin
+        .from("profiles")
+        .select("id,email,full_name,role,branch_id")
+        .eq("id", callerId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error(
+          "Profile lookup error:",
+          profileError,
+        );
+
+        throw new Error(
+          `خطأ قراءة profiles: ${profileError.message}`,
+        );
+      }
+
+      if (!profile) {
+        return response(
+          {
+            error:
+              "الحساب غير موجود في جدول profiles.",
+          },
+          403,
+        );
+      }
+
+      caller = profile as CallerProfile;
+    }
+
+    /* =====================================================
+       05 — تحديد صلاحيات المستدعي
+    ===================================================== */
 
     const isOwner =
       isServerOwner ||
-      caller.role === "owner";
+      caller.role === "owner" ||
+      caller.role === "server_owner";
 
     const isManager =
       caller.role === "manager";
@@ -291,33 +380,42 @@ Deno.serve(async (req) => {
     if (!isOwner && !isManager) {
       return response(
         {
-          error: "ليس لديك صلاحية إدارة المستخدمين.",
-          role: caller.role,
+          error:
+            "ليس لديك صلاحية إدارة المستخدمين.",
         },
         403,
       );
     }
 
     /* =====================================================
-       6. قراءة صلاحيات المدير
+       06 — جلب صلاحيات المدير عند الحاجة
     ===================================================== */
 
-    const {
-      data: ownPermissions,
-      error: ownPermissionsError,
-    } = await admin
-      .from("manager_permissions")
-      .select("*")
-      .eq("user_id", callerId)
-      .maybeSingle();
+    let ownPermissions: Record<string, any> | null =
+      null;
 
-    if (ownPermissionsError) {
-      console.error("MANAGER_PERMISSIONS_ERROR:", {
-        message: ownPermissionsError.message,
-        code: ownPermissionsError.code,
-      });
+    if (isManager) {
+      const {
+        data: permissions,
+        error: permissionsError,
+      } = await admin
+        .from("manager_permissions")
+        .select("*")
+        .eq("user_id", callerId)
+        .maybeSingle();
 
-      throw ownPermissionsError;
+      if (permissionsError) {
+        console.error(
+          "Manager permissions error:",
+          permissionsError,
+        );
+
+        throw new Error(
+          `خطأ قراءة manager_permissions: ${permissionsError.message}`,
+        );
+      }
+
+      ownPermissions = permissions;
     }
 
     const canManageBranchStaff =
@@ -328,12 +426,8 @@ Deno.serve(async (req) => {
       isManager &&
       ownPermissions?.can_delete_staff === true;
 
-    const canManageCoupons =
-      isManager &&
-      ownPermissions?.can_manage_coupons === true;
-
     /* =====================================================
-       7. قراءة الطلب
+       07 — قراءة بيانات الطلب
     ===================================================== */
 
     let body: Record<string, any>;
@@ -350,109 +444,15 @@ Deno.serve(async (req) => {
     const action = body.action;
 
     /* =====================================================
-       8. تغيير كلمة مرور مستخدم
-    ===================================================== */
-
-    if (action === "change_password") {
-      if (!isOwner) {
-        return response(
-          { error: "ليس لديك صلاحية تغيير كلمات المرور." },
-          403,
-        );
-      }
-
-      const { userId, password } = body;
-
-      if (!validUUID(userId)) {
-        return response(
-          { error: "معرّف المستخدم غير صحيح." },
-          400,
-        );
-      }
-
-      if (
-        typeof password !== "string" ||
-        password.length < 8
-      ) {
-        return response(
-          { error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل." },
-          400,
-        );
-      }
-
-      if (userId === callerId) {
-        return response(
-          {
-            error: "لا يمكنك تغيير كلمة مرور حسابك من شاشة إدارة المستخدمين.",
-          },
-          403,
-        );
-      }
-
-      const {
-        data: target,
-        error: targetError,
-      } = await admin
-        .from("profiles")
-        .select("id,role")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (targetError) throw targetError;
-
-      if (!target) {
-        return response(
-          { error: "المستخدم غير موجود." },
-          404,
-        );
-      }
-
-      if (isProtectedServerOwner(userId, target.role)) {
-        return response(
-          { error: "لا يمكن تغيير كلمة مرور مالك السيرفر." },
-          403,
-        );
-      }
-
-      if (
-        !isServerOwner &&
-        !["manager", "staff", "customer"].includes(target.role)
-      ) {
-        return response(
-          { error: "لا تملك صلاحية تغيير كلمة مرور هذا الحساب." },
-          403,
-        );
-      }
-
-      const {
-        error: passwordError,
-      } = await admin.auth.admin.updateUserById(
-        userId,
-        { password },
-      );
-
-      if (passwordError) {
-        console.error("PASSWORD_UPDATE_ERROR:", passwordError);
-
-        return response(
-          { error: "تعذر تحديث كلمة مرور الحساب." },
-          400,
-        );
-      }
-
-      return response({
-        success: true,
-        message: "تم تغيير كلمة مرور الحساب بنجاح.",
-      });
-    }
-
-    /* =====================================================
-       9. عرض المستخدمين
+       08 — عرض المستخدمين
     ===================================================== */
 
     if (action === "list") {
       if (isOwner) {
-        let usersQuery = admin
+        const {
+          data: users,
+          error: usersError,
+        } = await admin
           .from("profiles")
           .select(
             "id,email,full_name,role,branch_id,created_at,updated_at",
@@ -461,59 +461,34 @@ Deno.serve(async (req) => {
             ascending: false,
           });
 
-        // صاحب المطعم لا يرى أصحاب المطاعم ولا مالكي السيرفر.
-        if (!isServerOwner) {
-          usersQuery = usersQuery
-            .neq("role", "owner")
-            .neq("role", "server_owner")
-            .not(
-              "id",
-              "in",
-              `(${Array.from(SERVER_OWNER_IDS).join(",")})`,
-            );
-        }
+        if (usersError) {
+          console.error(
+            "Users list error:",
+            usersError,
+          );
 
-        const {
-          data: users,
-          error: usersError,
-        } = await usersQuery;
-
-        if (usersError) throw usersError;
-
-        let permissionsQuery = admin
-          .from("manager_permissions")
-          .select("*");
-
-        if (!isServerOwner) {
-          const visibleManagerIds = (users ?? [])
-            .filter((user) => user.role === "manager")
-            .map((user) => user.id);
-
-          if (visibleManagerIds.length === 0) {
-            return response({
-              users: users ?? [],
-              permissions: [],
-              ownPermissions: null,
-              isOwner: true,
-              isServerOwner: false,
-              canManageBranchStaff: true,
-              canDeleteStaff: true,
-              canManageCoupons: true,
-            });
-          }
-
-          permissionsQuery = permissionsQuery.in(
-            "user_id",
-            visibleManagerIds,
+          throw new Error(
+            `خطأ قراءة قائمة المستخدمين: ${usersError.message}`,
           );
         }
 
         const {
           data: permissions,
           error: permissionsError,
-        } = await permissionsQuery;
+        } = await admin
+          .from("manager_permissions")
+          .select("*");
 
-        if (permissionsError) throw permissionsError;
+        if (permissionsError) {
+          console.error(
+            "Permissions list error:",
+            permissionsError,
+          );
+
+          throw new Error(
+            `خطأ قراءة صلاحيات المستخدمين: ${permissionsError.message}`,
+          );
+        }
 
         return response({
           users: users ?? [],
@@ -523,12 +498,10 @@ Deno.serve(async (req) => {
           isServerOwner,
           canManageBranchStaff: true,
           canDeleteStaff: true,
-          canManageCoupons: true,
         });
       }
 
-      // المدير يرى موظفي فرعه فقط.
-      if (!canManageBranchStaff || !caller.branch_id) {
+      if (!canManageBranchStaff) {
         return response({
           users: [],
           permissions: [],
@@ -537,8 +510,8 @@ Deno.serve(async (req) => {
           isServerOwner: false,
           canManageBranchStaff: false,
           canDeleteStaff,
-          canManageCoupons,
-          warning: "لم تمنحك الإدارة صلاحية مشاهدة موظفي الفرع.",
+          warning:
+            "لم يمنحك المالك صلاحية مشاهدة الموظفين.",
         });
       }
 
@@ -556,7 +529,16 @@ Deno.serve(async (req) => {
           ascending: false,
         });
 
-      if (usersError) throw usersError;
+      if (usersError) {
+        console.error(
+          "Staff list error:",
+          usersError,
+        );
+
+        throw new Error(
+          `خطأ قراءة قائمة الموظفين: ${usersError.message}`,
+        );
+      }
 
       return response({
         users: users ?? [],
@@ -566,18 +548,20 @@ Deno.serve(async (req) => {
         isServerOwner: false,
         canManageBranchStaff: true,
         canDeleteStaff,
-        canManageCoupons,
       });
     }
 
     /* =====================================================
-       10. إنشاء مستخدم
+       09 — إنشاء مستخدم أو مدير أو صاحب مطعم أو زبون
     ===================================================== */
 
     if (action === "create") {
       if (!isOwner) {
         return response(
-          { error: "ليس لديك صلاحية إنشاء الحسابات." },
+          {
+            error:
+              "ليس لديك صلاحية إنشاء الحسابات.",
+          },
           403,
         );
       }
@@ -596,57 +580,57 @@ Deno.serve(async (req) => {
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       ) {
         return response(
-          { error: "يرجى إدخال بريد إلكتروني صحيح." },
+          {
+            error:
+              "يرجى إدخال بريد إلكتروني صحيح.",
+          },
           400,
         );
       }
 
       if (password.length < 8) {
         return response(
-          { error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل." },
+          {
+            error:
+              "كلمة المرور يجب أن تكون 8 أحرف على الأقل.",
+          },
           400,
         );
       }
 
       if (!name) {
         return response(
-          { error: "يرجى إدخال اسم المستخدم." },
+          {
+            error:
+              "يرجى إدخال اسم المستخدم.",
+          },
           400,
         );
       }
 
-      if (!isAllowedRole(role)) {
-        return response(
-          { error: "الرتبة المطلوبة غير مسموحة." },
-          400,
-        );
-      }
-
-      // إنشاء المديرين وأصحاب المطاعم لمالك السيرفر فقط.
       if (
-        ["manager", "owner"].includes(role) &&
-        !isServerOwner
+        !["staff", "manager", "owner", "customer"].includes(
+          role,
+        )
       ) {
         return response(
           {
-            error: role === "manager"
-              ? "إنشاء حسابات المدراء من صلاحية مالك السيرفر فقط."
-              : "إنشاء أصحاب المطاعم من صلاحية مالك السيرفر فقط.",
+            error:
+              "الرتبة المطلوبة غير مسموحة.",
           },
-          403,
+          400,
         );
       }
 
       let finalBranchId: string | null = null;
 
-      if (
-        role === "staff" ||
-        role === "manager" ||
-        branchId
-      ) {
+      if (role === "staff" || role === "manager") {
         if (!branchId) {
           return response(
-            { error: "يرجى اختيار فرع المستخدم." },
+            {
+              error:
+                "يرجى اختيار فرع المستخدم.",
+            },
             400,
           );
         }
@@ -660,11 +644,45 @@ Deno.serve(async (req) => {
           .eq("id", branchId)
           .maybeSingle();
 
-        if (branchError) throw branchError;
+        if (branchError) {
+          throw new Error(
+            `خطأ التحقق من الفرع: ${branchError.message}`,
+          );
+        }
 
         if (!branch) {
           return response(
-            { error: "الفرع المحدد غير موجود." },
+            {
+              error:
+                "الفرع المحدد غير موجود.",
+            },
+            400,
+          );
+        }
+
+        finalBranchId = branchId;
+      } else if (branchId) {
+        const {
+          data: branch,
+          error: branchError,
+        } = await admin
+          .from("branches")
+          .select("id")
+          .eq("id", branchId)
+          .maybeSingle();
+
+        if (branchError) {
+          throw new Error(
+            `خطأ التحقق من الفرع: ${branchError.message}`,
+          );
+        }
+
+        if (!branch) {
+          return response(
+            {
+              error:
+                "الفرع المحدد غير موجود.",
+            },
             400,
           );
         }
@@ -686,11 +704,9 @@ Deno.serve(async (req) => {
       });
 
       if (createError || !created.user) {
-        return response(
-          {
-            error: createError?.message || "تعذر إنشاء الحساب.",
-          },
-          400,
+        throw new Error(
+          createError?.message ||
+            "تعذر إنشاء الحساب.",
         );
       }
 
@@ -708,12 +724,17 @@ Deno.serve(async (req) => {
             role,
             branch_id: finalBranchId,
           },
-          { onConflict: "id" },
+          {
+            onConflict: "id",
+          },
         );
 
       if (profileError) {
         await admin.auth.admin.deleteUser(newUserId);
-        throw profileError;
+
+        throw new Error(
+          `خطأ إنشاء سجل المستخدم: ${profileError.message}`,
+        );
       }
 
       if (role === "manager") {
@@ -723,12 +744,17 @@ Deno.serve(async (req) => {
           .from("manager_permissions")
           .upsert(
             defaultPermissions(newUserId),
-            { onConflict: "user_id" },
+            {
+              onConflict: "user_id",
+            },
           );
 
         if (permissionError) {
           await admin.auth.admin.deleteUser(newUserId);
-          throw permissionError;
+
+          throw new Error(
+            `خطأ إنشاء صلاحيات المدير: ${permissionError.message}`,
+          );
         }
       }
 
@@ -741,18 +767,24 @@ Deno.serve(async (req) => {
           role,
           branch_id: finalBranchId,
         },
-        message: "تم إنشاء الحساب بنجاح.",
+        message:
+          role === "owner"
+            ? "تم إنشاء حساب صاحب المطعم بنجاح."
+            : "تم إنشاء المستخدم بنجاح.",
       });
     }
 
     /* =====================================================
-       11. تغيير رتبة المستخدم
+       10 — تغيير رتبة المستخدم
     ===================================================== */
 
     if (action === "set_role") {
       if (!isOwner) {
         return response(
-          { error: "ليس لديك صلاحية تغيير الرتب." },
+          {
+            error:
+              "ليس لديك صلاحية تغيير الرتب.",
+          },
           403,
         );
       }
@@ -761,34 +793,45 @@ Deno.serve(async (req) => {
 
       if (!validUUID(userId)) {
         return response(
-          { error: "معرّف المستخدم غير صحيح." },
-          400,
-        );
-      }
-
-      if (!isAllowedRole(role)) {
-        return response(
-          { error: "الرتبة المطلوبة غير مسموحة." },
+          {
+            error:
+              "معرّف المستخدم غير صحيح.",
+          },
           400,
         );
       }
 
       if (
-        ["manager", "owner"].includes(role) &&
-        !isServerOwner
+        !["owner", "manager", "staff", "customer"].includes(
+          role,
+        )
       ) {
         return response(
           {
-            error: "تعيين هذه الرتبة من صلاحية مالك السيرفر فقط.",
+            error:
+              "الرتبة المطلوبة غير مسموحة.",
           },
-          403,
+          400,
         );
       }
 
       if (userId === callerId) {
         return response(
-          { error: "لا يمكن تغيير رتبة حسابك من هنا." },
+          {
+            error:
+              "لا يمكن تغيير رتبة حسابك من هنا.",
+          },
           400,
+        );
+      }
+
+      if (SERVER_OWNER_IDS.has(userId)) {
+        return response(
+          {
+            error:
+              "لا يمكن تغيير رتبة مالك السيرفر.",
+          },
+          403,
         );
       }
 
@@ -801,18 +844,28 @@ Deno.serve(async (req) => {
         .eq("id", userId)
         .maybeSingle();
 
-      if (targetError) throw targetError;
+      if (targetError) {
+        throw new Error(
+          `خطأ قراءة المستخدم المطلوب: ${targetError.message}`,
+        );
+      }
 
       if (!target) {
         return response(
-          { error: "المستخدم غير موجود." },
+          {
+            error:
+              "المستخدم غير موجود.",
+          },
           404,
         );
       }
 
-      if (isProtectedServerOwner(userId, target.role)) {
+      if (target.role === "server_owner") {
         return response(
-          { error: "لا يمكن تغيير رتبة مالك السيرفر." },
+          {
+            error:
+              "لا يمكن تغيير رتبة مالك السيرفر.",
+          },
           403,
         );
       }
@@ -823,7 +876,8 @@ Deno.serve(async (req) => {
       ) {
         return response(
           {
-            error: "تغيير رتبة صاحب المطعم من صلاحية مالك السيرفر فقط.",
+            error:
+              "لا يمكن تعديل رتبة صاحب مطعم آخر.",
           },
           403,
         );
@@ -840,7 +894,11 @@ Deno.serve(async (req) => {
             },
           );
 
-        if (error) throw error;
+        if (error) {
+          throw new Error(
+            `خطأ تجهيز صلاحيات المدير: ${error.message}`,
+          );
+        }
       }
 
       const {
@@ -850,7 +908,11 @@ Deno.serve(async (req) => {
         .update({ role })
         .eq("id", userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw new Error(
+          `خطأ تحديث رتبة المستخدم: ${updateError.message}`,
+        );
+      }
 
       if (role !== "manager") {
         const { error } = await admin
@@ -858,23 +920,31 @@ Deno.serve(async (req) => {
           .delete()
           .eq("user_id", userId);
 
-        if (error) throw error;
+        if (error) {
+          throw new Error(
+            `خطأ حذف صلاحيات المدير: ${error.message}`,
+          );
+        }
       }
 
       return response({
         success: true,
-        message: "تم تحديث رتبة المستخدم.",
+        message:
+          "تم تحديث رتبة المستخدم.",
       });
     }
 
     /* =====================================================
-       12. حفظ صلاحيات المدير
+       11 — حفظ صلاحيات المدير
     ===================================================== */
 
     if (action === "save_permissions") {
       if (!isOwner) {
         return response(
-          { error: "ليس لديك صلاحية تحديد الصلاحيات." },
+          {
+            error:
+              "ليس لديك صلاحية تحديد الصلاحيات.",
+          },
           403,
         );
       }
@@ -883,18 +953,10 @@ Deno.serve(async (req) => {
 
       if (!validUUID(userId)) {
         return response(
-          { error: "معرّف المستخدم غير صحيح." },
-          400,
-        );
-      }
-
-      if (
-        !permissions ||
-        typeof permissions !== "object" ||
-        Array.isArray(permissions)
-      ) {
-        return response(
-          { error: "بيانات الصلاحيات غير صحيحة." },
+          {
+            error:
+              "معرّف المستخدم غير صحيح.",
+          },
           400,
         );
       }
@@ -908,11 +970,18 @@ Deno.serve(async (req) => {
         .eq("id", userId)
         .maybeSingle();
 
-      if (targetError) throw targetError;
+      if (targetError) {
+        throw new Error(
+          `خطأ قراءة المدير: ${targetError.message}`,
+        );
+      }
 
       if (!target || target.role !== "manager") {
         return response(
-          { error: "المستخدم المحدد ليس مديراً." },
+          {
+            error:
+              "المستخدم المحدد ليس مديراً.",
+          },
           400,
         );
       }
@@ -922,48 +991,64 @@ Deno.serve(async (req) => {
       };
 
       for (const key of permissionKeys) {
-        payload[key] = permissions[key] === true;
+        payload[key] = permissions?.[key] === true;
       }
 
       const { error } = await admin
         .from("manager_permissions")
         .upsert(
           payload,
-          { onConflict: "user_id" },
+          {
+            onConflict: "user_id",
+          },
         );
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          `خطأ حفظ صلاحيات المدير: ${error.message}`,
+        );
+      }
 
       return response({
         success: true,
-        message: "تم حفظ صلاحيات المدير.",
+        message:
+          "تم حفظ صلاحيات المدير.",
       });
     }
 
     /* =====================================================
-       13. حذف مستخدم
+       12 — حذف مستخدم
     ===================================================== */
 
     if (action === "delete") {
-      if (!isOwner && !isManager) {
-        return response(
-          { error: "ليس لديك صلاحية الحذف." },
-          403,
-        );
-      }
-
       const { userId } = body;
 
       if (!validUUID(userId)) {
         return response(
-          { error: "معرّف المستخدم غير صحيح." },
+          {
+            error:
+              "معرّف المستخدم غير صحيح.",
+          },
           400,
         );
       }
 
       if (userId === callerId) {
         return response(
-          { error: "لا يمكنك حذف حسابك من هنا." },
+          {
+            error:
+              "لا يمكنك حذف حسابك.",
+          },
+          403,
+        );
+      }
+
+      if (SERVER_OWNER_IDS.has(userId)) {
+        return response(
+          {
+            error:
+              "لا يمكن حذف حساب مالك السيرفر.",
+          },
           403,
         );
       }
@@ -977,18 +1062,28 @@ Deno.serve(async (req) => {
         .eq("id", userId)
         .maybeSingle();
 
-      if (targetError) throw targetError;
+      if (targetError) {
+        throw new Error(
+          `خطأ قراءة حساب المستخدم: ${targetError.message}`,
+        );
+      }
 
       if (!target) {
         return response(
-          { error: "المستخدم غير موجود." },
+          {
+            error:
+              "المستخدم غير موجود.",
+          },
           404,
         );
       }
 
-      if (isProtectedServerOwner(userId, target.role)) {
+      if (target.role === "server_owner") {
         return response(
-          { error: "حسابات مالكي السيرفر محمية من الحذف." },
+          {
+            error:
+              "لا يمكن حذف حساب مالك السيرفر.",
+          },
           403,
         );
       }
@@ -999,23 +1094,33 @@ Deno.serve(async (req) => {
       ) {
         return response(
           {
-            error: "حذف صاحب المطعم من صلاحية مالك السيرفر فقط.",
+            error:
+              "لا يمكن حذف حساب صاحب المطعم إلا بواسطة مالك السيرفر.",
           },
           403,
         );
       }
 
-      if (isManager) {
+      if (isOwner) {
+        // المالك يستطيع حذف الموظفين والمديرين والزبائن.
+        // مالك السيرفر يستطيع أيضاً حذف أصحاب المطاعم.
+      } else if (isManager) {
         if (!canDeleteStaff) {
           return response(
-            { error: "لم تمنحك الإدارة صلاحية حذف الموظفين." },
+            {
+              error:
+                "لم يمنحك المالك صلاحية حذف الموظفين.",
+            },
             403,
           );
         }
 
         if (target.role !== "staff") {
           return response(
-            { error: "المدير يستطيع حذف الموظفين فقط." },
+            {
+              error:
+                "المدير يستطيع حذف الموظفين فقط.",
+            },
             403,
           );
         }
@@ -1025,38 +1130,62 @@ Deno.serve(async (req) => {
           target.branch_id !== caller.branch_id
         ) {
           return response(
-            { error: "لا يمكنك حذف موظف من فرع آخر." },
+            {
+              error:
+                "لا يمكنك حذف موظف من فرع آخر.",
+            },
             403,
           );
         }
+      } else {
+        return response(
+          {
+            error:
+              "ليس لديك صلاحية الحذف.",
+          },
+          403,
+        );
       }
 
       const {
         error: deleteError,
       } = await admin.auth.admin.deleteUser(userId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        throw new Error(
+          `خطأ حذف الحساب: ${deleteError.message}`,
+        );
+      }
 
       return response({
         success: true,
-        message: "تم حذف الحساب بنجاح.",
+        message:
+          "تم حذف الحساب.",
       });
     }
 
     /* =====================================================
-       14. عملية غير معروفة
+       13 — عملية غير معروفة
     ===================================================== */
 
     return response(
-      { error: "العملية المطلوبة غير معروفة." },
+      {
+        error:
+          "العملية المطلوبة غير معروفة.",
+      },
       400,
     );
 
   } catch (error) {
-    console.error("MANAGE_USERS_ERROR:", error);
+    console.error(
+      "manage-users error details:",
+      error,
+    );
 
     return response(
-      { error: errorMessage(error) },
+      {
+        error: getErrorMessage(error),
+      },
       500,
     );
   }

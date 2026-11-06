@@ -1,432 +1,226 @@
-import { loadBranchMenu, ensureMenuDescriptionStyle } from "./menu-db.js";
-
-/* =========================================
-   مطعم الغنّام — فرع المشاوي
-   إصلاح مسارات الصور محلياً وعلى GitHub Pages
-========================================= */
 
 "use strict";
 
-/* =========================================
-   حل مسارات الصور
-========================================= */
+import {
+    loadBranchMenu,
+    loadBranchOffers,
+    ensureMenuDescriptionStyle
+} from "./menu-db.js";
 
-function resolveGrillImageUrl(path) {
-    const value = String(path || "").trim();
+/* =========================================================
+   مطعم الغنّام — فرع المشاوي
+   GRILL BRANCH
+   Supabase Database Only
+   Arabic / English
+========================================================= */
 
-    if (!value) return "";
+/* =========================================================
+   01 — إعدادات الفرع
+========================================================= */
 
-    // الاحتفاظ بروابط الصور الخارجية وروابط التخزين
-    if (/^(https?:|data:|blob:)/i.test(value)) {
-        return value;
-    }
+const GRILL_BRANCH_ID = "grill";
+const WHATSAPP_NUMBER = "9647740000062";
 
-    // إزالة الشرطة الأولى حتى لا يضيع مسار المشروع على GitHub Pages
-    const cleanPath = value.replace(/^\/+/, "");
-
-    // الاعتماد على مجلد الصفحة الحالي
-    return new URL(cleanPath, new URL(".", window.location.href)).href;
-}
-
-/* =========================================
-   نظام اللغتين العربية والإنجليزية
-========================================= */
-
-const GRILL_LANGUAGE_KEY = "ghannamGrillLanguage";
-
-let currentLanguage = (() => {
-    try {
-        return localStorage.getItem(GRILL_LANGUAGE_KEY) === "en" ? "en" : "ar";
-    } catch (_) {
-        return "ar";
-    }
-})();
-
-const isEnglish = () => currentLanguage === "en";
-
-const EN_TEXT = {
-    "مطعم الغنام": "Al Ghannam Restaurant",
-    "مطعم الغنّام": "Al Ghannam Restaurant",
-    "العودة للرئيسية": "Back to Home",
-    "خصومات توصل 50%": "Up to 50% Off",
-    "- عروض على منتجات مختارة": "- Offers on selected items",
-    "التوصيل": "Delivery",
-    "عبر الموقع": "Through the website",
-    "ابحث عن وجبتك المفضلة...": "Search for your favorite meal...",
-    "ابحث عن وجبتك المفضلة": "Search for your favorite meal",
-    "أقسام المنيو": "Menu Categories",
-    "جارٍ تحميل المنيو...": "Loading menu...",
-    "عرض السلة": "View Cart",
-    "لا توجد منتجات في السلة": "Your cart is empty",
-    "قطعة في السلة": "items in cart",
-    "سلة مشترياتك 🛒": "Your Shopping Cart 🛒",
-    "مطعم الغنام — فرع المشاوي": "Al Ghannam Restaurant — Grill Branch",
-    "مطعم الغنّام — فرع المشاوي": "Al Ghannam Restaurant — Grill Branch",
-    "أضف إلى طلبك": "Add to Your Order",
-    "إضافات من المنيو": "Menu Extras",
-    "اسحب للتصفح ←": "Swipe to browse →",
-    "جارٍ تحميل الإضافات...": "Loading extras...",
-    "لا توجد إضافات متاحة حاليًا.": "No extras are currently available.",
-    "أضفت جميع أصناف الإضافات إلى سلتك.": "You have added all available extras to your cart.",
-    "🎟️ كود الخصم": "🎟️ Discount Code",
-    "أدخل كود الخصم": "Enter discount code",
-    "تطبيق": "Apply",
-    "المجموع الفرعي": "Subtotal",
-    "الخصم": "Discount",
-    "الإجمالي النهائي": "Grand Total",
-    "معلومات الزبون": "Customer Information",
-    "الاسم": "Name",
-    "الاسم الكامل": "Full name",
-    "رقم الهاتف": "Phone Number",
-    "العنوان": "Address",
-    "منطقة السكن وأقرب نقطة دالة": "Area and nearest landmark",
-    "ملاحظات إضافية": "Additional Notes",
-    "أي ملاحظات على الطلب": "Any notes about your order",
-    "إرسال الطلب عبر واتساب": "Send Order via WhatsApp",
-    "مواصلة التسوق": "Continue Shopping",
-    "الإجمالي": "Total",
-    "القائمة": "Menu",
-    "التنقل": "Navigation",
-    "الصفحة الرئيسية": "Home Page",
-    "العودة إلى صفحة الفروع": "Back to branches",
-    "قائمة الطعام": "Food Menu",
-    "الانتقال إلى المنيو": "Go to menu",
-    "سلة المشتريات": "Shopping Cart",
-    "عرض المنتجات والإجمالي": "View items and total",
-    "معلومات المطعم": "Restaurant Information",
-    "فرع المشاوي": "Grill Branch",
-    "العملة": "Currency",
-    "الدينار العراقي (د.ع)": "Iraqi Dinar (IQD)",
-    "المساعدة والشكاوى": "Help & Complaints",
-    "للاستفسارات وتقديم الشكاوى": "Questions and complaints",
-    "أرقام الفرع": "Branch Phone Numbers",
-    "موقع الفرع": "Branch Location",
-    "عرض الموقع على خرائط Google": "View location on Google Maps",
-    "إغلاق القائمة": "Close Menu",
-    "جميع الأسعار بالدينار العراقي": "All prices are in Iraqi Dinars",
-    "العودة إلى الصفحة الرئيسية": "Back to Home Page",
-    "اختر الحجم أو الخيار": "Choose size or option",
-    "إضافة إلى السلة": "Add to Cart",
-    "لم نجد صنفًا بهذا الاسم.": "No items found with this name.",
-    "لم نجد صنف بهذا الاسم.": "No items found with this name.",
-    "حذف": "Remove",
-    "لا توجد منتجات في السلة.": "Your cart is empty.",
-    "السلة فارغة. أضيفي وجبات من المنيو.": "Your cart is empty. Add items from the menu.",
-    "السلة فارغة. أضيفي منتجًا واحدًا على الأقل.": "Your cart is empty. Add at least one item.",
-    "اختر خيارات": "Choose options",
-    "تغيير اللغة": "Change language"
+const STORAGE_KEYS = {
+    language: "ghannamGrillLanguage",
+    cart: "ghannamGrillCart",
+    coupon: "ghannamGrillCoupon",
+    view: "ghannamGrillProductView"
 };
 
-const EN_PRODUCTS = {
-    "المشويات بالكيلو": "Grills by Weight",
-    "المقبلات": "Appetizers",
-    "المشوي نفرات": "Grilled Skewers",
-    "اللفات": "Wraps",
-    "اللحوم النيّة واللحوم": "Raw Meat & Meat",
-    "الدجاج — صالة": "Chicken — Dine In",
-    "الدجاج — سفري": "Chicken — Takeaway",
-    "القوزي": "Quzi",
-    "الشاورما": "Shawarma",
-    "الفطور الصباحي": "Breakfast",
-    "الإضافات": "Extras",
-    "المشروبات": "Drinks",
-    "كباب لحم": "Beef Kebab",
-    "كباب دجاج": "Chicken Kebab",
-    "تكة دجاج": "Chicken Tikka",
-    "تكة لحم": "Beef Tikka",
-    "معلاق": "Grilled Liver",
-    "قلب": "Grilled Heart",
-    "بيض غنم": "Lamb Testicles",
-    "جلاوي": "Grilled Lamb Tail Fat",
-    "مقبلات صغير جداً": "Very Small Appetizers",
-    "مقبلات صغير": "Small Appetizers",
-    "مقبلات وسط": "Medium Appetizers",
-    "مقبلات كبير": "Large Appetizers",
-    "كص لحم": "Beef Kebab Wrap",
-    "كص دجاج": "Chicken Kebab Wrap",
-    "لفة كص لحم": "Beef Kebab Wrap",
-    "لفة كص دجاج": "Chicken Kebab Wrap",
-    "لفة كباب لحم": "Beef Kebab Wrap",
-    "لفة كباب دجاج": "Chicken Kebab Wrap",
-    "لفة تكة لحم": "Beef Tikka Wrap",
-    "لفة تكة دجاج": "Chicken Tikka Wrap",
-    "لفة معلاق": "Grilled Liver Wrap",
-    "لفة بيض غنم": "Lamb Testicles Wrap",
-    "لفة قلب": "Grilled Heart Wrap",
-    "لفة جلاوي": "Grilled Tail Fat Wrap",
-    "لحم طبخ": "Cooking Meat",
-    "لحم مثروم": "Minced Meat",
-    "تكة لحم ني": "Raw Beef Tikka",
-    "ريش غنم ني": "Raw Lamb Chops",
-    "أجنحة ني": "Raw Chicken Wings",
-    "تكة دجاج ني": "Raw Chicken Tikka",
-    "فشة ني": "Raw Lung",
-    "ليه": "Lamb Tail Fat",
-    "عصاعيص ني": "Raw Lamb Sausages",
-    "كباب دجاج ني": "Raw Chicken Kebab",
-    "كبدة عجل": "Veal Liver",
-    "دجاج مفروم": "Minced Chicken",
-    "أفخاذ دجاج طبخ": "Chicken Thighs",
-    "دجاجة ناشفة": "Roasted Chicken",
-    "صينية دجاج": "Chicken Tray",
-    "نصف دجاجة ناشفة": "Half Roasted Chicken",
-    "صينية نصف دجاجة": "Half Chicken Tray",
-    "نفر تمن ومرق": "Rice & Stew Serving",
-    "نصف دجاجة على تمن ومرق": "Half Chicken with Rice & Stew",
-    "دجاجة بدون": "Chicken (Plain)",
-    "دجاجة عادية": "Regular Chicken",
-    "نصف دجاجة": "Half Chicken",
-    "نفر قوزي": "Quzi Serving",
-    "تشريب لحم": "Meat Tashreeb",
-    "قطعة لحم بدون": "Meat Piece (Plain)",
-    "صينية قطعة قوزي": "Quzi Piece Tray",
-    "شاورما لحم": "Beef Shawarma",
-    "شاورما دجاج": "Chicken Shawarma",
-    "مخلمة بل كباب": "Makhlema with Kebab",
-    "كبة": "Kibbeh",
-    "مخلمة": "Makhlema",
-    "مخلمة دبل": "Double Makhlema",
-    "مخلمة بيض ولحم": "Egg & Meat Makhlema",
-    "مخلمة بل كص": "Makhlema with Kebab Meat",
-    "مخلمة بيض وطماطة": "Egg & Tomato Makhlema",
-    "نفر باقلة": "Broad Bean Serving",
-    "باقلاء دبل بيض": "Double Broad Beans with Egg",
-    "صينية باقلة": "Broad Bean Tray",
-    "نفر بيض خبط": "Scrambled Eggs",
-    "نفر بيض عيون": "Fried Eggs",
-    "نفر شوربة": "Soup Serving",
-    "كاسة شوربة": "Cup of Soup",
-    "كبة سراي": "Kibbeh Saray",
-    "بيضة واحدة عين": "One Fried Egg",
-    "خبز 5 كراص": "5 Pieces of Bread",
-    "شيش ليه": "Lamb Fat Skewer",
-    "صحن بصل بالسماق": "Sumac Onion Plate",
-    "صحن تمن": "Rice Plate",
-    "صحن خضروات": "Vegetable Plate",
-    "صحن ليمون": "Lemon Plate",
-    "صحن ليه شورما": "Shawarma Fat Plate",
-    "صحن مخلل": "Pickles Plate",
-    "كاسة مرق": "Cup of Stew",
-    "شيش كباب": "Kebab Skewer",
-    "شيش تكة": "Tikka Skewer",
-    "شيش قلب": "Heart Skewer",
-    "صينية تمن": "Rice Tray",
-    "تشريب بدون": "Tashreeb (Plain)",
-    "سوب أحمر": "Red Soup",
-    "صمون واحد": "One Samoon Bread",
-    "كيس صمون": "Bag of Samoon Bread",
-    "بيبسي": "Pepsi",
-    "سفن": "7Up",
-    "لبن": "Yogurt Drink",
-    "شاي": "Tea"
-};
+let currentLanguage =
+    localStorage.getItem(STORAGE_KEYS.language) || "ar";
+
+let currentView =
+    localStorage.getItem(STORAGE_KEYS.view) || "grid";
+
+let grillSections = [];
+let grillMenuLoaded = false;
+let grillMenuLoading = false;
+
+let grillOffers = [];
+let grillOffersLoading = false;
+
+let cart = loadSavedCart();
+let activeCoupon = loadSavedCoupon();
+
+/* =========================================================
+   02 — قاموس الخيارات الإنجليزية
+========================================================= */
 
 const EN_OPTIONS = {
-    "ربع كيلو": "Quarter Kg",
-    "نصف كيلو": "Half Kg",
     "كيلو": "1 Kg",
-    "شيش": "Skewer",
-    "نص نفر": "Half Serving",
-    "نفر": "Serving",
-    "سفري": "Takeaway",
-    "صالة": "Dine In",
+    "نصف كيلو": "Half Kg",
+    "ربع كيلو": "Quarter Kg",
+    "نفر": "Full Serving",
+    "نفرين": "Two Servings",
+    "نصف نفر": "Half Serving",
+    "سيخ": "Skewer",
+    "وجبة": "Meal",
     "الوجبة": "Meal",
-    "الكمية": "Quantity",
-    "الحبة": "Piece",
-    "الكاسة": "Cup",
+    "قطعة": "Quantity",
+    "قنينة": "Bottle",
+    "استكان": "Cup",
+    "داخل المطعم": "Dine-In",
+    "سفري": "Takeaway",
     "صغير جداً": "Very Small",
     "صغير": "Small",
     "وسط": "Medium",
-    "كبير": "Large"
+    "كبير": "Large",
+    "دبل": "Double",
+    "عادي": "Regular",
+    "حار": "Spicy",
+    "بدون": "Without"
 };
 
-function tr(value) {
-    if (!isEnglish() || !value) return value;
-    return EN_TEXT[value] || EN_PRODUCTS[value] || EN_OPTIONS[value] || value;
-}
+/* =========================================================
+   03 — قاموس أسماء المنتجات الإنجليزية
+========================================================= */
 
-function productEnglishName(item) {
-    return item?.[4] || EN_PRODUCTS[item?.[0]] || item?.[0] || "";
-}
+const EN_PRODUCTS = {
+    "المشاوي": "Grills",
+    "مشاوي مشكلة": "Mixed Grill",
+    "كباب": "Kebab",
+    "كباب لحم": "Beef Kebab",
+    "كباب دجاج": "Chicken Kebab",
+    "تكة لحم": "Beef Tikka",
+    "تكة دجاج": "Chicken Tikka",
+    "شيش طاووق": "Shish Tawook",
+    "ريش": "Lamb Chops",
+    "أوصال": "Lamb Skewers",
+    "دجاج على الفحم": "Charcoal Chicken",
+    "نصف دجاجة": "Half Chicken",
+    "دجاجة كاملة": "Whole Chicken",
+    "عرايس": "Arayes",
+    "حمص": "Hummus",
+    "متبل": "Mutabbal",
+    "طرشي": "Pickles",
+    "خبز": "Bread",
+    "صمون": "Bread Roll",
+    "بطاطا": "French Fries",
+    "مقبلات": "Appetizers",
+    "الإضافات": "Add-ons",
+    "المشروبات": "Drinks",
+    "المشروبات الغازية": "Soft Drinks",
+    "ماء": "Water",
+    "بيبسي": "Pepsi",
+    "سفن أب": "7UP",
+    "لبن": "Yogurt Drink",
+    "سلطة": "Salad",
+    "سلطة عربية": "Arabic Salad",
+    "سلطة خضراء": "Green Salad",
+    "وجبات": "Meals",
+    "وجبة مشاوي": "Grill Meal",
+    "وجبة كباب": "Kebab Meal",
+    "وجبة تكة": "Tikka Meal",
+    "وجبة دجاج": "Chicken Meal"
+};
 
-function productEnglishDescription(item) {
-    return item?.[5] || item?.[3] || "";
-}
+/* =========================================================
+   04 — النصوص الإنجليزية
+========================================================= */
 
-function displayProductName(arName, sectionId) {
-    if (!isEnglish()) return arName;
+const EN_TEXT = {
+    searchPlaceholder: "Search for a meal or product...",
+    loading: "Loading grill menu...",
+    loadError: "Unable to load the menu. Please try again later.",
+    emptyMenu: "There are currently no available products.",
+    emptyCategory: "There are no products in this section.",
+    noResults: "No matching products found.",
+    addToCart: "Add to cart",
+    added: "Added to cart",
+    chooseOption: "Choose an option",
+    meal: "Meal",
+    cart: "Cart",
+    emptyCart: "Your cart is empty",
+    continueShopping: "Continue shopping",
+    delete: "Delete",
+    increase: "Increase quantity",
+    decrease: "Decrease quantity",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    total: "Total",
+    couponPlaceholder: "Enter discount code",
+    applyCoupon: "Apply",
+    couponApplied: "Discount code applied successfully",
+    couponInvalid: "Invalid or unavailable discount code",
+    couponRemoved: "Discount code removed",
+    customerName: "Customer name",
+    customerPhone: "Phone number",
+    customerAddress: "Delivery address",
+    customerNotes: "Order notes",
+    sendOrder: "Send order via WhatsApp",
+    fillRequired: "Please enter your name, phone number and address.",
+    orderTitle: "New order — Al Ghannam Restaurant",
+    suggestedAddons: "You may also like",
+    currency: "IQD",
+    free: "Free",
+    quantity: "Quantity",
+    selectedOption: "Selected option",
+    orderItems: "Order details",
+    orderCustomer: "Customer details",
+    unavailable: "This product is currently unavailable.",
+    error: "An error occurred. Please try again.",
+    viewGrid: "Grid view",
+    viewList: "List view",
+    offers: "Special Offers"
+};
 
-    const section = grillSections.find(s => s.id === sectionId);
-    const item = section?.items.find(p => p[0] === arName);
+/* =========================================================
+   05 — النصوص العربية
+========================================================= */
 
-    return item ? productEnglishName(item) : (EN_PRODUCTS[arName] || arName);
-}
+const AR_TEXT = {
+    searchPlaceholder: "ابحث عن وجبة أو منتج...",
+    loading: "جاري تحميل منيو المشاوي...",
+    loadError: "تعذر تحميل المنيو حالياً، حاول مرة أخرى.",
+    emptyMenu: "لا توجد منتجات متاحة حالياً.",
+    emptyCategory: "لا توجد منتجات في هذا القسم.",
+    noResults: "لا توجد منتجات مطابقة للبحث.",
+    addToCart: "أضف إلى السلة",
+    added: "تمت الإضافة إلى السلة",
+    chooseOption: "اختر الحجم أو الخيار",
+    meal: "الوجبة",
+    cart: "السلة",
+    emptyCart: "السلة فارغة حالياً",
+    continueShopping: "متابعة التسوق",
+    delete: "حذف",
+    increase: "زيادة الكمية",
+    decrease: "تقليل الكمية",
+    subtotal: "المجموع",
+    discount: "الخصم",
+    total: "الإجمالي",
+    couponPlaceholder: "أدخل رمز الخصم",
+    applyCoupon: "تطبيق",
+    couponApplied: "تم تطبيق رمز الخصم بنجاح",
+    couponInvalid: "رمز الخصم غير صحيح أو غير متاح",
+    couponRemoved: "تم إلغاء رمز الخصم",
+    customerName: "اسم الزبون",
+    customerPhone: "رقم الهاتف",
+    customerAddress: "عنوان التوصيل",
+    customerNotes: "ملاحظات الطلب",
+    sendOrder: "إرسال الطلب عبر واتساب",
+    fillRequired: "يرجى إدخال الاسم ورقم الهاتف والعنوان.",
+    orderTitle: "طلب جديد — مطعم الغنّام",
+    suggestedAddons: "قد يعجبك أيضاً",
+    currency: "د.ع",
+    free: "مجاناً",
+    quantity: "الكمية",
+    selectedOption: "الخيار المحدد",
+    orderItems: "تفاصيل الطلب",
+    orderCustomer: "بيانات الزبون",
+    unavailable: "هذا المنتج غير متوفر حالياً.",
+    error: "حدث خطأ، حاول مرة أخرى.",
+    viewGrid: "عرض شبكي",
+    viewList: "عرض قائمة",
+    offers: "عروضنا المميزة"
+};
 
-function displayOption(value) {
-    return tr(value);
-}
+/* =========================================================
+   06 — قواعد الكوبونات
+========================================================= */
 
-function applyStaticLanguage() {
-    document.documentElement.lang = isEnglish() ? "en" : "ar";
-    document.title = isEnglish()
-        ? "Al Ghannam Restaurant | Grill Branch"
-        : "مطعم الغنام | فرع المشاوي";
-
-    document.documentElement.dir = isEnglish() ? "ltr" : "rtl";
-    document.body.classList.toggle("language-en", isEnglish());
-
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-
-    while (walker.nextNode()) {
-        nodes.push(walker.currentNode);
-    }
-
-    nodes.forEach(node => {
-        const original = node.__ghannamOriginalText ?? node.nodeValue;
-
-        if (node.__ghannamOriginalText === undefined) {
-            node.__ghannamOriginalText = original;
-        }
-
-        const clean = original.trim();
-        if (!clean) return;
-
-        const translated = isEnglish()
-            ? (EN_TEXT[clean] || EN_PRODUCTS[clean] || clean)
-            : original;
-
-        if (translated !== clean || !isEnglish()) {
-            node.nodeValue = original.replace(clean, translated);
-        }
-    });
-
-    const attrs = ["placeholder", "title", "aria-label"];
-
-    document.querySelectorAll("input,textarea,button,a,[aria-label]").forEach(el => {
-        attrs.forEach(attr => {
-            if (!el.hasAttribute(attr)) return;
-
-            const key = "__ghannam_" + attr;
-
-            if (el[key] === undefined) {
-                el[key] = el.getAttribute(attr);
-            }
-
-            const original = el[key];
-
-            el.setAttribute(
-                attr,
-                isEnglish() ? (EN_TEXT[original] || original) : original
-            );
-        });
-    });
-
-    if (languageToggle) {
-        languageToggle.textContent = isEnglish() ? "عربي" : "EN";
-        languageToggle.setAttribute(
-            "aria-label",
-            isEnglish() ? "Switch language to Arabic" : "Switch language to English"
-        );
-        languageToggle.title = isEnglish() ? "Switch to Arabic" : "Switch to English";
-    }
-}
-
-function setGrillLanguage(language) {
-    currentLanguage = language === "en" ? "en" : "ar";
-
-    try {
-        localStorage.setItem(GRILL_LANGUAGE_KEY, currentLanguage);
-    } catch (_) {}
-
-    applyStaticLanguage();
-    renderCategories();
-    renderMenu(searchInput?.value || "");
-    renderCart();
-}
-
-/* =========================================
-   إعدادات فرع المشاوي
-========================================= */
-
-const WHATSAPP_NUMBER = "9647740000062";
-const CART_STORAGE_KEY = "ghannamGrillCart";
-const COUPON_STORAGE_KEY = "ghannamGrillCoupon";
-
-/* =========================================
-   جرس إضافة المنتجات للسلة
-========================================= */
-
-let orderBellAudioContext = null;
-
-function playAddToCartSound() {
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-        if (!AudioContextClass) return;
-
-        if (!orderBellAudioContext || orderBellAudioContext.state === "closed") {
-            orderBellAudioContext = new AudioContextClass();
-        }
-
-        const ctx = orderBellAudioContext;
-
-        function playBellTone(frequency, start, duration, volume) {
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            oscillator.type = "sine";
-
-            oscillator.frequency.setValueAtTime(
-                frequency,
-                ctx.currentTime + start
-            );
-
-            gain.gain.setValueAtTime(
-                0.0001,
-                ctx.currentTime + start
-            );
-
-            gain.gain.exponentialRampToValueAtTime(
-                volume,
-                ctx.currentTime + start + 0.012
-            );
-
-            gain.gain.exponentialRampToValueAtTime(
-                0.0001,
-                ctx.currentTime + start + duration
-            );
-
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-
-            oscillator.start(ctx.currentTime + start);
-            oscillator.stop(ctx.currentTime + start + duration);
-        }
-
-        const play = () => {
-            playBellTone(1046.5, 0, 0.55, 0.18);
-            playBellTone(1318.5, 0.13, 0.65, 0.14);
-            playBellTone(1568.0, 0.24, 0.45, 0.08);
-        };
-
-        if (ctx.state === "suspended") {
-            ctx.resume().then(play).catch(error => {
-                console.warn("تعذر تشغيل جرس السلة:", error);
-            });
-        } else {
-            play();
-        }
-    } catch (error) {
-        console.warn("تعذر تشغيل جرس السلة:", error);
-    }
-}
-
-/* =========================================
-   أكواد الخصم
-========================================= */
-
-const COUPONS = {
+const COUPON_RULES = {
     GHANNAM10: { type: "percent", value: 10 },
     WELCOME5: { type: "percent", value: 5 },
     GRILL15: { type: "percent", value: 15 },
@@ -439,1328 +233,2060 @@ const COUPONS = {
     SAVE2000: { type: "fixed", value: 2000 }
 };
 
-/* =========================================
-   حفظ واسترجاع السلة
-========================================= */
+/* =========================================================
+   07 — أدوات عامة
+========================================================= */
+
+const $ = selector => document.querySelector(selector);
+
+const $$ = selector =>
+    Array.from(document.querySelectorAll(selector));
+
+function text(key) {
+    const dictionary =
+        currentLanguage === "en" ? EN_TEXT : AR_TEXT;
+
+    return dictionary[key] || key;
+}
+
+function isEnglish() {
+    return currentLanguage === "en";
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    })[char]);
+}
+
+/*
+   تنسيق الأرقام:
+   نستخدم en-US دائماً حتى تظهر الأرقام بهذا الشكل:
+   1234567890
+   في الواجهة العربية والإنجليزية.
+*/
+
+function formatPrice(value) {
+    const number = Number(value) || 0;
+
+    return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0
+    }).format(number);
+}
+
+function money(value) {
+    return `${formatPrice(value)} ${text("currency")}`;
+}
+
+function getProductEnglishName(item) {
+    if (item?.[4]) return item[4];
+
+    return EN_PRODUCTS[item?.[0]] || item?.[0] || "";
+}
+
+function getProductEnglishDescription(item) {
+    return item?.[5] || "";
+}
+
+function getDisplayName(item) {
+    return isEnglish()
+        ? getProductEnglishName(item)
+        : item?.[0] || "";
+}
+
+function getDisplayDescription(item) {
+    return isEnglish()
+        ? getProductEnglishDescription(item)
+        : item?.[3] || "";
+}
+
+function normalizeText(value) {
+    return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ة/g, "ه")
+        .replace(/ى/g, "ي");
+}
+
+/* =========================================================
+   08 — الصور
+========================================================= */
+
+function resolveGrillImageUrl(path) {
+    if (!path) return "";
+
+    const value = String(path).trim();
+
+    if (
+        value.startsWith("https://") ||
+        value.startsWith("http://") ||
+        value.startsWith("data:") ||
+        value.startsWith("blob:")
+    ) {
+        return value;
+    }
+
+    try {
+        return new URL(value, window.location.href).href;
+    } catch {
+        return "";
+    }
+}
+
+function getProductImage(product) {
+    const extra = product?.extra || {};
+
+    const image =
+        product?.image_url ||
+        product?.image_path ||
+        extra?.local_image_path ||
+        "";
+
+    return resolveGrillImageUrl(image);
+}
+
+/* =========================================================
+   09 — تخزين السلة والخصم
+========================================================= */
 
 function loadSavedCart() {
     try {
         const saved = JSON.parse(
-            localStorage.getItem(CART_STORAGE_KEY) || "[]"
+            localStorage.getItem(STORAGE_KEYS.cart) || "[]"
         );
 
         if (!Array.isArray(saved)) return [];
 
-        return saved
-            .filter(item =>
-                item &&
-                typeof item.name === "string" &&
-                typeof item.option === "string" &&
-                Number.isFinite(Number(item.price)) &&
-                Number(item.price) >= 0 &&
-                Number.isFinite(Number(item.quantity)) &&
-                Number(item.quantity) > 0
-            )
-            .map(item => ({
-                name: item.name,
-                option: item.option,
-                price: Number(item.price),
-                quantity: Math.floor(Number(item.quantity)),
-                sectionId: item.sectionId || ""
-            }));
-    } catch (error) {
-        console.error("تعذر قراءة السلة المحفوظة:", error);
+        return saved.map(item => ({
+            ...item,
+            image: resolveGrillImageUrl(item?.image || ""),
+            quantity: Math.max(1, Number(item?.quantity) || 1),
+            price: Number(item?.price) || 0
+        }));
+    } catch {
         return [];
     }
 }
 
-const cart = loadSavedCart();
+function loadSavedCoupon() {
+    try {
+        const saved = JSON.parse(
+            localStorage.getItem(STORAGE_KEYS.coupon) || "null"
+        );
 
-/* =========================================
-   تنسيق الأسعار
-========================================= */
-
-function formatPrice(value) {
-    return Math.round(Number(value) || 0).toLocaleString("en-US");
-}
-
-function money(value) {
-    return formatPrice(value) + (isEnglish() ? " IQD" : " د.ع");
-}
-
-function getCartTotal() {
-    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-}
-
-function getCartQuantity() {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-/* =========================================
-   تحديث شريط السلة الثابت
-========================================= */
-
-function updateFixedCart() {
-    const countElement = document.getElementById("fixedCartCount");
-    const subtitleElement = document.getElementById("fixedCartSubtitle");
-    const totalElement = document.getElementById("fixedCartTotal");
-
-    const count = getCartQuantity();
-    const total = getCartTotal();
-
-    if (countElement) {
-        countElement.textContent = count;
-    }
-
-    if (subtitleElement) {
-        subtitleElement.textContent = count === 0
-            ? (isEnglish() ? "Your cart is empty" : "لا توجد منتجات في السلة")
-            : count + (isEnglish() ? " items in cart" : " قطعة في السلة");
-    }
-
-    if (totalElement) {
-        totalElement.textContent = money(total);
+        return saved && typeof saved === "object"
+            ? saved
+            : null;
+    } catch {
+        return null;
     }
 }
 
 function saveCart() {
+    localStorage.setItem(
+        STORAGE_KEYS.cart,
+        JSON.stringify(cart)
+    );
+
+    updateFixedCart();
+}
+
+function saveCoupon() {
+    if (activeCoupon) {
+        localStorage.setItem(
+            STORAGE_KEYS.coupon,
+            JSON.stringify(activeCoupon)
+        );
+    } else {
+        localStorage.removeItem(STORAGE_KEYS.coupon);
+    }
+}
+
+function getCartCount() {
+    return cart.reduce(
+        (total, item) => total + (Number(item.quantity) || 0),
+        0
+    );
+}
+
+function getCartSubtotal() {
+    return cart.reduce((total, item) => {
+        return total +
+            (Number(item.price) || 0) *
+            (Number(item.quantity) || 0);
+    }, 0);
+}
+
+function getCouponDiscount() {
+    if (!activeCoupon) return 0;
+
+    const subtotal = getCartSubtotal();
+    const rule = COUPON_RULES[activeCoupon.code];
+
+    if (!rule) return 0;
+
+    if (rule.type === "percent") {
+        return Math.min(
+            subtotal,
+            Math.round(subtotal * rule.value / 100)
+        );
+    }
+
+    return Math.min(subtotal, rule.value);
+}
+
+function getCartTotal() {
+    return Math.max(
+        0,
+        getCartSubtotal() - getCouponDiscount()
+    );
+}
+
+function updateFixedCart() {
+    const count = $("#fixedCartCount");
+    const subtitle = $("#fixedCartSubtitle");
+    const total = $("#fixedCartTotal");
+    const bar = $("#fixedCartBar");
+
+    if (count) {
+        count.textContent = formatPrice(getCartCount());
+    }
+
+    if (subtitle) {
+        subtitle.textContent = isEnglish()
+            ? `${formatPrice(getCartCount())} items`
+            : `${formatPrice(getCartCount())} منتج`;
+    }
+
+    if (total) {
+        total.textContent = money(getCartTotal());
+    }
+
+    if (bar) {
+        bar.classList.toggle("has-items", cart.length > 0);
+    }
+}
+
+/* =========================================================
+   10 — صوت جرس إضافة المنتج إلى السلة
+========================================================= */
+
+let grillBellAudioContext = null;
+
+function playAddToCartSound() {
     try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) return;
+
+        if (!grillBellAudioContext) {
+            grillBellAudioContext = new AudioContextClass();
+        }
+
+        const audioContext = grillBellAudioContext;
+
+        const playBell = () => {
+            const now = audioContext.currentTime;
+
+            const bellTones = [
+                { frequency: 1046.5, volume: 0.16 },
+                { frequency: 1568.0, volume: 0.10 },
+                { frequency: 2093.0, volume: 0.055 }
+            ];
+
+            bellTones.forEach(tone => {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(
+                    tone.frequency,
+                    now
+                );
+
+                gain.gain.setValueAtTime(0.0001, now);
+
+                gain.gain.exponentialRampToValueAtTime(
+                    tone.volume,
+                    now + 0.012
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.0001,
+                    now + 0.85
+                );
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+
+                oscillator.start(now);
+                oscillator.stop(now + 0.9);
+
+                oscillator.onended = () => {
+                    oscillator.disconnect();
+                    gain.disconnect();
+                };
+            });
+        };
+
+        if (audioContext.state === "suspended") {
+            audioContext.resume()
+                .then(playBell)
+                .catch(error => {
+                    console.warn("Bell sound unavailable:", error);
+                });
+        } else {
+            playBell();
+        }
+
     } catch (error) {
-        console.error("تعذر حفظ السلة:", error);
+        console.warn("Bell sound unavailable:", error);
+    }
+}
+
+/* =========================================================
+   11 — خيارات المنتجات من Supabase
+========================================================= */
+
+function normalizeGrillProductOptions(product) {
+    const extra =
+        product?.extra && typeof product.extra === "object"
+            ? product.extra
+            : {};
+
+    const result = {};
+    const englishLabels = {};
+
+    const sizeOptions = Array.isArray(extra.size_options)
+        ? extra.size_options
+        : [];
+
+    sizeOptions.forEach(size => {
+        const label = String(size?.label || "").trim();
+        const labelEn = String(size?.label_en || "").trim();
+        const price = Number(size?.price);
+
+        if (
+            !label ||
+            !Number.isFinite(price) ||
+            price < 0
+        ) {
+            return;
+        }
+
+        result[label] = price;
+
+        if (labelEn) {
+            englishLabels[label] = labelEn;
+        }
+    });
+
+    if (Object.keys(result).length) {
+        Object.defineProperty(result, "__englishLabels", {
+            value: englishLabels,
+            enumerable: false
+        });
+
+        return result;
+    }
+
+    const oldOptions = extra.options;
+
+    if (
+        oldOptions &&
+        typeof oldOptions === "object" &&
+        !Array.isArray(oldOptions)
+    ) {
+        Object.entries(oldOptions).forEach(([label, rawPrice]) => {
+            const optionName = String(label || "").trim();
+            const price = Number(rawPrice);
+
+            if (
+                !optionName ||
+                !Number.isFinite(price) ||
+                price < 0
+            ) {
+                return;
+            }
+
+            result[optionName] = price;
+        });
+    }
+
+    if (Object.keys(result).length) {
+        Object.defineProperty(result, "__englishLabels", {
+            value: englishLabels,
+            enumerable: false
+        });
+
+        return result;
+    }
+
+    const productPrice = Number(product?.price);
+
+    result["الوجبة"] =
+        Number.isFinite(productPrice) && productPrice >= 0
+            ? productPrice
+            : 0;
+
+    Object.defineProperty(result, "__englishLabels", {
+        value: {
+            "الوجبة": "Meal"
+        },
+        enumerable: false
+    });
+
+    return result;
+}
+
+function getOptionEnglishName(optionName, options = {}) {
+    const databaseLabel =
+        options?.__englishLabels?.[optionName];
+
+    if (databaseLabel) {
+        return databaseLabel;
+    }
+
+    return EN_OPTIONS[optionName] || optionName;
+}
+
+function getOptionDisplayName(optionName, options = {}) {
+    return isEnglish()
+        ? getOptionEnglishName(optionName, options)
+        : optionName;
+}
+
+function getCartOptionEnglish(item) {
+    const section = grillSections.find(section =>
+        String(section.id) === String(item.sectionId)
+    );
+
+    const product = section?.items?.find(product => {
+        return (
+            (
+                item.productId &&
+                String(product[6]) === String(item.productId)
+            ) ||
+            product[0] === item.name
+        );
+    });
+
+    if (product) {
+        return getOptionEnglishName(
+            item.option,
+            product[1]
+        );
+    }
+
+    return item.option_en ||
+        EN_OPTIONS[item.option] ||
+        item.option;
+}
+
+/* =========================================================
+   12 — بناء المنيو من Supabase
+========================================================= */
+
+function buildGrillSections(dbCategories, dbProducts) {
+    if (!Array.isArray(dbCategories)) return [];
+    if (!Array.isArray(dbProducts)) return [];
+
+    return dbCategories.map(category => {
+        const categoryArabic =
+            category.name_ar ||
+            category.name ||
+            "";
+
+        const categoryEnglish =
+            category.name_en ||
+            EN_PRODUCTS[categoryArabic] ||
+            categoryArabic;
+
+        const categoryProducts = dbProducts.filter(product => {
+            return String(product.category_id) ===
+                String(category.id);
+        });
+
+        const items = categoryProducts.map(product => {
+            const productArabic =
+                product.name_ar ||
+                product.name ||
+                "";
+
+            const productEnglish =
+                product.name_en ||
+                EN_PRODUCTS[productArabic] ||
+                "";
+
+            const descriptionArabic =
+                product.description_ar ||
+                product.description ||
+                "";
+
+            const descriptionEnglish =
+                product.description_en ||
+                "";
+
+            const options = normalizeGrillProductOptions(product);
+            const image = getProductImage(product);
+
+            return [
+                productArabic,
+                options,
+                image,
+                descriptionArabic,
+                productEnglish,
+                descriptionEnglish,
+                product.id
+            ];
+        });
+
+        return {
+            id: category.slug || String(category.id),
+            categoryId: category.id,
+            slug: category.slug || "",
+            title: categoryArabic,
+            title_en: categoryEnglish,
+            items
+        };
+    }).filter(section => section.items.length > 0);
+}
+
+async function syncGrillMenuFromDatabase() {
+    if (grillMenuLoading) return;
+
+    grillMenuLoading = true;
+
+    const menuElement = $("#grillMenu");
+
+    if (menuElement) {
+        menuElement.innerHTML = `
+            <div class="grill-loading">
+                <span class="grill-loading-spinner"></span>
+                <p>${escapeHTML(text("loading"))}</p>
+            </div>
+        `;
+    }
+
+    try {
+        const result = await loadBranchMenu(
+            GRILL_BRANCH_ID,
+            "ar"
+        );
+
+        let dbCategories = [];
+        let dbProducts = [];
+
+        if (Array.isArray(result)) {
+            dbCategories = result;
+
+            dbProducts = result.flatMap(category =>
+                Array.isArray(category.items)
+                    ? category.items
+                    : []
+            );
+        } else if (result && typeof result === "object") {
+            dbCategories =
+                result.categories ||
+                result.dbCategories ||
+                [];
+
+            dbProducts =
+                result.products ||
+                result.dbProducts ||
+                [];
+        }
+
+        if (!Array.isArray(dbCategories)) {
+            dbCategories = [];
+        }
+
+        if (!Array.isArray(dbProducts)) {
+            dbProducts = [];
+        }
+
+        grillSections = buildGrillSections(
+            dbCategories,
+            dbProducts
+        );
+
+        grillMenuLoaded = true;
+
+        if (typeof ensureMenuDescriptionStyle === "function") {
+            ensureMenuDescriptionStyle();
+        }
+
+        renderCategories();
+        renderMenu();
+
+        updateCartImagesFromMenu();
+
+        renderCart();
+        updateFixedCart();
+
+    } catch (error) {
+        console.error(
+            "Failed to load grill menu from Supabase:",
+            error
+        );
+
+        grillSections = [];
+        grillMenuLoaded = false;
+
+        if (menuElement) {
+            menuElement.innerHTML = `
+                <div class="grill-message grill-error">
+                    ${escapeHTML(text("loadError"))}
+                </div>
+            `;
+        }
+
+        const categoryNav = $("#categoryNav");
+
+        if (categoryNav) {
+            categoryNav.innerHTML = "";
+        }
+
+    } finally {
+        grillMenuLoading = false;
+    }
+}
+
+/* =========================================================
+   13 — تحديث صور السلة من المنيو
+========================================================= */
+
+function findCartProduct(item) {
+    for (const section of grillSections) {
+        const product = section.items.find(product => {
+            if (
+                item.productId &&
+                product[6] &&
+                String(product[6]) === String(item.productId)
+            ) {
+                return true;
+            }
+
+            return (
+                product[0] === item.name &&
+                String(section.id) === String(item.sectionId)
+            );
+        });
+
+        if (product) return product;
+    }
+
+    return null;
+}
+
+function updateCartImagesFromMenu() {
+    let changed = false;
+
+    cart.forEach(item => {
+        const product = findCartProduct(item);
+
+        if (!product) return;
+
+        if (!item.image && product[2]) {
+            item.image = product[2];
+            changed = true;
+        }
+
+        if (!item.name_en && product[4]) {
+            item.name_en = product[4];
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        saveCart();
+    }
+}
+
+/* =========================================================
+   14 — عروض فرع المشاوي من Supabase
+========================================================= */
+
+async function syncGrillOffersFromDatabase() {
+    if (grillOffersLoading) return;
+
+    grillOffersLoading = true;
+
+    const section = $("#grillOffersSection");
+    const container = $("#grillOffersList");
+
+    try {
+        const result = await loadBranchOffers(GRILL_BRANCH_ID);
+
+        if (Array.isArray(result)) {
+            grillOffers = result;
+        } else if (result && typeof result === "object") {
+            grillOffers =
+                result.offers ||
+                result.data ||
+                [];
+        } else {
+            grillOffers = [];
+        }
+
+        renderGrillOffers();
+
+    } catch (error) {
+        console.error(
+            "Failed to load grill offers from Supabase:",
+            error
+        );
+
+        grillOffers = [];
+
+        if (section) {
+            section.hidden = true;
+        }
+
+        if (container) {
+            container.innerHTML = "";
+        }
+
+    } finally {
+        grillOffersLoading = false;
+    }
+}
+
+function renderGrillOffers() {
+    const section = $("#grillOffersSection");
+    const container = $("#grillOffersList");
+
+    if (!section || !container) return;
+
+    if (!grillOffers.length) {
+        section.hidden = true;
+        container.innerHTML = "";
+        return;
+    }
+
+    section.hidden = false;
+
+    container.innerHTML = grillOffers.map(offer => {
+        const name = isEnglish()
+            ? offer.name_en || offer.name || ""
+            : offer.name || "";
+
+        const description = isEnglish()
+            ? offer.description_en || offer.description || ""
+            : offer.description || "";
+
+        const offerPrice = Number(offer.offer_price) || 0;
+        const originalPrice = Number(offer.original_price) || 0;
+
+        const image = resolveGrillImageUrl(
+            offer.image_url || offer.image_path || ""
+        );
+
+        const imageHTML = image
+            ? `
+                <img
+                    src="${escapeHTML(image)}"
+                    alt="${escapeHTML(name)}"
+                    loading="lazy"
+                    onerror="this.style.display='none';this.parentElement.classList.add('offer-image-unavailable')"
+                >
+            `
+            : `
+                <div class="grill-offer-no-image">
+                    🍽️
+                </div>
+            `;
+
+        return `
+            <article class="grill-offer-card">
+                <div class="grill-offer-image">
+                    ${imageHTML}
+                </div>
+
+                <div class="grill-offer-info">
+                    <h3>${escapeHTML(name)}</h3>
+
+                    ${
+                        description
+                            ? `<p>${escapeHTML(description)}</p>`
+                            : ""
+                    }
+
+                    <div class="grill-offer-prices">
+                        <strong class="grill-offer-new-price">
+                            ${escapeHTML(money(offerPrice))}
+                        </strong>
+
+                        ${
+                            originalPrice > offerPrice
+                                ? `
+                                    <del class="grill-offer-old-price">
+                                        ${escapeHTML(money(originalPrice))}
+                                    </del>
+                                `
+                                : ""
+                        }
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+/* =========================================================
+   15 — تحديد قسم الإضافات
+========================================================= */
+
+function getExtrasSection() {
+    return grillSections.find(section => {
+        const slug = normalizeText(section.slug || section.id);
+        const nameAr = normalizeText(section.title);
+        const nameEn = normalizeText(section.title_en);
+
+        return (
+            slug === "extras" ||
+            slug === "add-ons" ||
+            slug === "additions" ||
+            slug.includes("extra") ||
+            slug.includes("add-on") ||
+            nameAr.includes("اضافات") ||
+            nameEn.includes("extra") ||
+            nameEn.includes("add-on")
+        );
+    }) || null;
+}
+
+function isExtraAlreadyInCart(productName, sectionId) {
+    const extrasSection = getExtrasSection();
+
+    if (!extrasSection) return false;
+
+    return cart.some(item => {
+        return (
+            item.name === productName &&
+            String(item.sectionId) === String(extrasSection.id) &&
+            String(item.sectionId) === String(sectionId)
+        );
+    });
+}
+
+/* =========================================================
+   16 — عرض الأقسام
+========================================================= */
+
+function renderCategories() {
+    const nav = $("#categoryNav");
+
+    if (!nav) return;
+
+    if (!grillSections.length) {
+        nav.innerHTML = "";
+        return;
+    }
+
+    nav.innerHTML = grillSections.map((section, index) => {
+        const title = isEnglish()
+            ? section.title_en || section.title
+            : section.title;
+
+        return `
+            <button
+                type="button"
+                class="category-pill category-link ${index === 0 ? "active" : ""}"
+                data-category="${escapeHTML(section.id)}"
+            >
+                ${escapeHTML(title)}
+            </button>
+        `;
+    }).join("");
+
+    $$("#categoryNav [data-category]").forEach(button => {
+        button.addEventListener("click", () => {
+            const sectionId = button.dataset.category;
+
+            $$("#categoryNav .category-pill").forEach(item => {
+                item.classList.toggle(
+                    "active",
+                    item === button
+                );
+            });
+
+            const target = document.querySelector(
+                `[data-section-id="${CSS.escape(sectionId)}"]`
+            );
+
+            if (target) {
+                target.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }
+        });
+    });
+}
+
+/* =========================================================
+   17 — ترجمة أسماء المنتجات
+========================================================= */
+
+function displayProductName(arName, section) {
+    if (!isEnglish()) return arName;
+
+    const product = section?.items?.find(item => {
+        return item[0] === arName;
+    });
+
+    if (product?.[4]) return product[4];
+
+    return EN_PRODUCTS[arName] || arName;
+}
+
+/* =========================================================
+   18 — عرض المنتجات
+========================================================= */
+
+function renderMenu() {
+    const menu = $("#grillMenu");
+
+    if (!menu) return;
+
+    if (!grillMenuLoaded) {
+        menu.innerHTML = `
+            <div class="grill-message">
+                ${escapeHTML(text("loading"))}
+            </div>
+        `;
+        return;
+    }
+
+    if (!grillSections.length) {
+        menu.innerHTML = `
+            <div class="grill-message">
+                ${escapeHTML(text("emptyMenu"))}
+            </div>
+        `;
+        return;
+    }
+
+    const searchInput = $("#grillSearch");
+    const searchTerm = normalizeText(searchInput?.value || "");
+
+    const sectionsHTML = grillSections.map(section => {
+        const sectionTitle = isEnglish()
+            ? section.title_en || section.title
+            : section.title;
+
+        const filteredItems = section.items.filter(item => {
+            if (!searchTerm) return true;
+
+            const searchable = [
+                item[0],
+                item[3],
+                item[4],
+                item[5],
+                section.title,
+                section.title_en
+            ].map(normalizeText).join(" ");
+
+            return searchable.includes(searchTerm);
+        });
+
+        if (!filteredItems.length) return "";
+
+        const productsHTML = filteredItems.map(item => {
+            const name = getDisplayName(item);
+            const description = getDisplayDescription(item);
+            const image = item[2] || "";
+            const options = item[1] || {};
+
+            const optionEntries = Object.entries(options);
+            const firstOption = optionEntries[0] || ["الوجبة", 0];
+
+            const optionsHTML = optionEntries.map(([label, price], index) => {
+                return `
+                    <option
+                        value="${escapeHTML(label)}"
+                        data-price="${Number(price)}"
+                        data-option-en="${escapeHTML(getOptionEnglishName(label, options))}"
+                        ${index === 0 ? "selected" : ""}
+                    >
+                        ${escapeHTML(getOptionDisplayName(label, options))}
+                        — ${escapeHTML(money(price))}
+                    </option>
+                `;
+            }).join("");
+
+            const imageHTML = image
+                ? `
+                    <img
+                        src="${escapeHTML(image)}"
+                        alt="${escapeHTML(name)}"
+                        loading="lazy"
+                        onerror="this.style.display='none';this.parentElement.classList.add('image-unavailable')"
+                    >
+                `
+                : `<div class="grill-no-image">🍽️</div>`;
+
+            return `
+                <article
+                    class="grill-product-card"
+                    data-product-id="${escapeHTML(item[6] || "")}"
+                >
+                    <div class="grill-product-image">
+                        ${imageHTML}
+                    </div>
+
+                    <div class="grill-product-info">
+                        <h3 class="grill-product-name">
+                            ${escapeHTML(name)}
+                        </h3>
+
+                        ${
+                            description
+                                ? `<p class="grill-product-description">${escapeHTML(description)}</p>`
+                                : ""
+                        }
+
+                        <div class="grill-product-controls">
+                            <label class="grill-option-label">
+                                ${escapeHTML(text("chooseOption"))}
+                            </label>
+
+                            <select class="grill-product-option">
+                                ${optionsHTML}
+                            </select>
+
+                            <div class="grill-product-bottom">
+                                <strong class="grill-product-price">
+                                    ${escapeHTML(money(firstOption[1]))}
+                                </strong>
+
+                                <button
+                                    type="button"
+                                    class="grill-add-button"
+                                    data-product-name="${escapeHTML(item[0])}"
+                                    data-section-id="${escapeHTML(section.id)}"
+                                >
+                                    <span>+</span>
+                                    ${escapeHTML(text("addToCart"))}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }).join("");
+
+        return `
+            <section
+                class="grill-menu-section"
+                data-section-id="${escapeHTML(section.id)}"
+            >
+                <div class="grill-section-heading">
+                    <h2>${escapeHTML(sectionTitle)}</h2>
+                </div>
+
+                <div class="grill-products ${currentView === "list" ? "list-view" : "grid-view"}">
+                    ${productsHTML}
+                </div>
+            </section>
+        `;
+    }).join("");
+
+    if (!sectionsHTML) {
+        menu.innerHTML = `
+            <div class="grill-message">
+                ${escapeHTML(text("noResults"))}
+            </div>
+        `;
+        return;
+    }
+
+    menu.innerHTML = sectionsHTML;
+
+    menu.classList.toggle(
+        "list-view",
+        currentView === "list"
+    );
+
+    menu.classList.toggle(
+        "grid-view",
+        currentView !== "list"
+    );
+
+    bindProductControls();
+}
+
+/* =========================================================
+   19 — أحداث المنتجات
+========================================================= */
+
+function bindProductControls() {
+    $$("#grillMenu .grill-product-card").forEach(card => {
+        const select = card.querySelector(".grill-product-option");
+        const priceElement = card.querySelector(".grill-product-price");
+        const addButton = card.querySelector(".grill-add-button");
+
+        if (select && priceElement) {
+            select.addEventListener("change", () => {
+                const selectedOption =
+                    select.options[select.selectedIndex];
+
+                const price = Number(
+                    selectedOption?.dataset.price
+                ) || 0;
+
+                priceElement.textContent = money(price);
+            });
+        }
+
+        if (addButton) {
+            addButton.addEventListener("click", () => {
+                const productName = addButton.dataset.productName;
+                const sectionId = addButton.dataset.sectionId;
+
+                const section = grillSections.find(item =>
+                    String(item.id) === String(sectionId)
+                );
+
+                const product = section?.items?.find(item =>
+                    item[0] === productName
+                );
+
+                if (!product) return;
+
+                const selectedOption =
+                    select?.options[select.selectedIndex];
+
+                const optionName =
+                    selectedOption?.value || "الوجبة";
+
+                const price =
+                    Number(selectedOption?.dataset.price) || 0;
+
+                const optionEnglishName =
+                    selectedOption?.dataset.optionEn || "";
+
+                addItemToCart(
+                    product,
+                    section,
+                    optionName,
+                    price,
+                    optionEnglishName
+                );
+            });
+        }
+    });
+}
+
+/* =========================================================
+   20 — إضافة منتج إلى السلة
+========================================================= */
+
+function addItemToCart(
+    product,
+    section,
+    optionName,
+    price,
+    optionEnglishName = ""
+) {
+    if (!product || !section) return;
+
+    const name = product[0];
+    const productId = product[6] || null;
+    const image = product[2] || "";
+
+    const finalOptionEnglish =
+        optionEnglishName ||
+        getOptionEnglishName(optionName, product[1]);
+
+    const existingItem = cart.find(item => {
+        return (
+            item.name === name &&
+            item.option === optionName &&
+            String(item.sectionId) === String(section.id)
+        );
+    });
+
+    if (existingItem) {
+        existingItem.quantity =
+            (Number(existingItem.quantity) || 0) + 1;
+
+        existingItem.option_en = finalOptionEnglish;
+
+        if (!existingItem.image && image) {
+            existingItem.image = image;
+        }
+
+        if (!existingItem.productId && productId) {
+            existingItem.productId = productId;
+        }
+    } else {
+        cart.push({
+            productId,
+            name,
+            name_en: product[4] || "",
+            image,
+            option: optionName,
+            option_en: finalOptionEnglish,
+            price: Number(price) || 0,
+            quantity: 1,
+            sectionId: section.id,
+            sectionName: section.title,
+            sectionName_en: section.title_en || ""
+        });
+    }
+
+    saveCart();
+    playAddToCartSound();
+    renderCart();
+
+    const addButton = $(
+        `.grill-add-button[data-product-name="${CSS.escape(name)}"][data-section-id="${CSS.escape(String(section.id))}"]`
+    );
+
+    if (addButton) {
+        const originalHTML = addButton.innerHTML;
+
+        addButton.classList.add("added");
+        addButton.textContent = text("added");
+
+        window.setTimeout(() => {
+            addButton.classList.remove("added");
+            addButton.innerHTML = originalHTML;
+        }, 900);
+    }
+}
+
+/* =========================================================
+   21 — تعديل الكميات والحذف
+========================================================= */
+
+function changeCartQuantity(index, change) {
+    const item = cart[index];
+
+    if (!item) return;
+
+    item.quantity =
+        (Number(item.quantity) || 0) + change;
+
+    if (item.quantity <= 0) {
+        cart.splice(index, 1);
+    }
+
+    if (!cart.length) {
+        activeCoupon = null;
+        saveCoupon();
+    }
+
+    saveCart();
+    renderCart();
+}
+
+function removeCartItem(index) {
+    if (!cart[index]) return;
+
+    cart.splice(index, 1);
+
+    if (!cart.length) {
+        activeCoupon = null;
+        saveCoupon();
+    }
+
+    saveCart();
+    renderCart();
+}
+
+/* =========================================================
+   22 — الإضافات المقترحة
+========================================================= */
+
+function getSuggestedAddons() {
+    const extrasSection = getExtrasSection();
+
+    if (!extrasSection) return [];
+
+    return extrasSection.items.filter(product => {
+        return !cart.some(cartItem => {
+            return (
+                cartItem.name === product[0] &&
+                String(cartItem.sectionId) ===
+                    String(extrasSection.id)
+            );
+        });
+    }).slice(0, 8);
+}
+
+function getExtrasSectionHTML() {
+    const extrasSection = getExtrasSection();
+
+    if (!extrasSection) return "";
+
+    const suggested = getSuggestedAddons();
+
+    if (!suggested.length) return "";
+
+    const cards = suggested.map(product => {
+        const options = Object.entries(product[1] || {});
+        const firstOption = options[0] || ["الوجبة", 0];
+
+        const name = getDisplayName(product);
+        const image = product[2] || "";
+
+        return `
+            <div class="cart-addon-card">
+                <div class="cart-addon-image-box">
+                    ${
+                        image
+                            ? `
+                                <img
+                                    class="cart-addon-image"
+                                    src="${escapeHTML(image)}"
+                                    alt="${escapeHTML(name)}"
+                                    loading="lazy"
+                                    onerror="this.style.display='none';this.parentElement.classList.add('cart-addon-image-placeholder')"
+                                >
+                            `
+                            : `
+                                <div class="cart-addon-no-image">
+                                    🍽️
+                                </div>
+                            `
+                    }
+                </div>
+
+                <div class="cart-addon-info">
+                    <strong>${escapeHTML(name)}</strong>
+                    <span>${escapeHTML(money(firstOption[1]))}</span>
+
+                    <button
+                        type="button"
+                        class="cart-addon-add"
+                        data-addon-name="${escapeHTML(product[0])}"
+                        data-addon-section="${escapeHTML(extrasSection.id)}"
+                    >
+                        + ${escapeHTML(text("addToCart"))}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    return `
+        <div class="cart-addons-scroll">
+            ${cards}
+        </div>
+    `;
+}
+
+function bindAddonButtons() {
+    $$("#cartAddonsList .cart-addon-add").forEach(button => {
+        button.addEventListener("click", () => {
+            const name = button.dataset.addonName;
+            const sectionId = button.dataset.addonSection;
+
+            const section = grillSections.find(item =>
+                String(item.id) === String(sectionId)
+            );
+
+            const product = section?.items?.find(item =>
+                item[0] === name
+            );
+
+            if (!product || !section) return;
+
+            const firstOption =
+                Object.entries(product[1] || {})[0] ||
+                ["الوجبة", 0];
+
+            const optionEnglishName =
+                getOptionEnglishName(firstOption[0], product[1]);
+
+            addItemToCart(
+                product,
+                section,
+                firstOption[0],
+                firstOption[1],
+                optionEnglishName
+            );
+
+            renderCart();
+        });
+    });
+}
+
+/* =========================================================
+   23 — صورة المنتج داخل السلة
+========================================================= */
+
+function getCartItemImageHTML(item, displayName) {
+    const product = findCartProduct(item);
+
+    const image =
+        item.image ||
+        product?.[2] ||
+        "";
+
+    if (image && !item.image) {
+        item.image = image;
+    }
+
+    if (image) {
+        return `
+            <img
+                class="popup-cart-item-image"
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(displayName)}"
+                loading="lazy"
+                onerror="this.style.display='none';this.parentElement.classList.add('cart-item-image-unavailable')"
+            >
+        `;
+    }
+
+    return `
+        <div class="popup-cart-item-image cart-item-image-placeholder">
+            🍽️
+        </div>
+    `;
+}
+
+/* =========================================================
+   24 — عرض محتويات السلة
+========================================================= */
+
+function renderPopupCart() {
+    const itemsContainer = $("#popupCartItems");
+    const addonsContainer = $("#cartAddonsList");
+
+    if (!itemsContainer) return;
+
+    if (!cart.length) {
+        itemsContainer.innerHTML = `
+            <div class="cart-empty-message">
+                <div class="cart-empty-icon">🛒</div>
+                <p>${escapeHTML(text("emptyCart"))}</p>
+            </div>
+        `;
+
+        if (addonsContainer) {
+            addonsContainer.innerHTML = "";
+        }
+
+    } else {
+        itemsContainer.innerHTML = cart.map((item, index) => {
+            const displayName = isEnglish()
+                ? item.name_en || EN_PRODUCTS[item.name] || item.name
+                : item.name;
+
+            const displayOption = isEnglish()
+                ? getCartOptionEnglish(item)
+                : item.option;
+
+            const imageHTML =
+                getCartItemImageHTML(item, displayName);
+
+            return `
+                <div class="popup-cart-item">
+                    ${imageHTML}
+
+                    <div class="popup-cart-item-details">
+                        <h4>${escapeHTML(displayName)}</h4>
+
+                        <p class="popup-cart-item-option">
+                            ${escapeHTML(displayOption)}
+                        </p>
+
+                        <strong>
+                            ${escapeHTML(money(item.price * item.quantity))}
+                        </strong>
+                    </div>
+
+                    <div class="popup-cart-item-actions">
+                        <div class="cart-quantity-controls">
+                            <button
+                                type="button"
+                                data-cart-action="increase"
+                                data-index="${index}"
+                                aria-label="${escapeHTML(text("increase"))}"
+                            >+</button>
+
+                            <span>${formatPrice(item.quantity)}</span>
+
+                            <button
+                                type="button"
+                                data-cart-action="decrease"
+                                data-index="${index}"
+                                aria-label="${escapeHTML(text("decrease"))}"
+                            >−</button>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="cart-remove-button"
+                            data-cart-action="remove"
+                            data-index="${index}"
+                        >
+                            ${escapeHTML(text("delete"))}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        saveCart();
+
+        if (addonsContainer) {
+            addonsContainer.innerHTML = getExtrasSectionHTML();
+            bindAddonButtons();
+        }
+    }
+
+    bindCartItemActions();
+    updateCartTotals();
+}
+
+function bindCartItemActions() {
+    $$("[data-cart-action]").forEach(button => {
+        button.addEventListener("click", () => {
+            const index = Number(button.dataset.index);
+            const action = button.dataset.cartAction;
+
+            if (action === "increase") {
+                changeCartQuantity(index, 1);
+            } else if (action === "decrease") {
+                changeCartQuantity(index, -1);
+            } else if (action === "remove") {
+                removeCartItem(index);
+            }
+        });
+    });
+}
+
+function updateCartTotals() {
+    const subtotal = getCartSubtotal();
+    const discount = getCouponDiscount();
+    const total = getCartTotal();
+
+    const subtotalElement = $("#popupSubtotal");
+    const discountElement = $("#popupDiscount");
+    const grandTotalElement = $("#popupGrandTotal");
+    const footerTotalElement = $("#popupFooterTotal");
+
+    if (subtotalElement) {
+        subtotalElement.textContent = money(subtotal);
+    }
+
+    if (discountElement) {
+        discountElement.textContent = `-${money(discount)}`;
+    }
+
+    if (grandTotalElement) {
+        grandTotalElement.textContent = money(total);
+    }
+
+    if (footerTotalElement) {
+        footerTotalElement.textContent = money(total);
     }
 
     updateFixedCart();
 }
 
-window.updateFixedCart = updateFixedCart;
-
-/* =========================================
-   بيانات المنيو والأسعار
-========================================= */
-
-const grillSections = [
-    {
-        id: "grilled",
-        title: "المشويات بالكيلو",
-        items: [
-            ["كباب لحم", {"ربع كيلو": 7000, "نصف كيلو": 13000, "كيلو": 26000}, ""],
-            ["كباب دجاج", {"ربع كيلو": 6000, "نصف كيلو": 12000, "كيلو": 24000}, ""],
-            ["تكة دجاج", {"ربع كيلو": 6000, "نصف كيلو": 12000, "كيلو": 24000}, ""],
-            ["تكة لحم", {"ربع كيلو": 8000, "نصف كيلو": 15000, "كيلو": 30000}, ""],
-            ["معلاق", {"ربع كيلو": 8000, "نصف كيلو": 15000, "كيلو": 30000}, ""],
-            ["قلب", {"ربع كيلو": 8000, "نصف كيلو": 15000, "كيلو": 30000}, ""],
-            ["بيض غنم", {"ربع كيلو": 8000, "نصف كيلو": 15000, "كيلو": 30000}, ""],
-            ["جلاوي", {"ربع كيلو": 8000, "نصف كيلو": 15000, "كيلو": 30000}, ""]
-        ]
-    },
-    {
-        id: "appetizers",
-        title: "المقبلات",
-        items: [
-            ["مقبلات صغير جداً", {"صغير جداً": 1000}, ""],
-            ["مقبلات صغير", {"صغير": 2000}, ""],
-            ["مقبلات وسط", {"وسط": 3000}, ""],
-            ["مقبلات كبير", {"كبير": 6000}, ""]
-        ]
-    },
-    {
-        id: "skewers",
-        title: "المشوي نفرات",
-        items: [
-            ["كباب لحم", {"شيش": 5000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["كباب دجاج", {"شيش": 5000, "نص نفر": 7000, "نفر": 14000}, ""],
-            ["تكة دجاج", {"شيش": 5000, "نص نفر": 7000, "نفر": 14000}, ""],
-            ["تكة لحم", {"شيش": 5000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["معلاق", {"شيش": 4000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["جلاوي", {"شيش": 4000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["قلب", {"شيش": 4000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["بيض غنم", {"شيش": 3000, "نص نفر": 8000, "نفر": 16000}, ""],
-            ["كص لحم", {"نص نفر": 8000, "نفر": 16000}, ""],
-            ["كص دجاج", {"نص نفر": 8000, "نفر": 16000}, ""]
-        ]
-    },
-    {
-        id: "wraps",
-        title: "اللفات",
-        items: [
-            ["لفة كص لحم", {"سفري": 4000, "صالة": 5000}, ""],
-            ["لفة كص دجاج", {"سفري": 3000, "صالة": 4000}, ""],
-            ["لفة كباب لحم", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة كباب دجاج", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة تكة لحم", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة تكة دجاج", {"سفري": 3500, "صالة": 4000}, ""],
-            ["لفة معلاق", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة بيض غنم", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة قلب", {"سفري": 3500, "صالة": 5000}, ""],
-            ["لفة جلاوي", {"سفري": 3500, "صالة": 5000}, ""]
-        ]
-    },
-    {
-        id: "raw-meat",
-        title: "اللحوم النيّة واللحوم",
-        items: [
-            ["لحم طبخ", {"كيلو": 22000, "نصف كيلو": 11000, "ربع كيلو": 6000}, ""],
-            ["لحم مثروم", {"كيلو": 22000, "نصف كيلو": 11000, "ربع كيلو": 6000}, ""],
-            ["تكة لحم ني", {"كيلو": 25000, "نصف كيلو": 13000}, ""],
-            ["ريش غنم ني", {"الكمية": 25000}, ""],
-            ["أجنحة ني", {"الكمية": 3000}, ""],
-            ["تكة دجاج ني", {"كيلو": 16000, "نصف كيلو": 8000}, ""],
-            ["فشة ني", {"الكمية": 1000}, ""],
-            ["ليه", {"كيلو": 15000}, ""],
-            ["عصاعيص ني", {"كيلو": 12000}, ""],
-            ["كباب دجاج ني", {"كيلو": 16000, "نصف كيلو": 8000}, ""],
-            ["كبدة عجل", {"الكمية": 15000}, ""],
-            ["دجاج مفروم", {"الكمية": 8000}, ""]
-        ]
-    },
-    {
-        id: "chicken-hall",
-        title: "الدجاج — صالة",
-        items: [
-            ["أفخاذ دجاج طبخ", {"الوجبة": 9000}, ""],
-            ["دجاجة ناشفة", {"الوجبة": 16000}, ""],
-            ["صينية دجاج", {"الوجبة": 25000}, ""],
-            ["نصف دجاجة ناشفة", {"الوجبة": 8000}, ""],
-            ["صينية نصف دجاجة", {"الوجبة": 17000}, ""],
-            ["نفر تمن ومرق", {"الوجبة": 6000}, ""],
-            ["نصف دجاجة على تمن ومرق", {"الوجبة": 10000}, ""]
-        ]
-    },
-    {
-        id: "chicken-takeaway",
-        title: "الدجاج — سفري",
-        items: [
-            ["دجاجة بدون", {"الوجبة": 10000}, ""],
-            ["دجاجة عادية", {"الوجبة": 12000}, ""],
-            ["نصف دجاجة", {"الوجبة": 7000}, ""],
-            ["صينية دجاج", {"الوجبة": 17000}, ""],
-            ["صينية نصف دجاجة", {"الوجبة": 11000}, ""]
-        ]
-    },
-    {
-        id: "quzi",
-        title: "القوزي",
-        items: [
-            ["نفر قوزي", {"الوجبة": 18000}, ""],
-            ["تشريب لحم", {"الوجبة": 16000}, ""],
-            ["قطعة لحم بدون", {"الوجبة": 13000}, ""],
-            ["صينية قطعة قوزي", {"الوجبة": 23000}, ""],
-            ["قطعتين قوزي صينية", {"الوجبة": 37000}, ""],
-            ["3 قطع قوزي صينية", {"الوجبة": 55000}, ""],
-            ["4 قطع قوزي صينية", {"الوجبة": 72000}, ""],
-            ["6 قطع قوزي صينية", {"الوجبة": 108000}, ""],
-            ["6 قطع قوزي مع دجاجة", {"الوجبة": 118000}, ""],
-            ["قطعة قوزي مع نصف دجاجة", {"الوجبة": 30000}, ""],
-            ["قطعتين قوزي مع نصف دجاجة", {"الوجبة": 43000}, ""],
-            ["قطعتين قوزي مع دجاجة", {"الوجبة": 48000}, ""],
-            ["3 قطع قوزي مع نصف دجاجة", {"الوجبة": 60000}, ""],
-            ["3 قطع قوزي مع دجاجة", {"الوجبة": 65000}, ""]
-        ]
-    },
-    {
-        id: "shawarma",
-        title: "الشاورما",
-        items: [
-            ["شاورما لحم", {"ربع كيلو": 9000, "نصف كيلو": 18000, "كيلو": 35000}, ""],
-            ["شاورما دجاج", {"ربع كيلو": 6000, "نصف كيلو": 12000, "كيلو": 24000}, ""]
-        ]
-    },
-    {
-        id: "breakfast",
-        title: "الفطور الصباحي",
-        items: [
-            ["مخلمة بل كباب", {"الوجبة": 6000}, ""],
-            ["كبة", {"الوجبة": 3000}, ""],
-            ["مخلمة", {"الوجبة": 4000}, ""],
-            ["مخلمة دبل", {"الوجبة": 5000}, ""],
-            ["مخلمة بيض ولحم", {"الوجبة": 6000}, ""],
-            ["مخلمة بل كص", {"الوجبة": 6000}, ""],
-            ["مخلمة بيض وطماطة", {"الوجبة": 4000}, ""],
-            ["نفر باقلة", {"الوجبة": 3500}, ""],
-            ["باقلاء دبل بيض", {"الوجبة": 4000}, ""],
-            ["صينية باقلة", {"الوجبة": 10000}, ""],
-            ["نفر بيض خبط", {"الوجبة": 3000}, ""],
-            ["نفر بيض عيون", {"الوجبة": 3000}, ""],
-            ["نفر شوربة", {"الوجبة": 2500}, ""],
-            ["كاسة شوربة", {"الوجبة": 1000}, ""],
-            ["كبة سراي", {"الوجبة": 3000}, ""],
-            ["بيضة واحدة عين", {"الوجبة": 2000}, ""]
-        ]
-    },
-    {
-        id: "extras",
-        title: "الإضافات",
-        items: [
-            ["خبز 5 كراص", {"الكمية": 1000}, ""],
-            ["شيش ليه", {"الكمية": 2000}, ""],
-            ["صحن بصل بالسماق", {"الكمية": 1000}, ""],
-            ["صحن تمن", {"الكمية": 2000}, ""],
-            ["صحن خضروات", {"الكمية": 1000}, ""],
-            ["صحن ليمون", {"الكمية": 1000}, ""],
-            ["صحن ليه شورما", {"الكمية": 2500}, ""],
-            ["صحن مخلل", {"الكمية": 2000}, ""],
-            ["كاسة مرق", {"الكمية": 2000}, ""],
-            ["شيش كباب", {"الكمية": 4000}, ""],
-            ["شيش تكة", {"الكمية": 4000}, ""],
-            ["شيش قلب", {"الكمية": 4000}, ""],
-            ["صينية تمن", {"الكمية": 6000}, ""],
-            ["تشريب بدون", {"الكمية": 3000}, ""],
-            ["سوب أحمر", {"الكمية": 1000}, ""],
-            ["صمون واحد", {"الكمية": 500}, ""],
-            ["كيس صمون", {"الكمية": 2500}, ""]
-        ]
-    },
-    {
-        id: "drinks",
-        title: "المشروبات",
-        items: [
-            ["بيبسي", {"الحبة": 500}, ""],
-            ["سفن", {"الحبة": 500}, ""],
-            ["لبن", {"الحبة": 500}, ""],
-            ["شاي", {"الكاسة": 250}, ""]
-        ]
-    }
-];
-
-/* =========================================
-   ربط صور المنتجات تلقائياً
-========================================= */
-
-let productImageNumber = 0;
-
-grillSections.forEach(section => {
-    section.items.forEach(item => {
-        productImageNumber++;
-        item[2] = `image/pro${productImageNumber}.png`;
-    });
-});
-
-console.info("عدد المنتجات المرتبطة بالصور:", productImageNumber);
-
-/* =========================================
-   عناصر الصفحة
-========================================= */
-
-const menuElement = document.getElementById("grillMenu");
-const categoryNav = document.getElementById("categoryNav");
-const searchInput = document.getElementById("grillSearch");
-const gridViewButton = document.getElementById("grillGridView");
-const listViewButton = document.getElementById("grillListView");
-const PRODUCT_VIEW_STORAGE_KEY = "ghannamGrillProductView";
-
-const languageToggle = document.getElementById("languageToggle");
-
-function getSavedProductView() {
-    try {
-        return localStorage.getItem(PRODUCT_VIEW_STORAGE_KEY) === "list"
-            ? "list"
-            : "grid";
-    } catch (_) {
-        return "grid";
-    }
+function renderCart() {
+    renderPopupCart();
+    updateFixedCart();
 }
 
-function updateProductView(view) {
-    const selectedView = view === "list" ? "list" : "grid";
+/* =========================================================
+   25 — نافذة السلة
+========================================================= */
 
-    if (menuElement) {
-        menuElement.classList.toggle("list-view", selectedView === "list");
-    }
+function openCartModal() {
+    const overlay = $("#cartModalOverlay");
 
-    if (gridViewButton) {
-        gridViewButton.setAttribute("aria-pressed", String(selectedView === "grid"));
-    }
+    if (!overlay) return;
 
-    if (listViewButton) {
-        listViewButton.setAttribute("aria-pressed", String(selectedView === "list"));
-    }
+    overlay.hidden = false;
+    overlay.classList.add("active");
+    overlay.setAttribute("aria-hidden", "false");
 
-    try {
-        localStorage.setItem(PRODUCT_VIEW_STORAGE_KEY, selectedView);
-    } catch (error) {
-        console.warn("تعذر حفظ طريقة عرض المنتجات:", error);
-    }
-}
+    document.body.classList.add("cart-modal-open");
 
-if (gridViewButton) {
-    gridViewButton.addEventListener("click", () => updateProductView("grid"));
-}
-
-if (listViewButton) {
-    listViewButton.addEventListener("click", () => updateProductView("list"));
-}
-
-/* =========================================
-   عرض التصنيفات
-========================================= */
-
-function renderCategories() {
-    if (!categoryNav) return;
-
-    categoryNav.replaceChildren();
-
-    grillSections.forEach(section => {
-        const link = document.createElement("a");
-
-        link.className = "category-link";
-        link.href = "#" + section.id;
-        link.textContent = isEnglish()
-            ? (section.title_en || EN_PRODUCTS[section.title] || section.title)
-            : section.title;
-
-        categoryNav.appendChild(link);
-    });
-}
-
-/* =========================================
-   إضافة منتج إلى السلة
-========================================= */
-
-function addItemToCart({ name, option, price, sectionId }) {
-    const numericPrice = Number(price);
-
-    if (
-        typeof name !== "string" ||
-        typeof option !== "string" ||
-        !Number.isFinite(numericPrice) ||
-        numericPrice < 0
-    ) {
-        console.error("بيانات المنتج غير صحيحة.");
-        return;
-    }
-
-    const normalizedSectionId = sectionId || "";
-
-    const existing = cart.find(item =>
-        item.name === name &&
-        item.option === option &&
-        item.sectionId === normalizedSectionId &&
-        item.price === numericPrice
-    );
-
-    if (existing) {
-        existing.quantity += 1;
-    } else {
-        cart.push({
-            name,
-            option,
-            price: numericPrice,
-            quantity: 1,
-            sectionId: normalizedSectionId
-        });
-    }
-
-    playAddToCartSound();
     renderCart();
 }
 
-window.addItemToGrillCart = addItemToCart;
+function closeCartModal() {
+    const overlay = $("#cartModalOverlay");
 
-/* =========================================
-   عرض المنتجات والبحث
-========================================= */
+    if (!overlay) return;
 
-function renderMenu(searchTerm = "") {
-    if (!menuElement) return;
+    overlay.classList.remove("active");
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.hidden = true;
 
-    menuElement.replaceChildren();
-
-    const term = searchTerm.trim().toLocaleLowerCase("ar");
-    let found = 0;
-
-    grillSections.forEach(section => {
-        const matchingItems = section.items
-            .map((item, originalIndex) => ({
-                name: item[0],
-                options: item[1],
-                image: item[2] || "",
-                description: item[3] || "",
-                nameEn: item[4] || EN_PRODUCTS[item[0]] || item[0],
-                descriptionEn: item[5] || "",
-                originalIndex
-            }))
-            .filter(item =>
-                item.name.toLocaleLowerCase().includes(term) ||
-                item.nameEn.toLocaleLowerCase().includes(term)
-            );
-
-        if (matchingItems.length === 0) return;
-
-        found += matchingItems.length;
-
-        const sectionElement = document.createElement("section");
-        sectionElement.className = "menu-section";
-        sectionElement.id = section.id;
-
-        const heading = document.createElement("h2");
-        heading.className = "section-title";
-        heading.textContent = isEnglish()
-            ? (section.title_en || EN_PRODUCTS[section.title] || section.title)
-            : section.title;
-
-        const grid = document.createElement("div");
-        grid.className = "product-grid";
-
-        matchingItems.forEach(({
-            name,
-            nameEn,
-            options,
-            image,
-            description,
-            descriptionEn,
-            originalIndex
-        }) => {
-            const shownName = isEnglish() ? nameEn : name;
-            const shownDescription = isEnglish()
-                ? (descriptionEn || description)
-                : description;
-
-            const card = document.createElement("article");
-            card.className = "product-card";
-
-            const imageBox = document.createElement("div");
-            imageBox.className = "product-image-box";
-
-            function showPlaceholder() {
-                imageBox.replaceChildren();
-                imageBox.classList.add("image-placeholder");
-                imageBox.setAttribute(
-                    "aria-label",
-                    (isEnglish() ? "Image placeholder for " : "مكان صورة ") + shownName
-                );
-            }
-
-            if (image.trim()) {
-                const img = document.createElement("img");
-
-                img.className = "product-image";
-
-                // إصلاح مسار الصورة هنا
-                img.src = resolveGrillImageUrl(image);
-
-                img.alt = shownName;
-                img.loading = "lazy";
-                img.addEventListener("error", showPlaceholder);
-
-                imageBox.appendChild(img);
-            } else {
-                showPlaceholder();
-            }
-
-            const details = document.createElement("div");
-            details.className = "product-details";
-
-            const title = document.createElement("h3");
-            title.textContent = shownName;
-            details.appendChild(title);
-
-            if (shownDescription) {
-                const descriptionElement = document.createElement("p");
-                descriptionElement.className = "ghannam-db-description";
-                descriptionElement.textContent = shownDescription;
-                details.appendChild(descriptionElement);
-            }
-
-            const select = document.createElement("select");
-            select.id = "option-" + section.id + "-" + originalIndex;
-            select.setAttribute("aria-label", "خيارات " + name);
-
-            Object.entries(options).forEach(([optionName]) => {
-                const option = document.createElement("option");
-
-                option.value = optionName;
-                option.textContent = displayOption(optionName);
-
-                select.appendChild(option);
-            });
-
-            const optionLabel = document.createElement("label");
-            optionLabel.className = "product-option-label";
-            optionLabel.htmlFor = select.id;
-            optionLabel.textContent = isEnglish()
-                ? "Choose size or option"
-                : "اختر الحجم أو الخيار";
-
-            const priceElement = document.createElement("div");
-            priceElement.className = "product-price";
-
-            function updatePrice() {
-                priceElement.textContent = money(options[select.value]);
-            }
-
-            select.addEventListener("change", updatePrice);
-            updatePrice();
-
-            const addButton = document.createElement("button");
-
-            addButton.type = "button";
-            addButton.className = "add-to-cart-button";
-            addButton.textContent = "+";
-            addButton.title = isEnglish() ? "Add to Cart" : "إضافة إلى السلة";
-
-            addButton.setAttribute(
-                "aria-label",
-                isEnglish()
-                    ? "Add " + shownName + " to cart"
-                    : "إضافة " + name + " إلى السلة"
-            );
-
-            addButton.addEventListener("click", () => {
-                addItemToCart({
-                    name,
-                    option: select.value,
-                    price: options[select.value],
-                    sectionId: section.id
-                });
-
-                addButton.textContent = "✓";
-
-                window.setTimeout(() => {
-                    addButton.textContent = "+";
-                }, 500);
-            });
-
-            details.append(optionLabel, select, priceElement);
-            card.append(imageBox, details, addButton);
-            grid.appendChild(card);
-        });
-
-        sectionElement.append(heading, grid);
-        menuElement.appendChild(sectionElement);
-    });
-
-    if (found === 0) {
-        const message = document.createElement("p");
-
-        message.className = "empty-message";
-        message.textContent = isEnglish()
-            ? "No items found with this name."
-            : "لم نجد صنفًا بهذا الاسم.";
-
-        menuElement.appendChild(message);
-    }
-
-    updateProductView(getSavedProductView());
+    document.body.classList.remove("cart-modal-open");
 }
 
-if (searchInput) {
-    searchInput.addEventListener("input", event => {
-        renderMenu(event.target.value);
-    });
-}
-
-/* =========================================
-   عناصر نافذة السلة
-========================================= */
-
-const overlay = document.getElementById("cartModalOverlay");
-const openButton = document.getElementById("fixedCartBar");
-const closeButton = document.getElementById("closeCartModal");
-const continueButton = document.getElementById("continueShoppingButton");
-
-const popupItems = document.getElementById("popupCartItems");
-const addonsList = document.getElementById("cartAddonsList");
-
-const couponInput = document.getElementById("couponCode");
-const applyCouponButton = document.getElementById("applyCouponButton");
-const couponStatus = document.getElementById("couponStatus");
-
-const popupSubtotal = document.getElementById("popupSubtotal");
-const popupDiscount = document.getElementById("popupDiscount");
-const popupGrandTotal = document.getElementById("popupGrandTotal");
-const popupFooterTotal = document.getElementById("popupFooterTotal");
-
-const popupOrderForm = document.getElementById("popupOrderForm");
-const popupOrderStatus = document.getElementById("popupOrderStatus");
-
-/* =========================================
-   استرجاع كود الخصم
-========================================= */
-
-let appliedCoupon = "";
-
-try {
-    const savedCoupon = localStorage.getItem(COUPON_STORAGE_KEY) || "";
-
-    if (COUPONS[savedCoupon]) {
-        appliedCoupon = savedCoupon;
-    }
-} catch (error) {
-    console.warn("تعذر استرجاع كود الخصم:", error);
-}
-
-/* =========================================
-   حساب الخصومات
-========================================= */
-
-function getDiscountAmount() {
-    const subtotal = getCartTotal();
-    const coupon = COUPONS[appliedCoupon];
-
-    if (!coupon || subtotal <= 0) return 0;
-
-    if (coupon.type === "percent") {
-        return Math.min(
-            subtotal,
-            Math.round(subtotal * coupon.value / 100)
-        );
-    }
-
-    return Math.min(subtotal, coupon.value);
-}
-
-function getFinalTotal() {
-    return Math.max(0, getCartTotal() - getDiscountAmount());
-}
-
-function saveCoupon() {
-    try {
-        if (appliedCoupon) {
-            localStorage.setItem(COUPON_STORAGE_KEY, appliedCoupon);
-        } else {
-            localStorage.removeItem(COUPON_STORAGE_KEY);
-        }
-    } catch (error) {
-        console.warn("تعذر حفظ كود الخصم:", error);
-    }
-}
-
-function showCouponMessage(message, success) {
-    if (!couponStatus) return;
-
-    couponStatus.textContent = message;
-    couponStatus.classList.toggle("coupon-success", Boolean(success));
-    couponStatus.classList.toggle("coupon-error", !success);
-}
+/* =========================================================
+   26 — الخصومات
+========================================================= */
 
 function applyCoupon() {
-    if (!couponInput) return;
+    const input = $("#couponCode");
+    const status = $("#couponStatus");
 
-    const code = couponInput.value.trim().toUpperCase();
+    if (!input || !status) return;
 
-    if (!code) {
-        appliedCoupon = "";
+    const code = input.value.trim().toUpperCase();
+
+    if (!code || !COUPON_RULES[code]) {
+        activeCoupon = null;
         saveCoupon();
-        renderPopupCart();
-        showCouponMessage("أدخلي كود الخصم أولاً.", false);
+
+        status.textContent = text("couponInvalid");
+        status.className = "coupon-status error";
+
+        renderCart();
         return;
     }
 
-    if (!COUPONS[code]) {
-        appliedCoupon = "";
-        saveCoupon();
-        renderPopupCart();
-        showCouponMessage("كود الخصم غير صحيح.", false);
+    if (!cart.length) {
+        status.textContent = text("emptyCart");
+        status.className = "coupon-status error";
         return;
     }
 
-    if (getCartTotal() <= 0) {
-        showCouponMessage("أضيفي منتجات إلى السلة أولاً.", false);
-        return;
-    }
+    activeCoupon = { code };
 
-    appliedCoupon = code;
     saveCoupon();
-    renderPopupCart();
 
-    const coupon = COUPONS[code];
+    status.textContent = text("couponApplied");
+    status.className = "coupon-status success";
 
-    const description = coupon.type === "percent"
-        ? "خصم " + coupon.value + "%"
-        : "خصم " + money(coupon.value);
+    renderCart();
+}
 
-    showCouponMessage(
-        "تم تطبيق " + description + " بنجاح.",
-        true
+function restoreCouponUI() {
+    const input = $("#couponCode");
+    const status = $("#couponStatus");
+
+    if (!activeCoupon) return;
+
+    if (input) {
+        input.value = activeCoupon.code || "";
+    }
+
+    if (status) {
+        status.textContent = text("couponApplied");
+        status.className = "coupon-status success";
+    }
+}
+
+/* =========================================================
+   27 — إرسال الطلب إلى واتساب
+========================================================= */
+
+function buildWhatsAppOrderMessage(customer) {
+    const lines = [];
+
+    lines.push(text("orderTitle"));
+    lines.push("====================");
+    lines.push("");
+
+    lines.push(text("orderItems"));
+    lines.push("--------------------");
+
+    cart.forEach((item, index) => {
+        const name = isEnglish()
+            ? item.name_en || EN_PRODUCTS[item.name] || item.name
+            : item.name;
+
+        const option = isEnglish()
+            ? getCartOptionEnglish(item)
+            : item.option;
+
+        lines.push(
+            `${formatPrice(index + 1)}. ${name} (${option})`
+        );
+
+        lines.push(
+            `${text("quantity")}: ${formatPrice(item.quantity)}`
+        );
+
+        lines.push(
+            `${money(item.price)} × ${formatPrice(item.quantity)} = ${money(item.price * item.quantity)}`
+        );
+
+        lines.push("");
+    });
+
+    lines.push("--------------------");
+    lines.push(`${text("subtotal")}: ${money(getCartSubtotal())}`);
+    lines.push(`${text("discount")}: ${money(getCouponDiscount())}`);
+    lines.push(`${text("total")}: ${money(getCartTotal())}`);
+
+    if (activeCoupon?.code) {
+        lines.push(`Coupon: ${activeCoupon.code}`);
+    }
+
+    lines.push("");
+    lines.push(text("orderCustomer"));
+    lines.push("--------------------");
+    lines.push(`${text("customerName")}: ${customer.name}`);
+    lines.push(`${text("customerPhone")}: ${customer.phone}`);
+    lines.push(`${text("customerAddress")}: ${customer.address}`);
+
+    if (customer.notes) {
+        lines.push(`${text("customerNotes")}: ${customer.notes}`);
+    }
+
+    lines.push("");
+    lines.push("مطعم الغنّام");
+
+    return lines.join("\n");
+}
+
+function sendOrderToWhatsApp(event) {
+    event?.preventDefault();
+
+    const name = $("#popupCustomerName")?.value.trim() || "";
+    const phone = $("#popupCustomerPhone")?.value.trim() || "";
+    const address = $("#popupCustomerAddress")?.value.trim() || "";
+    const notes = $("#popupCustomerNotes")?.value.trim() || "";
+
+    const status = $("#popupOrderStatus");
+
+    if (!cart.length) {
+        if (status) {
+            status.textContent = text("emptyCart");
+            status.className = "order-status error";
+        }
+        return;
+    }
+
+    if (!name || !phone || !address) {
+        if (status) {
+            status.textContent = text("fillRequired");
+            status.className = "order-status error";
+        }
+        return;
+    }
+
+    const message = buildWhatsAppOrderMessage({
+        name,
+        phone,
+        address,
+        notes
+    });
+
+    const whatsappURL =
+        `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+    window.open(
+        whatsappURL,
+        "_blank",
+        "noopener,noreferrer"
+    );
+
+    if (status) {
+        status.textContent = isEnglish()
+            ? "Your order is ready to send via WhatsApp."
+            : "تم تجهيز طلبك للإرسال عبر واتساب.";
+
+        status.className = "order-status success";
+    }
+}
+
+/* =========================================================
+   28 — اللغة العربية والإنجليزية
+========================================================= */
+
+function applyStaticLanguage() {
+    document.documentElement.lang = currentLanguage;
+
+    document.documentElement.dir =
+        currentLanguage === "en" ? "ltr" : "rtl";
+
+    const search = $("#grillSearch");
+
+    if (search) {
+        search.placeholder = text("searchPlaceholder");
+    }
+
+    const languageToggle = $("#languageToggle");
+
+    if (languageToggle) {
+        languageToggle.textContent =
+            currentLanguage === "en" ? "العربية" : "English";
+    }
+
+    const couponInput = $("#couponCode");
+
+    if (couponInput) {
+        couponInput.placeholder = text("couponPlaceholder");
+    }
+
+    const applyCouponButton = $("#applyCouponButton");
+
+    if (applyCouponButton) {
+        applyCouponButton.textContent = text("applyCoupon");
+    }
+
+    const continueButton = $("#continueShoppingButton");
+
+    if (continueButton) {
+        continueButton.textContent = text("continueShopping");
+    }
+
+    const orderButton = $("#popupOrderForm")?.querySelector(
+        'button[type="submit"], button:not([type])'
+    );
+
+    if (orderButton) {
+        orderButton.textContent = text("sendOrder");
+    }
+
+    const nameInput = $("#popupCustomerName");
+    const phoneInput = $("#popupCustomerPhone");
+    const addressInput = $("#popupCustomerAddress");
+    const notesInput = $("#popupCustomerNotes");
+
+    if (nameInput) nameInput.placeholder = text("customerName");
+    if (phoneInput) phoneInput.placeholder = text("customerPhone");
+    if (addressInput) addressInput.placeholder = text("customerAddress");
+    if (notesInput) notesInput.placeholder = text("customerNotes");
+
+    const offersTitle = $("#grillOffersTitle");
+
+    if (offersTitle) {
+        offersTitle.textContent = text("offers");
+    }
+
+    document.body.classList.toggle(
+        "grill-language-en",
+        currentLanguage === "en"
+    );
+
+    document.body.classList.toggle(
+        "grill-language-ar",
+        currentLanguage === "ar"
     );
 }
 
-if (applyCouponButton) {
-    applyCouponButton.addEventListener("click", applyCoupon);
+function setGrillLanguage(language) {
+    if (!["ar", "en"].includes(language)) return;
+
+    currentLanguage = language;
+
+    localStorage.setItem(
+        STORAGE_KEYS.language,
+        currentLanguage
+    );
+
+    applyStaticLanguage();
+
+    if (grillMenuLoaded) {
+        renderCategories();
+        renderMenu();
+    }
+
+    renderGrillOffers();
+    renderCart();
+    restoreCouponUI();
 }
 
-if (couponInput) {
-    couponInput.addEventListener("keydown", event => {
+/* =========================================================
+   29 — طريقة عرض المنتجات Grid / List
+========================================================= */
+
+function setGrillView(view) {
+    if (!["grid", "list"].includes(view)) return;
+
+    currentView = view;
+
+    localStorage.setItem(
+        STORAGE_KEYS.view,
+        currentView
+    );
+
+    const gridButton = $("#grillGridView");
+    const listButton = $("#grillListView");
+
+    if (gridButton) {
+        gridButton.classList.toggle(
+            "active",
+            currentView === "grid"
+        );
+    }
+
+    if (listButton) {
+        listButton.classList.toggle(
+            "active",
+            currentView === "list"
+        );
+    }
+
+    if (grillMenuLoaded) {
+        renderMenu();
+    }
+}
+
+/* =========================================================
+   30 — ربط أحداث الصفحة
+========================================================= */
+
+function bindPageEvents() {
+    const languageToggle = $("#languageToggle");
+
+    languageToggle?.addEventListener("click", () => {
+        setGrillLanguage(
+            currentLanguage === "ar" ? "en" : "ar"
+        );
+    });
+
+    $("#grillSearch")?.addEventListener(
+        "input",
+        renderMenu
+    );
+
+    $("#grillGridView")?.addEventListener("click", () => {
+        setGrillView("grid");
+    });
+
+    $("#grillListView")?.addEventListener("click", () => {
+        setGrillView("list");
+    });
+
+    $("#fixedCartBar")?.addEventListener(
+        "click",
+        openCartModal
+    );
+
+    $("#closeCartModal")?.addEventListener(
+        "click",
+        closeCartModal
+    );
+
+    $("#continueShoppingButton")?.addEventListener(
+        "click",
+        closeCartModal
+    );
+
+    $("#cartModalOverlay")?.addEventListener("click", event => {
+        if (event.target === $("#cartModalOverlay")) {
+            closeCartModal();
+        }
+    });
+
+    $("#applyCouponButton")?.addEventListener(
+        "click",
+        applyCoupon
+    );
+
+    $("#couponCode")?.addEventListener("keydown", event => {
         if (event.key === "Enter") {
             event.preventDefault();
             applyCoupon();
         }
     });
-}
 
-/* =========================================
-   اقتراحات الإضافات
-========================================= */
-
-function getExtrasSection() {
-    return grillSections.find(section => section.id === "extras");
-}
-
-function isExtraAlreadyInCart(extraName) {
-    return cart.some(item =>
-        item.sectionId === "extras" &&
-        item.name === extraName
-    );
-}
-
-function renderCartAddons() {
-    if (!addonsList) return;
-
-    addonsList.replaceChildren();
-
-    const extrasSection = getExtrasSection();
-
-    if (!extrasSection || extrasSection.items.length === 0) {
-        const empty = document.createElement("p");
-
-        empty.className = "addons-empty";
-        empty.textContent = isEnglish()
-            ? "No extras are currently available."
-            : "لا توجد إضافات متاحة حاليًا.";
-
-        addonsList.appendChild(empty);
-        return;
-    }
-
-    const availableExtras = extrasSection.items.filter(item =>
-        !isExtraAlreadyInCart(item[0])
+    $("#popupOrderForm")?.addEventListener(
+        "submit",
+        sendOrderToWhatsApp
     );
 
-    if (availableExtras.length === 0) {
-        const empty = document.createElement("p");
-
-        empty.className = "addons-empty";
-        empty.textContent = isEnglish()
-            ? "You have added all available extras to your cart."
-            : "أضفت جميع أصناف الإضافات إلى سلتك.";
-
-        addonsList.appendChild(empty);
-        return;
-    }
-
-    availableExtras.forEach(item => {
-        const name = item[0];
-        const shownName = isEnglish()
-            ? (item[4] || EN_PRODUCTS[name] || name)
-            : name;
-
-        const options = item[1];
-        const image = item[2] || "";
-
-        Object.entries(options).forEach(([optionName, price]) => {
-            const card = document.createElement("article");
-            card.className = "cart-addon-card";
-
-            const imageBox = document.createElement("div");
-            imageBox.className = "cart-addon-image-box";
-
-            function showAddonPlaceholder() {
-                imageBox.replaceChildren();
-
-                const placeholder = document.createElement("span");
-
-                placeholder.className = "cart-addon-image-placeholder";
-                placeholder.textContent = "🍽️";
-                placeholder.setAttribute("aria-hidden", "true");
-
-                imageBox.appendChild(placeholder);
-            }
-
-            if (image.trim()) {
-                const img = document.createElement("img");
-
-                img.className = "cart-addon-image";
-
-                // إصلاح مسار صورة الإضافة أيضاً
-                img.src = resolveGrillImageUrl(image);
-
-                img.alt = shownName;
-                img.loading = "lazy";
-                img.addEventListener("error", showAddonPlaceholder);
-
-                imageBox.appendChild(img);
-            } else {
-                showAddonPlaceholder();
-            }
-
-            const info = document.createElement("div");
-            info.className = "cart-addon-info";
-
-            const title = document.createElement("h4");
-            title.className = "cart-addon-name";
-            title.textContent = shownName;
-
-            const priceElement = document.createElement("span");
-            priceElement.className = "cart-addon-price";
-            priceElement.textContent = money(price);
-
-            info.append(title, priceElement);
-
-            const addButton = document.createElement("button");
-
-            addButton.type = "button";
-            addButton.className = "cart-addon-add-button";
-            addButton.textContent = "+";
-            addButton.title = isEnglish()
-                ? "Add " + shownName
-                : "إضافة " + name;
-
-            addButton.setAttribute(
-                "aria-label",
-                isEnglish()
-                    ? "Add " + shownName + " for " + money(price)
-                    : "إضافة " + name + " بسعر " + money(price)
-            );
-
-            addButton.addEventListener("click", () => {
-                addItemToCart({
-                    name,
-                    option: optionName,
-                    price,
-                    sectionId: extrasSection.id
-                });
-            });
-
-            card.append(imageBox, info, addButton);
-            addonsList.appendChild(card);
-        });
-    });
-}
-
-/* =========================================
-   عرض السلة داخل النافذة
-========================================= */
-
-function renderPopupCart() {
-    if (popupItems) {
-        popupItems.replaceChildren();
-
-        if (cart.length === 0) {
-            const empty = document.createElement("p");
-
-            empty.className = "empty-message";
-            empty.textContent = isEnglish()
-                ? "Your cart is empty. Add items from the menu."
-                : "السلة فارغة. أضيفي وجبات من المنيو.";
-
-            popupItems.appendChild(empty);
-        }
-
-        cart.forEach((item, index) => {
-            const row = document.createElement("div");
-            row.className = "cart-item";
-
-            const info = document.createElement("div");
-            info.className = "cart-item-info";
-
-            const name = document.createElement("strong");
-            name.className = "cart-item-name";
-            name.textContent = displayProductName(item.name, item.sectionId);
-
-            const option = document.createElement("div");
-            option.className = "cart-item-option";
-            option.textContent = displayOption(item.option);
-
-            const subtotal = document.createElement("div");
-            subtotal.className = "cart-item-subtotal";
-            subtotal.textContent = money(item.price * item.quantity);
-
-            info.append(name, option, subtotal);
-
-            const controls = document.createElement("div");
-            controls.className = "cart-controls";
-
-            const decrease = document.createElement("button");
-
-            decrease.type = "button";
-            decrease.className = "quantity-button";
-            decrease.textContent = "−";
-
-            decrease.setAttribute(
-                "aria-label",
-                (isEnglish() ? "Decrease quantity of " : "تقليل كمية ") +
-                displayProductName(item.name, item.sectionId)
-            );
-
-            decrease.addEventListener("click", () => {
-                item.quantity -= 1;
-
-                if (item.quantity <= 0) {
-                    cart.splice(index, 1);
-                }
-
-                renderCart();
-            });
-
-            const quantity = document.createElement("span");
-            quantity.className = "quantity-value";
-            quantity.textContent = item.quantity;
-
-            const increase = document.createElement("button");
-
-            increase.type = "button";
-            increase.className = "quantity-button";
-            increase.textContent = "+";
-
-            increase.setAttribute(
-                "aria-label",
-                (isEnglish() ? "Increase quantity of " : "زيادة كمية ") +
-                displayProductName(item.name, item.sectionId)
-            );
-
-            increase.addEventListener("click", () => {
-                item.quantity += 1;
-                renderCart();
-            });
-
-            const remove = document.createElement("button");
-
-            remove.type = "button";
-            remove.className = "remove-button";
-            remove.textContent = isEnglish() ? "Remove" : "حذف";
-
-            remove.setAttribute(
-                "aria-label",
-                (isEnglish() ? "Remove " : "حذف ") +
-                displayProductName(item.name, item.sectionId)
-            );
-
-            remove.addEventListener("click", () => {
-                cart.splice(index, 1);
-                renderCart();
-            });
-
-            controls.append(decrease, quantity, increase, remove);
-            row.append(info, controls);
-            popupItems.appendChild(row);
-        });
-    }
-
-    if (popupSubtotal) {
-        popupSubtotal.textContent = money(getCartTotal());
-    }
-
-    if (popupDiscount) {
-        popupDiscount.textContent = money(getDiscountAmount());
-    }
-
-    if (popupGrandTotal) {
-        popupGrandTotal.textContent = money(getFinalTotal());
-    }
-
-    if (popupFooterTotal) {
-        popupFooterTotal.textContent = money(getFinalTotal());
-    }
-
-    renderCartAddons();
-    updateFixedCart();
-}
-
-/* =========================================
-   فتح وإغلاق نافذة السلة
-========================================= */
-
-function openCartModal(event) {
-    if (event) event.preventDefault();
-
-    if (!overlay) {
-        console.error("لم يتم العثور على نافذة السلة: #cartModalOverlay");
-        return;
-    }
-
-    overlay.hidden = false;
-    overlay.setAttribute("aria-hidden", "false");
-    document.body.classList.add("cart-modal-open");
-
-    try {
-        renderPopupCart();
-    } catch (error) {
-        console.error("حدث خطأ أثناء تحديث محتويات السلة:", error);
-
-        if (popupOrderStatus) {
-            popupOrderStatus.textContent = isEnglish()
-                ? "The cart opened, but some details could not be updated. Refresh and try again."
-                : "ظهرت السلة، لكن تعذر تحديث بعض تفاصيلها. حدّث الصفحة وحاول مجدداً.";
-        }
-    }
-
-    if (closeButton) {
-        closeButton.focus();
-    }
-}
-
-function closeCartModal() {
-    if (!overlay) return;
-
-    overlay.hidden = true;
-    overlay.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("cart-modal-open");
-
-    if (openButton) {
-        openButton.focus();
-    }
-}
-
-if (openButton) {
-    openButton.addEventListener("click", openCartModal);
-}
-
-if (closeButton) {
-    closeButton.addEventListener("click", closeCartModal);
-}
-
-if (continueButton) {
-    continueButton.addEventListener("click", closeCartModal);
-}
-
-if (overlay) {
-    overlay.addEventListener("click", event => {
-        if (event.target === overlay) {
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
             closeCartModal();
         }
     });
+
+    setGrillView(currentView);
 }
 
-document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && overlay && !overlay.hidden) {
-        closeCartModal();
-    }
-});
-
-/* =========================================
-   تحديث السلة وحفظها
-========================================= */
-
-function renderCart() {
-    saveCart();
-    updateFixedCart();
-
-    try {
-        renderPopupCart();
-    } catch (error) {
-        console.error("تعذر تحديث تفاصيل نافذة السلة:", error);
-    }
-}
-
-/* =========================================
-   إرسال الطلب عبر واتساب
-========================================= */
-
-if (popupOrderForm) {
-    popupOrderForm.addEventListener("submit", event => {
-        event.preventDefault();
-
-        if (cart.length === 0) {
-            if (popupOrderStatus) {
-                popupOrderStatus.textContent = isEnglish()
-                    ? "Your cart is empty. Add at least one item."
-                    : "السلة فارغة. أضيفي منتجًا واحدًا على الأقل.";
-            }
-
-            return;
-        }
-
-        if (!popupOrderForm.reportValidity()) return;
-
-        const customerName =
-            document.getElementById("popupCustomerName")?.value.trim() || "";
-
-        const customerPhone =
-            document.getElementById("popupCustomerPhone")?.value.trim() || "";
-
-        const customerAddress =
-            document.getElementById("popupCustomerAddress")?.value.trim() || "";
-
-        const customerNotes =
-            document.getElementById("popupCustomerNotes")?.value.trim() || "";
-
-        let message = isEnglish()
-            ? "🍖 New Order — Al Ghannam Restaurant, Grill Branch\n\n"
-            : "🍖 طلب جديد من مطعم الغنام - فرع المشاوي\n\n";
-
-        message += (isEnglish() ? "Name: " : "الاسم: ") + customerName + "\n";
-        message += (isEnglish() ? "Phone: " : "رقم الهاتف: ") + customerPhone + "\n";
-        message += (isEnglish() ? "Address: " : "العنوان: ") + customerAddress + "\n\n";
-        message += (isEnglish() ? "Order Details:\n" : "تفاصيل الطلب:\n");
-
-        cart.forEach((item, index) => {
-            message +=
-                (index + 1) + "- " +
-                displayProductName(item.name, item.sectionId) +
-                " (" + displayOption(item.option) + ")" +
-                " × " + item.quantity +
-                " = " + money(item.price * item.quantity) + "\n";
-        });
-
-        message += "\n" + (isEnglish() ? "Subtotal: " : "المجموع الفرعي: ") + money(getCartTotal());
-
-        message += "\n" + (isEnglish() ? "Discount Code: " : "كود الخصم: ") +
-            (appliedCoupon || (isEnglish() ? "None" : "لا يوجد"));
-
-        message += "\n" + (isEnglish() ? "Discount: " : "قيمة الخصم: ") +
-            money(getDiscountAmount());
-
-        message += "\n" + (isEnglish() ? "Grand Total: " : "الإجمالي النهائي: ") +
-            money(getFinalTotal());
-
-        if (customerNotes) {
-            message += "\n" + (isEnglish() ? "Notes: " : "ملاحظات: ") + customerNotes;
-        }
-
-        const whatsappURL =
-            "https://wa.me/" + WHATSAPP_NUMBER +
-            "?text=" + encodeURIComponent(message);
-
-        const whatsappWindow = window.open(whatsappURL, "_blank");
-
-        if (!whatsappWindow) {
-            window.location.href = whatsappURL;
-        }
-    });
-}
-
-/* =========================================
-   زر تبديل اللغة
-========================================= */
-
-if (languageToggle) {
-    languageToggle.addEventListener("click", () => {
-        setGrillLanguage(isEnglish() ? "ar" : "en");
-    });
-}
-
-/* =========================================
-   مزامنة السلة عند الرجوع للصفحة
-========================================= */
-
-window.addEventListener("pageshow", () => {
-    updateFixedCart();
-    renderPopupCart();
-});
+/* =========================================================
+   31 — مزامنة السلة بين الصفحات والتبويبات
+========================================================= */
 
 window.addEventListener("storage", event => {
-    if (event.key !== CART_STORAGE_KEY && event.key !== null) {
-        return;
-    }
+    if (event.key === STORAGE_KEYS.cart) {
+        cart = loadSavedCart();
 
-    const savedCart = loadSavedCart();
-
-    cart.splice(0, cart.length, ...savedCart);
-
-    renderCart();
-});
-
-/* =========================================
-   مزامنة منيو المشاوي من Supabase
-========================================= */
-
-const GRILL_DB_SLUG_BY_SECTION = {
-    "grilled": "grilled-by-weight",
-    "appetizers": "appetizers",
-    "skewers": "skewers",
-    "wraps": "wraps",
-    "raw-meat": "raw-meat",
-    "chicken-hall": "chicken",
-    "chicken-takeaway": "chicken-takeaway",
-    "quzi": "quzi",
-    "shawarma": "shawarma",
-    "breakfast": "breakfast",
-    "extras": "extras",
-    "drinks": "drinks"
-};
-
-async function syncGrillMenuFromDatabase() {
-    try {
-        const { categories: dbCategories, products: dbProducts } =
-            await loadBranchMenu("grill");
-
-        if (!dbProducts.length) {
-            console.warn(
-                "Supabase: لا توجد منتجات متاحة لفرع المشاوي؛ ستبقى القائمة المحلية ظاهرة."
-            );
-            return;
+        if (grillMenuLoaded) {
+            updateCartImagesFromMenu();
         }
 
-        const categoryBySlug = new Map(
-            dbCategories.map(category => [category.slug, category])
-        );
-
-        grillSections.forEach(section => {
-            const slug = GRILL_DB_SLUG_BY_SECTION[section.id];
-            const category = categoryBySlug.get(slug);
-
-            if (!category) {
-                section.items = [];
-                return;
-            }
-
-            section.title = category.name;
-            section.title_en =
-                category.name_en ||
-                EN_PRODUCTS[category.name] ||
-                category.name;
-
-            section.items = dbProducts
-                .filter(product => product.category_id === category.id)
-                .map(product => {
-                    const storedOptions = product.extra?.options;
-
-                    const options =
-                        storedOptions &&
-                        typeof storedOptions === "object" &&
-                        !Array.isArray(storedOptions) &&
-                        Object.keys(storedOptions).length
-                            ? storedOptions
-                            : { "الوجبة": Number(product.price) || 0 };
-
-                    // صورة Supabase أو المسار المحلي الاحتياطي
-                    const image =
-                        product.image_url ||
-                        product.extra?.local_image_path ||
-                        "";
-
-                    return [
-                        product.name,
-                        options,
-                        String(image).trim(),
-                        product.description || "",
-                        product.name_en ||
-                            EN_PRODUCTS[product.name] ||
-                            product.name,
-                        product.description_en ||
-                            product.description ||
-                            ""
-                    ];
-                });
-        });
-
-        ensureMenuDescriptionStyle();
-
-        renderCategories();
-        renderMenu();
         renderCart();
-        updateFixedCart();
-
-        console.info(
-            `Supabase: تم تحميل ${dbProducts.length} منتجًا لفرع المشاوي.`
-        );
-    } catch (error) {
-        console.error(
-            "تعذر تحميل منيو المشاوي من Supabase؛ ستبقى القائمة المحلية ظاهرة:",
-            error
-        );
     }
+
+    if (event.key === STORAGE_KEYS.coupon) {
+        activeCoupon = loadSavedCoupon();
+        renderCart();
+        restoreCouponUI();
+    }
+
+    if (event.key === STORAGE_KEYS.language) {
+        currentLanguage =
+            localStorage.getItem(STORAGE_KEYS.language) || "ar";
+
+        applyStaticLanguage();
+
+        if (grillMenuLoaded) {
+            renderCategories();
+            renderMenu();
+        }
+
+        renderGrillOffers();
+        renderCart();
+    }
+});
+
+window.addEventListener("pageshow", () => {
+    cart = loadSavedCart();
+    activeCoupon = loadSavedCoupon();
+
+    if (grillMenuLoaded) {
+        updateCartImagesFromMenu();
+    }
+
+    renderCart();
+    restoreCouponUI();
+});
+
+/* =========================================================
+   32 — تهيئة الصفحة
+========================================================= */
+
+function initializeGrillPage() {
+    const cartOverlay = $("#cartModalOverlay");
+
+    if (cartOverlay) {
+        cartOverlay.hidden = true;
+        cartOverlay.classList.remove("active");
+        cartOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    applyStaticLanguage();
+    bindPageEvents();
+
+    void syncGrillMenuFromDatabase();
+    void syncGrillOffersFromDatabase();
+
+    restoreCouponUI();
+    renderCart();
 }
 
-/* =========================================
-   تشغيل الصفحة
-========================================= */
-
-applyStaticLanguage();
-renderCategories();
-renderMenu();
-renderCart();
-updateFixedCart();
-
-void syncGrillMenuFromDatabase();
+if (document.readyState === "loading") {
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeGrillPage,
+        { once: true }
+    );
+} else {
+    initializeGrillPage();
+}

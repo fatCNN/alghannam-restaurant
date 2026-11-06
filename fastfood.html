@@ -30,7 +30,6 @@
         </div>
     </div>
 
-
     <!-- رأس الموقع -->
     <header class="site-header">
 
@@ -93,7 +92,6 @@
         </nav>
     </header>
 
-
     <!-- الواجهة الرئيسية -->
     <main>
 
@@ -104,7 +102,6 @@
         >
             <div class="hero-content"></div>
         </section>
-
 
         <!-- المنيو والمنتجات -->
         <div class="container">
@@ -176,6 +173,33 @@
                 </div>
             </section>
 
+            <!-- عروض فرع الوجبات السريعة من Supabase -->
+            <section
+                id="fastfoodOffersSection"
+                class="fastfood-offers-section"
+                aria-label="عروض مطعم الغنّام"
+                hidden
+            >
+
+                <div class="fastfood-offers-container">
+
+                    <div class="fastfood-offers-heading">
+                        <h2 id="fastfoodOffersTitle"> عروضنا المميزة</h2>
+
+                        <p id="fastfoodOffersSubtitle">
+                            استمتع بأفضل عروض مطعم الغنّام
+                        </p>
+                    </div>
+
+                    <div
+                        id="fastfoodOffers"
+                        class="fastfood-offers-grid"
+                        aria-live="polite"
+                    ></div>
+
+                </div>
+
+            </section>
 
             <!-- منطقة المنتجات -->
             <section
@@ -190,7 +214,6 @@
                     </p>
                 </div>
             </section>
-
 
             <!-- السلة — عناصر داخلية يستخدمها JavaScript -->
             <section
@@ -223,7 +246,6 @@
         </div>
     </main>
 
-
     <!-- شريط السلة الثابت -->
     <button
         type="button"
@@ -250,7 +272,6 @@
         <span class="fixed-cart-arrow" aria-hidden="true">←</span>
 
     </button>
-
 
     <!-- نافذة السلة -->
     <div class="cart-modal-overlay" id="cartModalOverlay" hidden>
@@ -281,7 +302,6 @@
 
             </header>
 
-
             <div class="cart-modal-body">
 
                 <!-- المنتجات داخل السلة -->
@@ -294,7 +314,6 @@
                     <div id="popupCartItems"></div>
 
                 </section>
-
 
                 <!-- الإضافات المقترحة -->
                 <section
@@ -325,7 +344,6 @@
                     </div>
 
                 </section>
-
 
                 <!-- كود الخصم -->
                 <section class="coupon-box">
@@ -363,7 +381,6 @@
 
                 </section>
 
-
                 <!-- ملخص الحساب -->
                 <section
                     class="coupon-summary"
@@ -387,7 +404,6 @@
                     </div>
 
                 </section>
-
 
                 <!-- معلومات الزبون وإرسال الطلب -->
                 <form id="popupOrderForm" class="popup-order-form">
@@ -471,7 +487,6 @@
 
             </div>
 
-
             <!-- أسفل نافذة السلة -->
             <footer class="cart-modal-footer">
 
@@ -495,10 +510,8 @@
 
     </div>
 
-
     <!-- خلفية القائمة الجانبية -->
     <div class="settings-overlay" id="settingsOverlay" hidden></div>
-
 
     <!-- القائمة الجانبية -->
     <aside
@@ -536,7 +549,6 @@
 
         </header>
 
-
         <div class="settings-panel-content">
 
             <h3 class="settings-section-title" data-i18n="navigationTitle">
@@ -556,7 +568,6 @@
 
             </a>
 
-
             <a
                 class="settings-menu-item"
                 href="#menu"
@@ -573,7 +584,6 @@
                 <span class="settings-item-arrow">←</span>
 
             </a>
-
 
             <button
                 type="button"
@@ -592,13 +602,11 @@
 
             </button>
 
-
             <div class="settings-divider"></div>
 
             <h3 class="settings-section-title" data-i18n="restaurantInfo">
                 معلومات المطعم
             </h3>
-
 
             <div class="settings-info-card">
 
@@ -611,7 +619,6 @@
 
             </div>
 
-
             <div class="settings-info-card">
 
                 <span>💰</span>
@@ -622,7 +629,6 @@
                 </div>
 
             </div>
-
 
             <a class="settings-menu-item" href="./support/support.html">
 
@@ -637,7 +643,6 @@
 
             </a>
 
-
             <div class="settings-compact-card">
 
                 <span class="settings-compact-icon">📞</span>
@@ -649,7 +654,6 @@
                 </div>
 
             </div>
-
 
             <a
                 class="settings-compact-card settings-location-link"
@@ -671,7 +675,6 @@
 
         </div>
 
-
         <footer class="settings-panel-footer">
 
             <button
@@ -686,7 +689,6 @@
         </footer>
 
     </aside>
-
 
     <!-- تذييل الموقع -->
     <footer class="site-footer" id="contact">
@@ -713,7 +715,6 @@
         </a>
 
     </footer>
-
 
     <!-- التحكم بالقائمة الجانبية -->
     <script>
