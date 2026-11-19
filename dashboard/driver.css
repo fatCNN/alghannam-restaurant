@@ -1,0 +1,823 @@
+:root {
+    --wine: #4b1111;
+    --wine-dark: #310909;
+    --wine-light: #7b1b0b;
+    --gold: #f5c16c;
+    --cream: #fffaf2;
+    --background: #f5f2ed;
+    --white: #ffffff;
+    --text: #292323;
+    --muted: #817777;
+    --border: #e9e1d8;
+    --success: #218653;
+    --danger: #b83232;
+    --shadow: 0 8px 28px rgba(52, 24, 18, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--text);
+    font-family: Tahoma, Arial, sans-serif;
+    line-height: 1.7;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.driver-container {
+    width: min(100% - 28px, 900px);
+    margin: 0 auto;
+    padding: 24px 0 40px;
+}
+
+/* تسجيل الدخول */
+
+.login-view {
+    min-height: calc(100vh - 48px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-card {
+    width: min(100%, 430px);
+    padding: 36px 30px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 105px;
+    padding: 8px 18px;
+    border-radius: 12px;
+    background: var(--wine);
+    color: var(--gold);
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+.brand-mark.small {
+    min-width: auto;
+    padding: 4px 12px;
+    font-size: 17px;
+    border-radius: 8px;
+}
+
+.login-card h1 {
+    margin: 20px 0 5px;
+    color: var(--wine);
+    font-size: 25px;
+}
+
+.login-card > p {
+    margin: 0 0 25px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.login-card form {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.login-card label {
+    margin: 12px 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.login-card input {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    background: #fffdfb;
+    color: var(--text);
+    direction: rtl;
+}
+
+.login-card input:focus {
+    border-color: var(--wine-light);
+    box-shadow: 0 0 0 3px rgba(123, 27, 11, 0.09);
+}
+
+/* الأزرار العامة */
+
+.primary-btn,
+.secondary-btn,
+.logout-btn,
+.refresh-btn {
+    min-height: 44px;
+    padding: 10px 17px;
+    border: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    transition: 0.2s ease;
+}
+
+.primary-btn {
+    background: var(--wine);
+    color: var(--gold);
+}
+
+.primary-btn:hover {
+    background: var(--wine-dark);
+}
+
+.login-card .primary-btn {
+    margin-top: 22px;
+    min-height: 50px;
+}
+
+.secondary-btn {
+    background: #f2eae3;
+    color: var(--wine);
+}
+
+.secondary-btn:hover {
+    background: #e9ddd2;
+}
+
+.logout-btn {
+    background: #f7e9e7;
+    color: var(--wine);
+    white-space: nowrap;
+}
+
+.logout-btn:hover {
+    background: #efd6d2;
+}
+
+.refresh-btn {
+    min-height: 38px;
+    padding: 7px 14px;
+    background: var(--wine);
+    color: white;
+}
+
+/* رسائل الحالة */
+
+.message {
+    min-height: 22px;
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.message.error,
+.page-message.error {
+    color: var(--danger);
+}
+
+.message.success {
+    color: var(--success);
+}
+
+.message.warning {
+    color: #9a6715;
+}
+
+.page-message {
+    margin: 18px 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 14px;
+}
+
+/* التطبيق */
+
+.driver-app {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.driver-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 5px 0;
+}
+
+.driver-header h1 {
+    margin: 7px 0 0;
+    color: var(--wine);
+    font-size: 22px;
+}
+
+.welcome-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    border-radius: 18px;
+    background: linear-gradient(120deg, var(--wine-dark), var(--wine-light));
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.welcome-card h2 {
+    margin: 3px 0;
+    color: var(--gold);
+    font-size: 23px;
+}
+
+.welcome-card p {
+    margin: 0;
+    color: #f3ded0;
+    font-size: 14px;
+}
+
+.muted,
+.welcome-card .muted {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.welcome-card .muted {
+    color: #e5c9b9;
+}
+
+.driver-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    flex: 0 0 64px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 32px;
+}
+
+/* البطاقات */
+
+.gps-card,
+.map-card,
+.orders-section {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--white);
+    box-shadow: var(--shadow);
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    color: var(--wine);
+    font-size: 19px;
+}
+
+.section-heading p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 30px;
+    background: #f2eeee;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-pill.online {
+    background: #e4f5eb;
+    color: var(--success);
+}
+
+.status-pill.offline {
+    background: #f6e9e7;
+    color: var(--danger);
+}
+
+.gps-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.gps-buttons button {
+    flex: 1 1 180px;
+}
+
+.last-location {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* الخريطة */
+
+.map-symbol {
+    font-size: 25px;
+}
+
+.delivery-map {
+    width: 100%;
+    height: 390px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #e8e6df;
+    z-index: 1;
+}
+
+.leaflet-container {
+    font-family: Tahoma, Arial, sans-serif;
+    direction: ltr;
+}
+
+.leaflet-popup-content {
+    direction: rtl;
+    text-align: right;
+    line-height: 1.7;
+}
+
+.map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 13px 2px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.map-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+}
+
+.branch-dot {
+    background: #8b241b;
+}
+
+.driver-dot {
+    background: #1766bd;
+}
+
+.customer-dot {
+    background: #16834e;
+}
+
+.route-info {
+    padding: 13px 15px;
+    border: 1px solid #ead9bd;
+    border-radius: 11px;
+    background: #fff8eb;
+    color: #704a1e;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* خيارات الخرائط الخارجية */
+
+.external-map-actions {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.external-map-actions h3 {
+    margin: 0;
+    color: var(--wine);
+    font-size: 16px;
+}
+
+.external-map-actions > p {
+    margin: 5px 0 14px;
+}
+
+.map-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.map-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    min-height: 54px;
+    padding: 10px 13px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: #fffdf9;
+    color: var(--wine);
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    transition: 0.2s ease;
+}
+
+.map-action-btn span {
+    font-size: 19px;
+}
+
+.map-action-btn:hover {
+    border-color: var(--gold);
+    background: #fff7e9;
+    transform: translateY(-1px);
+}
+
+.map-action-btn.highlight {
+    border-color: var(--wine);
+    background: var(--wine);
+    color: var(--gold);
+}
+
+.map-action-btn.highlight:hover {
+    background: var(--wine-dark);
+}
+
+/* الطلبات */
+
+.orders-heading {
+    margin-bottom: 18px;
+}
+
+.orders-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 17px;
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--cream);
+}
+
+.stat-card span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.stat-card strong {
+    color: var(--wine);
+    font-size: 23px;
+}
+
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.order-card {
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: white;
+    transition: 0.2s ease;
+    cursor: pointer;
+}
+
+.order-card:hover {
+    border-color: #d7b77f;
+}
+
+.order-card.selected {
+    border: 2px solid var(--wine-light);
+    background: #fffaf5;
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.order-number {
+    display: block;
+    color: var(--wine);
+    font-weight: 900;
+}
+
+.order-status {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: #f4eee5;
+    color: #795522;
+    font-size: 11px;
+}
+
+.order-total {
+    color: var(--wine);
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.order-customer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+}
+
+.order-customer strong {
+    color: var(--text);
+}
+
+.order-customer a {
+    color: #1766bd;
+    text-decoration: none;
+    direction: ltr;
+    font-size: 13px;
+}
+
+.order-address {
+    margin: 10px 0 5px;
+    color: #554b46;
+    font-size: 13px;
+}
+
+.order-notes {
+    margin: 8px 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fff7e9;
+    color: #78571f;
+    font-size: 12px;
+}
+
+.order-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 11px;
+    padding: 10px;
+    border-radius: 9px;
+    background: #faf8f5;
+    font-size: 12px;
+}
+
+.order-item-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.order-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 13px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.select-order-btn {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--wine);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.select-order-btn:hover {
+    background: var(--wine-dark);
+}
+
+/* الحالات الفارغة والتحميل */
+
+.empty-state,
+.loading-state {
+    padding: 30px 15px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+}
+
+.empty-icon {
+    margin-bottom: 7px;
+    font-size: 30px;
+}
+
+.empty-state strong {
+    display: block;
+    color: var(--wine);
+}
+
+.empty-state p {
+    margin: 5px 0 0;
+}
+
+.driver-footer {
+    padding: 10px 0;
+    color: #988d84;
+    text-align: center;
+    font-size: 11px;
+}
+
+/* الشاشات الصغيرة */
+
+@media (max-width: 600px) {
+    .driver-container {
+        width: min(100% - 18px, 900px);
+        padding-top: 12px;
+    }
+
+    .driver-app {
+        gap: 13px;
+    }
+
+    .driver-header h1 {
+        font-size: 18px;
+    }
+
+    .logout-btn {
+        min-height: 38px;
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .welcome-card {
+        padding: 17px;
+    }
+
+    .welcome-card h2 {
+        font-size: 20px;
+    }
+
+    .gps-card,
+    .map-card,
+    .orders-section {
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .section-heading h2 {
+        font-size: 17px;
+    }
+
+    .delivery-map {
+        height: 320px;
+    }
+
+    .map-action-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .map-action-btn {
+        min-height: 58px;
+        padding: 9px;
+        font-size: 11px;
+    }
+
+    .map-action-btn span {
+        font-size: 17px;
+    }
+
+    .order-card {
+        padding: 13px;
+    }
+
+    .order-customer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 360px) {
+    .map-action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gps-buttons {
+        flex-direction: column;
+    }
+
+    .gps-buttons button {
+        width: 100%;
+    }
+}
+
+/* شعار الغنّام في صفحة المندوب */
+.brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-mark img {
+    width: 105px;
+    height: 85px;
+    object-fit: contain;
+    display: block;
+}
+
+.brand-mark.small img {
+    width: 75px;
+    height: 60px;
+}
+
+@media (max-width: 480px) {
+    .brand-mark img {
+        width: 95px;
+        height: 78px;
+    }
+
+    .brand-mark.small img {
+        width: 65px;
+        height: 52px;
+    }
+}
+
+/* إزالة خلفية الشعار وإظهار الصورة بشفافيتها الأصلية */
+.brand-mark,
+.brand-mark.small {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+.brand-mark img {
+    display: block;
+    object-fit: contain;
+    background: transparent;
+    mix-blend-mode: normal;
+}

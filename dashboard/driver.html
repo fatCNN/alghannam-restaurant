@@ -1,0 +1,451 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2b0d0d">
+
+    <title>تطبيق المندوب | مطعم الغنّام</title>
+
+    <!-- شعار الغنّام في تبويب المتصفح -->
+    <link rel="icon" type="image/png" href="../image/logo.png">
+    <link rel="apple-touch-icon" href="../image/logo.png">
+
+    <!-- ملفات التنسيق -->
+    <link rel="stylesheet" href="./driver.css">
+    <link rel="stylesheet" href="./loader.css">
+
+    <!-- Leaflet map -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin=""
+    >
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin=""
+    ></script>
+</head>
+
+<body>
+
+    <!-- =====================================
+         شاشة تحميل مطعم الغنّام
+    ====================================== -->
+    <div id="pageLoader" class="page-loader">
+
+        <div class="loader-content">
+
+            <img
+                src="../image/logo.png"
+                alt="شعار مطعم الغنّام"
+                loading="eager"
+            >
+
+            <h2>الغنّام</h2>
+
+            <div class="loader-spinner"></div>
+
+            <p>جاري تحميل الصفحة...</p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
+         محتوى تطبيق المندوب
+    ====================================== -->
+    <main class="driver-container">
+
+        <!-- تسجيل الدخول -->
+        <section id="loginView" class="login-view">
+
+            <div class="login-card">
+
+                <!-- شعار المطعم -->
+                <div class="brand-mark">
+                    <img
+                        src="../image/logo.png"
+                        alt="مطعم الغنّام"
+                    >
+                </div>
+
+                <h1>دخول المندوب</h1>
+
+                <p>سجّل الدخول لمتابعة طلبات التوصيل</p>
+
+                <form id="driverLoginForm">
+
+                    <label for="driverEmail">
+                        البريد الإلكتروني
+                    </label>
+
+                    <input
+                        id="driverEmail"
+                        type="email"
+                        autocomplete="username"
+                        placeholder="أدخل البريد الإلكتروني"
+                        required
+                    >
+
+                    <label for="driverPassword">
+                        كلمة المرور
+                    </label>
+
+                    <input
+                        id="driverPassword"
+                        type="password"
+                        autocomplete="current-password"
+                        placeholder="أدخل كلمة المرور"
+                        required
+                    >
+
+                    <button
+                        id="loginBtn"
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        تسجيل الدخول
+                    </button>
+
+                    <p
+                        id="loginMessage"
+                        class="message"
+                        role="alert"
+                    ></p>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             واجهة المندوب
+        ====================================== -->
+        <section id="driverApp" class="driver-app" hidden>
+
+            <!-- رأس الصفحة -->
+            <header class="driver-header">
+
+                <div>
+
+                    <!-- شعار المطعم في رأس لوحة المندوب -->
+                    <div class="brand-mark small">
+
+                        <img
+                            src="../image/logo.png"
+                            alt="مطعم الغنّام"
+                        >
+
+                    </div>
+
+                    <h1>لوحة المندوب</h1>
+
+                </div>
+
+                <button
+                    id="logoutBtn"
+                    type="button"
+                    class="logout-btn"
+                >
+                    تسجيل الخروج
+                </button>
+
+            </header>
+
+
+            <!-- بطاقة الترحيب -->
+            <section class="welcome-card">
+
+                <div>
+
+                    <span class="muted">أهلاً بك</span>
+
+                    <h2 id="driverName">المندوب</h2>
+
+                    <p id="driverBranch">الفرع</p>
+
+                </div>
+
+                <div class="driver-icon">🚚</div>
+
+            </section>
+
+
+            <!-- =====================================
+                 حالة GPS
+            ====================================== -->
+            <section class="gps-card">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <h2>مشاركة الموقع</h2>
+
+                        <p>
+                            فعّل الموقع حتى يتمكن المطعم من متابعة حركتك
+                        </p>
+
+                    </div>
+
+                    <span id="gpsStatus" class="status-pill">
+                        متوقف
+                    </span>
+
+                </div>
+
+                <p id="gpsMessage" class="message">
+                    مشاركة الموقع غير مفعّلة
+                </p>
+
+                <div class="gps-buttons">
+
+                    <button
+                        id="startGpsBtn"
+                        type="button"
+                        class="primary-btn"
+                    >
+                        تشغيل مشاركة الموقع
+                    </button>
+
+                    <button
+                        id="stopGpsBtn"
+                        type="button"
+                        class="secondary-btn"
+                    >
+                        إيقاف المشاركة
+                    </button>
+
+                </div>
+
+                <p id="lastLocation" class="last-location">
+                    لم يتم إرسال موقع بعد
+                </p>
+
+            </section>
+
+
+            <!-- =====================================
+                 الخريطة
+            ====================================== -->
+            <section class="map-card">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <h2>خريطة التوصيل</h2>
+
+                        <p>
+                            موقع الفرع والمندوب والزبون ومسار التوصيل
+                        </p>
+
+                    </div>
+
+                    <span class="map-symbol">📍</span>
+
+                </div>
+
+                <div
+                    id="deliveryMap"
+                    class="delivery-map"
+                ></div>
+
+                <div class="map-legend">
+
+                    <span>
+                        <i class="legend-dot branch-dot"></i>
+                        الفرع
+                    </span>
+
+                    <span>
+                        <i class="legend-dot driver-dot"></i>
+                        المندوب
+                    </span>
+
+                    <span>
+                        <i class="legend-dot customer-dot"></i>
+                        الزبون
+                    </span>
+
+                </div>
+
+                <div id="routeInfo" class="route-info">
+                    اختر طلباً لعرض مساره
+                </div>
+
+
+                <!-- روابط الخرائط الخارجية -->
+                <div class="external-map-actions">
+
+                    <h3>خيارات الخرائط الخارجية</h3>
+
+                    <p class="muted">
+                        استخدم هذه الخيارات إذا واجهت مشكلة في الخريطة الداخلية.
+                    </p>
+
+                    <div class="map-action-grid">
+
+                        <button
+                            id="openBranchMapBtn"
+                            type="button"
+                            class="map-action-btn"
+                        >
+                            <span>🏪</span>
+                            موقع الفرع
+                        </button>
+
+                        <button
+                            id="openCustomerMapBtn"
+                            type="button"
+                            class="map-action-btn"
+                        >
+                            <span>📍</span>
+                            موقع الزبون
+                        </button>
+
+                        <button
+                            id="openBranchRouteBtn"
+                            type="button"
+                            class="map-action-btn"
+                        >
+                            <span>🛣️</span>
+                            المسار من الفرع
+                        </button>
+
+                        <button
+                            id="navigateCustomerBtn"
+                            type="button"
+                            class="map-action-btn highlight"
+                        >
+                            <span>🚗</span>
+                            الملاحة إلى الزبون
+                        </button>
+
+                        <button
+                            id="copyCustomerLocationBtn"
+                            type="button"
+                            class="map-action-btn"
+                        >
+                            <span>🔗</span>
+                            نسخ رابط الزبون
+                        </button>
+
+                        <button
+                            id="copyCustomerCoordinatesBtn"
+                            type="button"
+                            class="map-action-btn"
+                        >
+                            <span>📋</span>
+                            نسخ الإحداثيات
+                        </button>
+
+                    </div>
+
+                    <p
+                        id="mapActionMessage"
+                        class="message"
+                        role="status"
+                    ></p>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 الطلبات
+            ====================================== -->
+            <section class="orders-section">
+
+                <div class="section-heading orders-heading">
+
+                    <div>
+
+                        <h2>طلبات التوصيل</h2>
+
+                        <p>الطلبات المسندة إليك</p>
+
+                    </div>
+
+                    <button
+                        id="refreshBtn"
+                        type="button"
+                        class="refresh-btn"
+                    >
+                        تحديث ↻
+                    </button>
+
+                </div>
+
+
+                <!-- إحصائيات الطلبات -->
+                <div class="orders-stats">
+
+                    <div class="stat-card">
+
+                        <span>الطلبات المعروضة</span>
+
+                        <strong id="ordersCount">0</strong>
+
+                    </div>
+
+                    <div class="stat-card">
+
+                        <span>قيد التوصيل</span>
+
+                        <strong id="activeCount">0</strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- قائمة الطلبات -->
+                <div id="ordersList" class="orders-list">
+
+                    <div class="empty-state">
+                        لا توجد طلبات حالياً
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- رسائل الصفحة -->
+            <p
+                id="pageMessage"
+                class="page-message"
+                role="status"
+            ></p>
+
+
+            <!-- تذييل الصفحة -->
+            <footer class="driver-footer">
+                مطعم الغنّام · نظام متابعة المندوبين
+            </footer>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================
+         ملفات JavaScript
+    ====================================== -->
+
+    <!-- نظام شاشة التحميل -->
+    <script src="./loader.js"></script>
+
+    <!-- نظام المندوب -->
+    <script type="module" src="./driver.js"></script>
+
+</body>
+</html>

@@ -1,21 +1,33 @@
+import {
+    supabaseClient as supabase,
+    isSupabaseConfigured as configured
+} from "./dashboard/supabase-client.js";
+
+import {
+    loadBranchDiscounts,
+    getBestAutomaticDiscount,
+    priceAfterAutomaticDiscount,
+    automaticDiscountValue
+} from "./discounts.js";
 
 /* =========================================================
    مطعم الغنّام — فرع الفلافل
    FALAFEL BRANCH — DATABASE DRIVEN
 
-   FEATURES:
    - Supabase categories / products / offers
-   - Full Arabic / English interface
-   - RTL / LTR automatic direction
-   - Static page translation
-   - Settings panel translation
+   - Arabic / English interface
+   - RTL / LTR
    - Search and category navigation
-   - Grid / horizontal product view
+   - Grid / list product view
    - Cart and quantity management
-   - Suggested add-ons
-   - Coupon GHANNAM15
-   - WhatsApp ordering
-   - Add-to-cart bell sound
+   - Automatic discounts
+   - Server-validated coupons
+   - Secure order creation through create_order_secure
+   - WhatsApp ordering after successful database save
+
+   IMPORTANT:
+   Prices, automatic discounts, coupon discounts and totals
+   are recalculated and validated by Supabase.
 ========================================================= */
 
 (() => {
@@ -36,9 +48,6 @@
         "07760000552",
         "07860000556"
     ];
-
-    const COUPON_CODE = "GHANNAM15";
-    const COUPON_RATE = 0.15;
 
     const IMAGE_FOLDER = "falafel/imagefalafel/";
 
@@ -97,6 +106,19 @@
         );
     }
 
+    function normalizeCouponCode(value) {
+        return String(value ?? "")
+            .trim()
+            .toUpperCase();
+    }
+
+    function getErrorMessage(error) {
+        return error?.message ||
+            error?.details ||
+            error?.hint ||
+            String(error || "حدث خطأ غير معروف");
+    }
+
     let currentLanguage =
         safeStorageGet(LANGUAGE_KEY, "ar") === "en"
             ? "en"
@@ -131,7 +153,6 @@
             decrease: "تقليل الكمية",
             increase: "زيادة الكمية",
             remove: "حذف المنتج",
-            extras: "إضافات من المنيو",
             addToOrder: "أضف إلى طلبك",
             addAddon: "أضف للسلة",
             noAddons: "لا توجد إضافات أخرى متاحة.",
@@ -139,12 +160,14 @@
             coupon: "🎟️ كود الخصم",
             couponPlaceholder: "أدخل كود الخصم",
             apply: "تطبيق",
-            invalidCoupon: "الكود غير صحيح.",
+            invalidCoupon: "الكوبون غير صالح أو غير متاح لهذا الطلب.",
             enterCoupon: "أدخل كود الخصم أولاً.",
-            applied: "تم تطبيق خصم 15% بنجاح.",
+            applied: "تم التحقق من الكوبون بنجاح.",
+            validatingCoupon: "جارٍ التحقق من الكوبون...",
             couponNeedItems: "أضف منتجات إلى السلة أولاً.",
-            subtotal: "المجموع الفرعي",
-            discount: "الخصم",
+            subtotal: "المجموع بعد الخصم التلقائي",
+            discount: "خصم الكوبون",
+            automaticDiscount: "التوفير من العروض التلقائية",
             total: "الإجمالي النهائي",
             customerInfo: "معلومات الزبون",
             name: "الاسم",
@@ -157,7 +180,6 @@
             send: "إرسال الطلب عبر واتساب",
             continue: "مواصلة التسوق",
             close: "إغلاق",
-            closeMenu: "إغلاق القائمة",
             cartEmptyOrder: "أضف منتجاً واحداً على الأقل قبل إرسال الطلب.",
             openingWhatsApp: "سيتم فتح واتساب لإكمال إرسال الطلب.",
             whatsappError: "تعذر فتح واتساب. اسمح بالنوافذ المنبثقة.",
@@ -206,7 +228,13 @@
             cartBranch: "مطعم الغنّام — فرع الفلافل",
 
             gridView: "التبديل إلى العرض الأفقي",
-            listView: "التبديل إلى عرض البطاقات"
+            listView: "التبديل إلى عرض البطاقات",
+
+            savingOrder: "جارٍ حفظ الطلب...",
+            orderSaved: "تم حفظ الطلب بنجاح.",
+            orderSaveFailed: "تعذر حفظ الطلب. السلة لم تتغير.",
+            whatsappSaved: "تم حفظ الطلب. أكمل إرساله عبر واتساب.",
+            whatsappBlocked: "تم حفظ الطلب، لكن تعذر فتح واتساب."
         },
 
         en: {
@@ -233,7 +261,6 @@
             decrease: "Decrease quantity",
             increase: "Increase quantity",
             remove: "Remove item",
-            extras: "Menu Add-ons",
             addToOrder: "Add to Your Order",
             addAddon: "Add to Cart",
             noAddons: "No additional items available.",
@@ -241,12 +268,14 @@
             coupon: "🎟️ Discount Code",
             couponPlaceholder: "Enter discount code",
             apply: "Apply",
-            invalidCoupon: "Invalid discount code.",
+            invalidCoupon: "The coupon is invalid or unavailable for this order.",
             enterCoupon: "Please enter the discount code.",
-            applied: "15% discount applied successfully.",
+            applied: "Coupon validated successfully.",
+            validatingCoupon: "Validating coupon...",
             couponNeedItems: "Add products to your cart first.",
-            subtotal: "Subtotal",
-            discount: "Discount",
+            subtotal: "Subtotal after automatic discounts",
+            discount: "Coupon discount",
+            automaticDiscount: "Automatic savings",
             total: "Grand Total",
             customerInfo: "Customer Information",
             name: "Name",
@@ -259,7 +288,6 @@
             send: "Send Order via WhatsApp",
             continue: "Continue Shopping",
             close: "Close",
-            closeMenu: "Close Menu",
             cartEmptyOrder: "Add at least one item before submitting.",
             openingWhatsApp: "Opening WhatsApp...",
             whatsappError: "Could not open WhatsApp. Allow pop-ups.",
@@ -308,7 +336,13 @@
             cartBranch: "Al Ghannam Restaurant — Falafel Branch",
 
             gridView: "Switch to List View",
-            listView: "Switch to Grid View"
+            listView: "Switch to Grid View",
+
+            savingOrder: "Saving your order...",
+            orderSaved: "Your order was saved successfully.",
+            orderSaveFailed: "Could not save your order. Your cart is unchanged.",
+            whatsappSaved: "Your order was saved. Continue sending it through WhatsApp.",
+            whatsappBlocked: "Your order was saved, but WhatsApp could not open."
         }
     };
 
@@ -328,13 +362,18 @@
     ===================================================== */
 
     let products = [];
+    let automaticDiscounts = [];
     let databaseCategories = [];
     let databaseOffers = [];
 
     let currentSearch = "";
     let cart = [];
-    let activeCoupon = "";
 
+    let activeCoupon = "";
+    let couponPreviewAmount = 0;
+    let couponValidationSequence = 0;
+
+    let orderSubmitting = false;
     let lastCartFocus = null;
     let audioContext = null;
 
@@ -366,40 +405,40 @@
 
     function productName(product) {
         if (currentLanguage === "en") {
-            return product.name_en ||
-                product.name_ar ||
-                product.name ||
+            return product?.name_en ||
+                product?.name_ar ||
+                product?.name ||
                 "";
         }
 
-        return product.name_ar ||
-            product.name ||
+        return product?.name_ar ||
+            product?.name ||
             "";
     }
 
     function productDescription(product) {
         if (currentLanguage === "en") {
-            return product.description_en ||
-                product.description_ar ||
-                product.description ||
+            return product?.description_en ||
+                product?.description_ar ||
+                product?.description ||
                 "";
         }
 
-        return product.description_ar ||
-            product.description ||
+        return product?.description_ar ||
+            product?.description ||
             "";
     }
 
     function categoryDisplayName(category) {
         if (currentLanguage === "en") {
-            return category.name_en ||
-                category.name_ar ||
-                category.name ||
+            return category?.name_en ||
+                category?.name_ar ||
+                category?.name ||
                 "";
         }
 
-        return category.name_ar ||
-            category.name ||
+        return category?.name_ar ||
+            category?.name ||
             "";
     }
 
@@ -457,9 +496,9 @@
 
     function getProductImage(product) {
         return [
-            product.image_url,
-            product.image_path,
-            product.extra?.local_image_path
+            product?.image_url,
+            product?.image_path,
+            product?.extra?.local_image_path
         ]
             .map(normalizeDatabaseImage)
             .find(Boolean) || "";
@@ -467,8 +506,8 @@
 
     function getOfferImage(offer) {
         return [
-            offer.image_url,
-            offer.image_path
+            offer?.image_url,
+            offer?.image_path
         ]
             .map(normalizeDatabaseImage)
             .find(Boolean) || "";
@@ -489,7 +528,6 @@
 
     /* =====================================================
        08 — STATIC PAGE TRANSLATIONS
-       Header / Cart / Settings / Footer / Page labels
     ===================================================== */
 
     function setText(selector, value, root = document) {
@@ -626,12 +664,11 @@
         setText(".popup-submit-button", t("send"));
         setText("#continueShoppingButton", t("continue"));
 
-        /* Settings panel header */
+        /* Settings panel */
         setText("#settingsPanelTitle", t("sideMenuTitle"));
         setText(".settings-heading p", t("cartBranch"));
         setAttribute("#closeSettingsPanel", "aria-label", t("close"));
 
-        /* Settings section headings */
         const settingsHeadings =
             $$(".settings-panel .settings-section-title");
 
@@ -643,7 +680,6 @@
             settingsHeadings[1].textContent = t("restaurantInfo");
         }
 
-        /* Settings menu items */
         const settingsItems =
             $$(".settings-panel .settings-menu-item");
 
@@ -661,7 +697,6 @@
             setText("small", t("viewItemsTotal"), settingsItems[2]);
         }
 
-        /* Restaurant info cards */
         const infoCards = $$(".settings-info-card");
 
         if (infoCards[0]) {
@@ -674,7 +709,6 @@
             setText("p", t("iraqiCurrency"), infoCards[1]);
         }
 
-        /* Help link */
         const helpLink = $('a[href="support/support.html"]');
 
         if (helpLink) {
@@ -682,7 +716,6 @@
             setText("small", t("helpDescription"), helpLink);
         }
 
-        /* Branch phone card */
         const phoneCard =
             $(".settings-compact-card:not(.settings-location-link)");
 
@@ -690,17 +723,12 @@
             setText("strong", t("branchNumbers"), phoneCard);
         }
 
-        /* Branch location */
         const locationCard = $(".settings-location-link");
 
         if (locationCard) {
             setText("strong", t("branchLocation"), locationCard);
             setText("small", t("locationDescription"), locationCard);
-
-            locationCard.setAttribute(
-                "aria-label",
-                t("openMap")
-            );
+            locationCard.setAttribute("aria-label", t("openMap"));
         }
 
         setText("#settingsDoneButton", t("closeSideMenu"));
@@ -746,7 +774,7 @@
             }
         }
 
-        /* Offers heading */
+        /* Offers */
         const offersSection = $("#falafelOffersSection");
 
         if (offersSection) {
@@ -763,7 +791,6 @@
             );
         }
 
-        /* Product view accessibility */
         updateProductView(getSavedProductView());
     }
 
@@ -782,10 +809,8 @@
 
         applyStaticTranslations();
 
-        // Reload products and categories using the selected language.
         await loadDatabaseMenu();
 
-        // Refresh cart labels and product names.
         renderCart();
     }
 
@@ -872,8 +897,14 @@
                 database.loadBranchOffers(BRANCH_ID)
             ]);
 
-            // Ignore old requests when the user changes language quickly.
+            const discountsResult =
+                await loadBranchDiscounts(BRANCH_ID, true);
+
             if (sequence !== menuLoadSequence) return;
+
+            automaticDiscounts = Array.isArray(discountsResult)
+                ? discountsResult
+                : [];
 
             if (!menuResult) {
                 throw new Error(
@@ -928,7 +959,9 @@
                         "",
 
                     description_en:
-                        product.description_en || "",
+                        product.description_en ||
+                        product.description ||
+                        "",
 
                     price: safeNumber(product.price),
 
@@ -952,6 +985,7 @@
                     categories: databaseCategories.length,
                     products: products.length,
                     offers: databaseOffers.length,
+                    discounts: automaticDiscounts.length,
                     language: currentLanguage
                 }
             );
@@ -964,6 +998,7 @@
             products = [];
             databaseCategories = [];
             databaseOffers = [];
+            automaticDiscounts = [];
 
             if (menu) {
                 menu.innerHTML = `
@@ -1089,7 +1124,50 @@
     }
 
     /* =====================================================
-       15 — PRODUCT CARDS
+       15 — AUTOMATIC DISCOUNT HELPERS
+    ===================================================== */
+
+    function automaticRuleForProduct(product) {
+        if (!product) return null;
+
+        return getBestAutomaticDiscount(
+            product,
+            BRANCH_ID,
+            product.category_id,
+            automaticDiscounts
+        );
+    }
+
+    function productFinalUnitPrice(product) {
+        if (!product) return 0;
+
+        return Math.max(
+            0,
+            safeNumber(
+                priceAfterAutomaticDiscount(
+                    safeNumber(product.price),
+                    automaticRuleForProduct(product)
+                )
+            )
+        );
+    }
+
+    function productAutomaticSaving(product) {
+        if (!product) return 0;
+
+        return Math.max(
+            0,
+            safeNumber(
+                automaticDiscountValue(
+                    safeNumber(product.price),
+                    automaticRuleForProduct(product)
+                )
+            )
+        );
+    }
+
+    /* =====================================================
+       16 — PRODUCT CARDS
     ===================================================== */
 
     function productCardHTML(product) {
@@ -1097,6 +1175,10 @@
         const image = getProductImage(product);
         const name = productName(product);
         const description = productDescription(product);
+
+        const originalPrice = safeNumber(product.price);
+        const finalPrice = productFinalUnitPrice(product);
+        const hasDiscount = finalPrice < originalPrice;
 
         return `
             <article
@@ -1142,13 +1224,21 @@
                     }
 
                     <div class="product-price">
-                        ${money(product.price)}
+                        ${
+                            hasDiscount
+                                ? `
+                                    <del>${money(originalPrice)}</del>
+                                    <strong>${money(finalPrice)}</strong>
+                                `
+                                : money(originalPrice)
+                        }
                     </div>
 
                     <button
                         type="button"
                         class="add-to-cart-button"
                         data-add="${escapeHTML(product.id)}"
+                        ${orderSubmitting ? "disabled" : ""}
                     >
                         ${
                             quantity
@@ -1163,7 +1253,7 @@
     }
 
     /* =====================================================
-       16 — MENU RENDERING AND SEARCH
+       17 — MENU RENDERING AND SEARCH
     ===================================================== */
 
     function renderMenu() {
@@ -1257,8 +1347,7 @@
     });
 
     /* =====================================================
-       17 — DATABASE OFFERS
-       Position: below menu heading and above products.
+       18 — DATABASE OFFERS
     ===================================================== */
 
     function ensureOffersContainer() {
@@ -1295,24 +1384,15 @@
 
         if (menuHeading) {
             if (section.previousElementSibling !== menuHeading) {
-                menuHeading.insertAdjacentElement(
-                    "afterend",
-                    section
-                );
+                menuHeading.insertAdjacentElement("afterend", section);
             }
         } else if (menuTools) {
             if (section.previousElementSibling !== menuTools) {
-                menuTools.insertAdjacentElement(
-                    "afterend",
-                    section
-                );
+                menuTools.insertAdjacentElement("afterend", section);
             }
         } else if (menu) {
             if (section.nextElementSibling !== menu) {
-                menu.insertAdjacentElement(
-                    "beforebegin",
-                    section
-                );
+                menu.insertAdjacentElement("beforebegin", section);
             }
         } else if (!section.isConnected) {
             document.body.appendChild(section);
@@ -1348,8 +1428,6 @@
         grid.innerHTML = databaseOffers.map(offer => {
             const image = getOfferImage(offer);
 
-            // The current offers query supplies name and description.
-            // English offer fields are not assumed to exist.
             const name = offer.name || "";
             const description = offer.description || "";
 
@@ -1431,7 +1509,16 @@
     }
 
     /* =====================================================
-       18 — CART CALCULATIONS
+       19 — CART CALCULATIONS
+
+       Contract:
+       - originalSubtotal: before automatic discounts
+       - automaticDiscountAmount: automatic savings
+       - subtotal: after automatic discounts
+       - couponDiscountAmount: coupon only
+       - grandTotal: subtotal - coupon discount
+
+       The database remains the final authority.
     ===================================================== */
 
     function qtyOf(id) {
@@ -1447,7 +1534,7 @@
         );
     }
 
-    function subtotal() {
+    function originalSubtotal() {
         return cart.reduce((sum, row) => {
             const product = getProduct(row.id);
 
@@ -1459,24 +1546,52 @@
         }, 0);
     }
 
+    function automaticDiscountAmount() {
+        return cart.reduce((sum, row) => {
+            const product = getProduct(row.id);
+
+            return sum + (
+                product
+                    ? productAutomaticSaving(product) * row.qty
+                    : 0
+            );
+        }, 0);
+    }
+
+    function subtotal() {
+        return Math.max(
+            0,
+            originalSubtotal() - automaticDiscountAmount()
+        );
+    }
+
+    function couponDiscountAmount() {
+        if (!activeCoupon) return 0;
+
+        return Math.min(
+            subtotal(),
+            Math.max(0, safeNumber(couponPreviewAmount))
+        );
+    }
+
     function discountAmount() {
-        return activeCoupon
-            ? Math.round(subtotal() * COUPON_RATE)
-            : 0;
+        return couponDiscountAmount();
     }
 
     function grandTotal() {
         return Math.max(
             0,
-            subtotal() - discountAmount()
+            subtotal() - couponDiscountAmount()
         );
     }
 
     /* =====================================================
-       19 — ADD AND CHANGE PRODUCTS
+       20 — ADD AND CHANGE PRODUCTS
     ===================================================== */
 
     function addToCart(id, amount = 1) {
+        if (orderSubmitting) return;
+
         const product = getProduct(id);
 
         if (!product || product.is_available === false) {
@@ -1493,10 +1608,7 @@
         );
 
         if (row) {
-            row.qty = Math.min(
-                99,
-                row.qty + increment
-            );
+            row.qty = Math.min(99, row.qty + increment);
         } else {
             cart.push({
                 id: String(product.id),
@@ -1505,12 +1617,21 @@
         }
 
         saveCart();
+
+        // A previously validated coupon must be revalidated
+        // whenever the cart amount changes.
+        if (activeCoupon) {
+            validateActiveCoupon();
+        }
+
         renderMenu();
         renderCart();
         playBellSound();
     }
 
     function changeQty(id, amount) {
+        if (orderSubmitting) return;
+
         const row = cart.find(item =>
             String(item.id) === String(id)
         );
@@ -1528,22 +1649,42 @@
         }
 
         saveCart();
+
+        if (!cart.length) {
+            activeCoupon = "";
+            couponPreviewAmount = 0;
+            safeStorageRemove(COUPON_KEY);
+        } else if (activeCoupon) {
+            validateActiveCoupon();
+        }
+
         renderMenu();
         renderCart();
     }
 
     function removeFromCart(id) {
+        if (orderSubmitting) return;
+
         cart = cart.filter(row =>
             String(row.id) !== String(id)
         );
 
         saveCart();
+
+        if (!cart.length) {
+            activeCoupon = "";
+            couponPreviewAmount = 0;
+            safeStorageRemove(COUPON_KEY);
+        } else if (activeCoupon) {
+            validateActiveCoupon();
+        }
+
         renderMenu();
         renderCart();
     }
 
     /* =====================================================
-       20 — ADD TO CART BELL SOUND
+       21 — ADD TO CART BELL SOUND
     ===================================================== */
 
     function playBellSound() {
@@ -1580,10 +1721,7 @@
                         start
                     );
 
-                    gain.gain.setValueAtTime(
-                        0.0001,
-                        start
-                    );
+                    gain.gain.setValueAtTime(0.0001, start);
 
                     gain.gain.exponentialRampToValueAtTime(
                         0.25,
@@ -1612,22 +1750,21 @@
             }
 
         } catch (error) {
-            console.warn(
-                "تعذر تشغيل صوت الجرس:",
-                error
-            );
+            console.warn("تعذر تشغيل صوت الجرس:", error);
         }
     }
 
     /* =====================================================
-       21 — CART RENDERING
+       22 — CART RENDERING
     ===================================================== */
 
     function renderCart() {
         const count = totalQty();
 
+        const original = originalSubtotal();
+        const automaticDiscount = automaticDiscountAmount();
         const sub = subtotal();
-        const discount = discountAmount();
+        const couponDiscount = couponDiscountAmount();
         const total = grandTotal();
 
         const countText =
@@ -1646,9 +1783,22 @@
 
         setText("#fixedCartTotal", money(total));
         setText("#popupSubtotal", money(sub));
-        setText("#popupDiscount", money(discount));
+        setText("#popupDiscount", `-${money(couponDiscount)}`);
         setText("#popupGrandTotal", money(total));
         setText("#popupFooterTotal", money(total));
+
+        const automaticSavingElement = $("#popupAutomaticDiscount");
+
+        if (automaticSavingElement) {
+            automaticSavingElement.textContent =
+                `-${money(automaticDiscount)}`;
+        }
+
+        const originalElement = $("#popupOriginalSubtotal");
+
+        if (originalElement) {
+            originalElement.textContent = money(original);
+        }
 
         if (popupItems) {
             popupItems.innerHTML = cart.length
@@ -1656,6 +1806,10 @@
                     const product = getProduct(row.id);
 
                     if (!product) return "";
+
+                    const originalPrice = safeNumber(product.price);
+                    const finalPrice = productFinalUnitPrice(product);
+                    const hasDiscount = finalPrice < originalPrice;
 
                     return `
                         <div class="cart-item">
@@ -1667,7 +1821,15 @@
                                 </div>
 
                                 <div class="cart-item-price">
-                                    ${money(product.price * row.qty)}
+                                    ${
+                                        hasDiscount
+                                            ? `
+                                                <del>${money(originalPrice)}</del>
+                                                <strong>${money(finalPrice)}</strong>
+                                            `
+                                            : money(originalPrice)
+                                    }
+                                    × ${row.qty}
                                 </div>
 
                             </div>
@@ -1679,6 +1841,7 @@
                                     data-qty="${escapeHTML(row.id)}"
                                     data-delta="-1"
                                     aria-label="${escapeHTML(t("decrease"))}"
+                                    ${orderSubmitting ? "disabled" : ""}
                                 >−</button>
 
                                 <strong>${row.qty}</strong>
@@ -1688,12 +1851,14 @@
                                     data-qty="${escapeHTML(row.id)}"
                                     data-delta="1"
                                     aria-label="${escapeHTML(t("increase"))}"
+                                    ${orderSubmitting ? "disabled" : ""}
                                 >+</button>
 
                                 <button
                                     type="button"
                                     data-remove="${escapeHTML(row.id)}"
                                     aria-label="${escapeHTML(t("remove"))}"
+                                    ${orderSubmitting ? "disabled" : ""}
                                 >×</button>
 
                             </div>
@@ -1729,7 +1894,7 @@
     }
 
     /* =====================================================
-       22 — SUGGESTED ADD-ONS
+       23 — SUGGESTED ADD-ONS
     ===================================================== */
 
     function renderAddons() {
@@ -1797,11 +1962,12 @@
                                 ${escapeHTML(productName(product))}
                             </strong>
 
-                            <span>${money(product.price)}</span>
+                            <span>${money(productFinalUnitPrice(product))}</span>
 
                             <button
                                 type="button"
                                 data-addon="${escapeHTML(product.id)}"
+                                ${orderSubmitting ? "disabled" : ""}
                             >
                                 ${escapeHTML(t("addAddon"))}
                             </button>
@@ -1815,7 +1981,7 @@
     }
 
     /* =====================================================
-       23 — CART MODAL
+       24 — CART MODAL
     ===================================================== */
 
     function openCart() {
@@ -1846,10 +2012,7 @@
 
     fixedCartBar?.addEventListener("click", openCart);
 
-    $("#closeCartModal")?.addEventListener(
-        "click",
-        closeCart
-    );
+    $("#closeCartModal")?.addEventListener("click", closeCart);
 
     $("#continueShoppingButton")?.addEventListener(
         "click",
@@ -1873,45 +2036,167 @@
     });
 
     /* =====================================================
-       24 — COUPON
+       25 — SERVER-SIDE COUPON VALIDATION
+
+       The browser does not decide whether a coupon is valid.
+       validate_customer_coupon is used for preview only.
+       create_order_secure validates it again when saving.
     ===================================================== */
 
-    function loadCoupon() {
-        const code = safeStorageGet(COUPON_KEY, "")
-            .trim()
-            .toUpperCase();
+    function readCouponValidationResult(data) {
+        let result = data;
 
-        return code === COUPON_CODE ? code : "";
+        if (Array.isArray(result)) {
+            result = result[0] ?? null;
+        }
+
+        if (result && typeof result === "object" && result.data) {
+            result = result.data;
+        }
+
+        if (typeof result === "string") {
+            try {
+                result = JSON.parse(result);
+            } catch {
+                return null;
+            }
+        }
+
+        return result && typeof result === "object"
+            ? result
+            : null;
     }
 
-    function applyCoupon() {
-        const code = (couponInput?.value || "")
-            .trim()
-            .toUpperCase();
+    function couponResultIsValid(result) {
+        if (!result) return false;
 
-        if (code === COUPON_CODE) {
-            if (subtotal() <= 0) {
+        if (result.success === false) return false;
+        if (result.valid === false) return false;
+        if (result.is_valid === false) return false;
+
+        if (
+            result.success === true ||
+            result.valid === true ||
+            result.is_valid === true
+        ) {
+            return true;
+        }
+
+        // Some versions of the validation RPC return a
+        // discount amount without a separate valid flag.
+        return (
+            result.discount_amount != null ||
+            result.discount_value != null
+        );
+    }
+
+    async function requestCouponValidation(code) {
+        if (!configured || !supabase) {
+            throw new Error("الاتصال بقاعدة البيانات غير متاح");
+        }
+
+        const { data, error } = await supabase.rpc(
+            "validate_customer_coupon",
+            {
+                p_code: code,
+                p_branch_id: BRANCH_ID,
+                p_subtotal: subtotal()
+            }
+        );
+
+        if (error) throw error;
+
+        return readCouponValidationResult(data);
+    }
+
+    async function validateActiveCoupon() {
+        const code = normalizeCouponCode(activeCoupon);
+        const sequence = ++couponValidationSequence;
+
+        if (!code || !cart.length || subtotal() <= 0) {
+            couponPreviewAmount = 0;
+            renderCart();
+            return false;
+        }
+
+        try {
+            const result = await requestCouponValidation(code);
+
+            if (sequence !== couponValidationSequence) {
+                return false;
+            }
+
+            if (!couponResultIsValid(result)) {
+                activeCoupon = "";
+                couponPreviewAmount = 0;
+
+                safeStorageRemove(COUPON_KEY);
+
                 if (couponStatus) {
                     couponStatus.textContent =
-                        t("couponNeedItems");
+                        result?.message ||
+                        result?.error ||
+                        t("invalidCoupon");
 
                     couponStatus.style.color = "#a33";
                 }
 
-                return;
+                renderCart();
+                return false;
             }
 
-            activeCoupon = COUPON_CODE;
-
-            safeStorageSet(COUPON_KEY, activeCoupon);
+            couponPreviewAmount = Math.max(
+                0,
+                safeNumber(
+                    result.discount_amount ??
+                    result.discount_value ??
+                    result.calculated_discount ??
+                    0
+                )
+            );
 
             if (couponStatus) {
-                couponStatus.textContent = t("applied");
+                couponStatus.textContent =
+                    result.message || t("applied");
+
                 couponStatus.style.color = "#18864b";
             }
 
-        } else if (!code) {
+            renderCart();
+            return true;
+
+        } catch (error) {
+            if (sequence !== couponValidationSequence) {
+                return false;
+            }
+
+            console.error("فشل التحقق من الكوبون:", error);
+
             activeCoupon = "";
+            couponPreviewAmount = 0;
+
+            safeStorageRemove(COUPON_KEY);
+
+            if (couponStatus) {
+                couponStatus.textContent =
+                    currentLanguage === "en"
+                        ? `Could not validate coupon: ${getErrorMessage(error)}`
+                        : `تعذر التحقق من الكوبون: ${getErrorMessage(error)}`;
+
+                couponStatus.style.color = "#a33";
+            }
+
+            renderCart();
+            return false;
+        }
+    }
+
+    async function applyCoupon() {
+        const code = normalizeCouponCode(couponInput?.value);
+
+        if (!code) {
+            activeCoupon = "";
+            couponPreviewAmount = 0;
 
             safeStorageRemove(COUPON_KEY);
 
@@ -1920,18 +2205,107 @@
                 couponStatus.style.color = "#a33";
             }
 
-        } else {
+            renderCart();
+            return;
+        }
+
+        if (!cart.length || subtotal() <= 0) {
+            if (couponStatus) {
+                couponStatus.textContent = t("couponNeedItems");
+                couponStatus.style.color = "#a33";
+            }
+
+            return;
+        }
+
+        if (!configured || !supabase) {
+            if (couponStatus) {
+                couponStatus.textContent =
+                    currentLanguage === "en"
+                        ? "Database connection unavailable."
+                        : "الاتصال بقاعدة البيانات غير متاح.";
+
+                couponStatus.style.color = "#a33";
+            }
+
+            return;
+        }
+
+        const sequence = ++couponValidationSequence;
+
+        if (couponStatus) {
+            couponStatus.textContent = t("validatingCoupon");
+            couponStatus.style.color = "";
+        }
+
+        try {
+            const result = await requestCouponValidation(code);
+
+            if (sequence !== couponValidationSequence) return;
+
+            if (!couponResultIsValid(result)) {
+                activeCoupon = "";
+                couponPreviewAmount = 0;
+
+                safeStorageRemove(COUPON_KEY);
+
+                if (couponStatus) {
+                    couponStatus.textContent =
+                        result?.message ||
+                        result?.error ||
+                        t("invalidCoupon");
+
+                    couponStatus.style.color = "#a33";
+                }
+
+                renderCart();
+                return;
+            }
+
+            activeCoupon = code;
+
+            couponPreviewAmount = Math.max(
+                0,
+                safeNumber(
+                    result.discount_amount ??
+                    result.discount_value ??
+                    result.calculated_discount ??
+                    0
+                )
+            );
+
+            safeStorageSet(COUPON_KEY, activeCoupon);
+
+            if (couponStatus) {
+                couponStatus.textContent =
+                    result.message || t("applied");
+
+                couponStatus.style.color = "#18864b";
+            }
+
+            renderCart();
+
+        } catch (error) {
+            if (sequence !== couponValidationSequence) return;
+
+            console.error("خطأ تطبيق الكوبون:", error);
+
             activeCoupon = "";
+            couponPreviewAmount = 0;
 
             safeStorageRemove(COUPON_KEY);
 
             if (couponStatus) {
-                couponStatus.textContent = t("invalidCoupon");
+                couponStatus.textContent =
+                    currentLanguage === "en"
+                        ? `Coupon validation failed: ${getErrorMessage(error)}`
+                        : `فشل التحقق من الكوبون: ${getErrorMessage(error)}`;
+
                 couponStatus.style.color = "#a33";
             }
-        }
 
-        renderCart();
+            renderCart();
+        }
     }
 
     $("#applyCouponButton")?.addEventListener(
@@ -1946,21 +2320,176 @@
         }
     });
 
+    function loadCoupon() {
+        return normalizeCouponCode(
+            safeStorageGet(COUPON_KEY, "")
+        );
+    }
+
     /* =====================================================
-       25 — WHATSAPP ORDER
+       26 — SECURE ORDER CREATION
+
+       IMPORTANT:
+       We send only:
+       - product_id
+       - quantity
+
+       The database determines:
+       - product availability
+       - branch ownership
+       - official prices
+       - product options
+       - automatic discounts
+       - coupon eligibility
+       - coupon usage limits
+       - subtotal
+       - discount_amount
+       - total
+
+       No direct INSERT into orders is used here.
     ===================================================== */
 
-    function submitOrder(event) {
+    function getRpcOrderResult(data) {
+        let result = data;
+
+        if (Array.isArray(result)) {
+            result = result[0] ?? null;
+        }
+
+        if (typeof result === "string") {
+            try {
+                result = JSON.parse(result);
+            } catch {
+                return null;
+            }
+        }
+
+        return result && typeof result === "object"
+            ? result
+            : null;
+    }
+
+    function buildWhatsAppMessage(order, customer) {
+        const savedItems = Array.isArray(order.items)
+            ? order.items
+            : [];
+
+        const lines = savedItems.map(item => {
+            const itemName = currentLanguage === "en"
+                ? (item.name_en || item.name || "")
+                : (item.name || item.name_en || "");
+
+            const quantity = safeNumber(item.quantity);
+            const itemTotal = safeNumber(item.total);
+
+            return `• ${itemName} × ${quantity} = ${money(itemTotal)}`;
+        });
+
+        const subtotalAfterAutomatic =
+            safeNumber(order.subtotal);
+
+        const couponDiscount =
+            safeNumber(order.discount_amount);
+
+        const finalTotal =
+            safeNumber(order.total);
+
+        const automaticSaving = savedItems.reduce(
+            (sum, item) =>
+                sum + (
+                    safeNumber(item.automatic_discount_amount) *
+                    safeNumber(item.quantity)
+                ),
+            0
+        );
+
+        return [
+            t("orderTitle"),
+            `رقم الطلب: #${order.order_number}`,
+            `${t("name")}: ${customer.name}`,
+            `${t("phone")}: ${customer.phone}`,
+            `${t("address")}: ${customer.address}`,
+            "",
+            `${t("details")}:`,
+            ...lines,
+            "",
+            `${t("subtotal")}: ${money(subtotalAfterAutomatic)}`,
+            `${t("automaticDiscount")}: ${money(automaticSaving)}`,
+            `${t("discount")}: ${money(couponDiscount)}`,
+            `${t("total")}: ${money(finalTotal)}`,
+            `${t("coupon")}: ${order.coupon_code || t("noCoupon")}`,
+            `${t("notes")}: ${customer.notes || t("noNotes")}`,
+            "",
+            `${t("branchNumbers")}: ${WHATSAPP_NUMBERS.join(" — ")}`
+        ].join("\n");
+    }
+
+    async function createSecureOrder(customer, orderCart, orderCoupon) {
+        const rpcItems = orderCart.map(row => ({
+            product_id: String(row.id),
+            quantity: clampQuantity(row.qty)
+        }));
+
+        const { data, error } = await supabase.rpc(
+            "create_order_secure",
+            {
+                p_branch_id: BRANCH_ID,
+                p_customer_name: customer.name,
+                p_customer_phone: customer.phone,
+                p_items: rpcItems,
+                p_customer_address: customer.address || null,
+                p_customer_notes: customer.notes || null,
+                p_coupon_code: orderCoupon || null,
+                p_customer_location_url: null
+            }
+        );
+
+        if (error) throw error;
+
+        const result = getRpcOrderResult(data);
+
+        if (!result) {
+            throw new Error(
+                "لم تُرجع قاعدة البيانات بيانات الطلب."
+            );
+        }
+
+        if (result.success !== true) {
+            throw new Error(
+                result.message ||
+                result.error ||
+                "لم تتم الموافقة على إنشاء الطلب."
+            );
+        }
+
+        if (!result.order_id || !result.order_number) {
+            throw new Error(
+                "تم استدعاء الدالة، لكن بيانات الطلب المرجعة غير مكتملة."
+            );
+        }
+
+        if (!Array.isArray(result.items)) {
+            throw new Error(
+                "لم تُرجع قاعدة البيانات تفاصيل المنتجات المحفوظة."
+            );
+        }
+
+        return result;
+    }
+
+    /* =====================================================
+       27 — SUBMIT ORDER
+    ===================================================== */
+
+    async function submitOrder(event) {
         event.preventDefault();
+
+        if (orderSubmitting) return;
 
         const form = event.currentTarget;
 
         if (!cart.length) {
-            setText(
-                "#popupOrderStatus",
-                t("cartEmptyOrder")
-            );
-
+            setText("#popupOrderStatus", t("cartEmptyOrder"));
             return;
         }
 
@@ -1980,55 +2509,194 @@
 
         if (!name || !phone || !address) return;
 
-        const lines = cart.map(row => {
-            const product = getProduct(row.id);
+        if (!configured || !supabase) {
+            setText(
+                "#popupOrderStatus",
+                currentLanguage === "en"
+                    ? "The database connection is unavailable. Your order was not saved."
+                    : "الاتصال بقاعدة البيانات غير متاح. لم يتم حفظ طلبك."
+            );
 
-            return product
-                ? `• ${productName(product)} × ${row.qty} = ${money(product.price * row.qty)}`
-                : "";
-        }).filter(Boolean);
+            return;
+        }
 
-        const message = [
-            t("orderTitle"),
-            `${t("name")}: ${name}`,
-            `${t("phone")}: ${phone}`,
-            `${t("address")}: ${address}`,
-            "",
-            `${t("details")}:`,
-            ...lines,
-            "",
-            `${t("subtotal")}: ${money(subtotal())}`,
-            `${t("discount")}: ${money(discountAmount())}`,
-            `${t("total")}: ${money(grandTotal())}`,
-            `${t("coupon")}: ${activeCoupon || t("noCoupon")}`,
-            `${t("notes")}: ${notes || t("noNotes")}`,
-            "",
-            `${t("branchNumbers")}: ${WHATSAPP_NUMBERS.join(" — ")}`
-        ].join("\n");
+        // Fixed snapshot: cart changes cannot affect this order.
+        const orderCart = cart.map(row => ({
+            id: String(row.id),
+            qty: clampQuantity(row.qty)
+        }));
+
+        const orderCoupon = activeCoupon;
+
+        const customer = {
+            name,
+            phone,
+            address,
+            notes
+        };
+
+        let whatsappWindow = null;
+        let submitButton = form.querySelector(
+            'button[type="submit"], input[type="submit"]'
+        );
+
+        const originalButtonText =
+            submitButton?.textContent || "";
+
+        let savedOrder = null;
+
+        orderSubmitting = true;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.setAttribute("aria-busy", "true");
+            submitButton.textContent = t("savingOrder");
+        }
+
+        renderMenu();
+        renderCart();
 
         setText(
             "#popupOrderStatus",
-            t("openingWhatsApp")
+            t("savingOrder")
         );
 
-        const waNumber = WHATSAPP_NUMBERS[0]
-            .replace(/\D/g, "")
-            .replace(/^0/, "");
+        // Open a blank tab during the user gesture.
+        // It receives the WhatsApp URL only after the RPC succeeds.
+        try {
+            whatsappWindow = window.open("about:blank", "_blank");
+        } catch (popupError) {
+            console.warn(
+                "تعذر فتح نافذة واتساب مسبقاً:",
+                popupError
+            );
+        }
 
-        const url =
-            `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
+        try {
+            savedOrder = await createSecureOrder(
+                customer,
+                orderCart,
+                orderCoupon
+            );
 
-        const opened = window.open(
-            url,
-            "_blank",
-            "noopener,noreferrer"
-        );
+            // Clear cart only after Supabase confirms success.
+            cart = [];
+            saveCart();
 
-        if (!opened) {
+            activeCoupon = "";
+            couponPreviewAmount = 0;
+
+            safeStorageRemove(COUPON_KEY);
+
+            if (couponInput) {
+                couponInput.value = "";
+            }
+
+            if (couponStatus) {
+                couponStatus.textContent = "";
+                couponStatus.style.color = "";
+            }
+
+            renderMenu();
+            renderCart();
+
+            const message = buildWhatsAppMessage(
+                savedOrder,
+                customer
+            );
+
+            const waNumber = WHATSAPP_NUMBERS[0]
+                .replace(/\D/g, "")
+                .replace(/^0/, "");
+
+            const whatsappUrl =
+                `https://wa.me/964${waNumber}?text=${encodeURIComponent(message)}`;
+
+            if (whatsappWindow && !whatsappWindow.closed) {
+                whatsappWindow.location.href = whatsappUrl;
+
+                setText(
+                    "#popupOrderStatus",
+                    `${t("orderSaved")} #${savedOrder.order_number}. ${t("whatsappSaved")}`
+                );
+            } else {
+                setText(
+                    "#popupOrderStatus",
+                    `${t("orderSaved")} #${savedOrder.order_number}. ${t("whatsappBlocked")}`
+                );
+
+                // The order is already saved. Do not report failure.
+                const fallbackLink = document.createElement("a");
+
+                fallbackLink.href = whatsappUrl;
+                fallbackLink.target = "_blank";
+                fallbackLink.rel = "noopener noreferrer";
+                fallbackLink.textContent =
+                    currentLanguage === "en"
+                        ? "Open WhatsApp"
+                        : "فتح واتساب";
+
+                fallbackLink.className = "whatsapp-fallback-link";
+
+                const statusElement = $("#popupOrderStatus");
+
+                if (statusElement) {
+                    statusElement.append(" ");
+                    statusElement.appendChild(fallbackLink);
+                }
+            }
+
+            console.info(
+                "تم إنشاء الطلب الآمن بنجاح",
+                {
+                    order_id: savedOrder.order_id,
+                    order_number: savedOrder.order_number,
+                    subtotal: savedOrder.subtotal,
+                    discount_amount: savedOrder.discount_amount,
+                    total: savedOrder.total
+                }
+            );
+
+        } catch (error) {
+            console.error(
+                "فشل إنشاء طلب فرع الفلافل:",
+                error
+            );
+
+            if (whatsappWindow && !whatsappWindow.closed) {
+                try {
+                    whatsappWindow.close();
+                } catch (closeError) {
+                    console.warn(
+                        "تعذر إغلاق نافذة واتساب:",
+                        closeError
+                    );
+                }
+            }
+
+            const detail = getErrorMessage(error);
+
             setText(
                 "#popupOrderStatus",
-                t("whatsappError")
+                currentLanguage === "en"
+                    ? `${t("orderSaveFailed")} (${detail})`
+                    : `${t("orderSaveFailed")} (${detail})`
             );
+
+            // Keep the cart and coupon unchanged on failure.
+
+        } finally {
+            orderSubmitting = false;
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.removeAttribute("aria-busy");
+                submitButton.textContent =
+                    originalButtonText || t("send");
+            }
+
+            renderMenu();
+            renderCart();
         }
     }
 
@@ -2043,7 +2711,7 @@
     );
 
     /* =====================================================
-       26 — GLOBAL PRODUCT AND CART EVENTS
+       28 — GLOBAL PRODUCT AND CART EVENTS
     ===================================================== */
 
     document.addEventListener("click", event => {
@@ -2084,7 +2752,7 @@
     });
 
     /* =====================================================
-       27 — INITIALIZE PAGE
+       29 — INITIALIZE PAGE
     ===================================================== */
 
     async function initializeFalafelPage() {
@@ -2098,18 +2766,46 @@
             couponInput.value = activeCoupon;
 
             if (couponStatus) {
-                couponStatus.textContent =
-                    currentLanguage === "en"
-                        ? "GHANNAM15 saved: 15% discount."
-                        : "كود GHANNAM15 محفوظ: خصم 15%.";
-
-                couponStatus.style.color = "#18864b";
+                couponStatus.textContent = t("validatingCoupon");
+                couponStatus.style.color = "";
             }
         }
 
         ensureOffersContainer();
 
         await loadDatabaseMenu();
+
+        // Revalidate any saved coupon against the current cart
+        // and current customer session.
+        if (activeCoupon && cart.length) {
+            await validateActiveCoupon();
+        }
+
+        // Refresh automatic discounts periodically.
+        window.setInterval(async () => {
+            try {
+                const discounts =
+                    await loadBranchDiscounts(BRANCH_ID, true);
+
+                automaticDiscounts = Array.isArray(discounts)
+                    ? discounts
+                    : [];
+
+                renderMenu();
+
+                if (activeCoupon) {
+                    validateActiveCoupon();
+                }
+
+                renderCart();
+
+            } catch (error) {
+                console.warn(
+                    "تعذر تحديث الخصومات التلقائية:",
+                    error
+                );
+            }
+        }, 60000);
     }
 
     initializeFalafelPage();

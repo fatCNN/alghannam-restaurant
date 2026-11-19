@@ -1,17 +1,4 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-/* =========================================================
-   مطعم الغنّام — إدارة المستخدمين
-   Supabase Edge Function: manage-users
-
-   الأدوار:
-   server_owner : مالك السيرفر
-   owner        : صاحب المطعم
-   manager      : مدير الفرع
-   staff        : موظف
-   customer     : زبون
-========================================================= */
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,18 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/* =========================================================
-   حسابات مالكي السيرفر
-========================================================= */
-
 const SERVER_OWNER_IDS = new Set([
   "489c60eb-5ae5-4611-96d6-b1d911e2686c",
   "1488410c-39a5-417b-92f6-c68ee55c886d",
 ]);
-
-/* =========================================================
-   الصلاحيات المتاحة للمدير
-========================================================= */
 
 const permissionKeys = [
   "can_manage_menu",
@@ -44,9 +23,7 @@ const permissionKeys = [
   "can_delete_staff",
 ] as const;
 
-/* =========================================================
-   أنواع البيانات
-========================================================= */
+type PermissionKey = typeof permissionKeys[number];
 
 type CallerProfile = {
   id: string;
@@ -56,307 +33,263 @@ type CallerProfile = {
   branch_id: string | null;
 };
 
-type ApiKeyDictionary = Record<string, string>;
-
-/* =========================================================
-   أدوات مساعدة
-========================================================= */
-
-function response(data: unknown, status = 200) {
+function response(
+  data: Record<string, unknown>,
+  status = 200,
+) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       ...corsHeaders,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
     },
   });
 }
 
 function validUUID(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
+  return typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      .test(value);
 }
 
-function defaultPermissions(userId: string) {
-  const permissions: Record<string, boolean | string> = {
-    user_id: userId,
-  };
+function cleanText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
 
-  for (const key of permissionKeys) {
-    permissions[key] = false;
+// قراءة قيمة من أكثر من اسم لدعم camelCase و snake_case
+function readText(
+  body: Record<string, unknown>,
+  ...keys: string[]
+): string {
+  for (const key of keys) {
+    const value = cleanText(body[key]);
+    if (value) return value;
   }
 
-  return permissions;
+  return "";
+}
+
+function defaultPermissions() {
+  return {
+    can_manage_menu: false,
+    can_manage_prices: false,
+    can_manage_products: false,
+    can_manage_orders: false,
+    can_manage_conversations: false,
+    can_manage_offers: false,
+    can_manage_branch_staff: false,
+    can_delete_staff: false,
+  };
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
 
   if (
-    error &&
     typeof error === "object" &&
+    error !== null &&
     "message" in error
   ) {
-    return String(error.message);
+    return String((error as { message: unknown }).message);
   }
 
-  if (typeof error === "string") {
-    return error;
-  }
-
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return "تعذر تحديد تفاصيل الخطأ.";
-  }
+  return "حدث خطأ غير متوقع";
 }
 
-/* =========================================================
-   قراءة مفاتيح Supabase
+function getSupabaseKey(names: string[]): string | null {
+  for (const name of names) {
+    const value = Deno.env.get(name);
 
-   المفاتيح الجديدة:
-   SUPABASE_SECRET_KEYS
-   SUPABASE_PUBLISHABLE_KEYS
+    if (!value) continue;
 
-   هذه المتغيرات تحتوي JSON Dictionary،
-   وليست مفتاح API نصياً مباشراً.
+    try {
+      const parsed = JSON.parse(value);
 
-   ندعم أيضاً المفاتيح القديمة عند الحاجة.
-========================================================= */
-
-function getApiKeyFromDictionary(
-  envName: string,
-): string | null {
-  const rawValue = Deno.env.get(envName);
-
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as ApiKeyDictionary;
-
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      !Array.isArray(parsed)
-    ) {
-      // المفتاح الافتراضي إن وجد
-      if (
-        typeof parsed.default === "string" &&
-        parsed.default.trim()
-      ) {
-        return parsed.default.trim();
+      if (typeof parsed === "string" && parsed.trim()) {
+        return parsed.trim();
       }
 
-      // إذا لم يوجد default نبحث عن أول مفتاح صالح
-      const firstValidKey = Object.values(parsed).find(
-        (value) =>
-          typeof value === "string" &&
-          value.trim().length > 0,
-      );
+      if (parsed && typeof parsed === "object") {
+        const values = Object.values(parsed);
+        const preferred =
+          (parsed as Record<string, unknown>).default;
 
-      if (firstValidKey) {
-        return firstValidKey.trim();
+        if (typeof preferred === "string" && preferred.trim()) {
+          return preferred.trim();
+        }
+
+        const found = values.find(
+          (item) => typeof item === "string" && item.trim(),
+        );
+
+        if (typeof found === "string") {
+          return found.trim();
+        }
       }
-    }
-  } catch {
-    // قد تكون القيمة مفتاحاً مباشراً وليس JSON
-    const trimmed = rawValue.trim();
-
-    if (trimmed) {
-      return trimmed;
+    } catch {
+      return value.trim();
     }
   }
 
   return null;
 }
 
-function getSupabaseKeys() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-
-  // المفتاح العام الجديد
-  const publishableKey =
-    getApiKeyFromDictionary("SUPABASE_PUBLISHABLE_KEYS") ||
-    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ||
-    Deno.env.get("SUPABASE_ANON_KEY");
-
-  // المفتاح السري الجديد
-  const secretKey =
-    getApiKeyFromDictionary("SUPABASE_SECRET_KEYS") ||
-    Deno.env.get("SUPABASE_SECRET_KEY") ||
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  return {
-    supabaseUrl,
-    publishableKey,
-    secretKey,
-  };
+function hasPermission(
+  permissions: Record<string, unknown> | null,
+  key: PermissionKey,
+): boolean {
+  return permissions?.[key] === true;
 }
 
-/* =========================================================
-   تشغيل الدالة
-========================================================= */
+async function cleanupCreatedUser(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  removeDriver = false,
+) {
+  if (removeDriver) {
+    const { error } = await admin
+      .from("delivery_drivers")
+      .delete()
+      .eq("id", userId);
 
-Deno.serve(async (req) => {
+    if (error) {
+      console.error("Driver cleanup failed:", error.message);
+    }
+  }
+
+  const { error: permissionsError } = await admin
+    .from("manager_permissions")
+    .delete()
+    .eq("user_id", userId);
+
+  if (permissionsError) {
+    console.error(
+      "Permissions cleanup failed:",
+      permissionsError.message,
+    );
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .delete()
+    .eq("id", userId);
+
+  if (profileError) {
+    console.error("Profile cleanup failed:", profileError.message);
+  }
+
+  const { error: authError } =
+    await admin.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    console.error("Auth cleanup failed:", authError.message);
+  }
+}
+
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: corsHeaders,
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
     return response(
-      { error: "Method not allowed" },
+      { success: false, message: "طريقة الطلب غير مسموحة" },
       405,
     );
   }
 
   try {
-    /* =====================================================
-       01 — إعدادات Supabase
-    ===================================================== */
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
 
-    const {
-      supabaseUrl,
-      publishableKey,
-      secretKey,
-    } = getSupabaseKeys();
+    const anonKey = getSupabaseKey([
+      "SUPABASE_PUBLISHABLE_KEYS",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_ANON_KEY",
+    ]);
 
-    if (!supabaseUrl || !publishableKey || !secretKey) {
-      console.error("Missing Supabase configuration:", {
-        hasUrl: Boolean(supabaseUrl),
-        hasPublishableKey: Boolean(publishableKey),
-        hasSecretKey: Boolean(secretKey),
-      });
+    const secretKey = getSupabaseKey([
+      "SUPABASE_SECRET_KEYS",
+      "SUPABASE_SECRET_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+    ]);
 
+    if (!supabaseUrl || !anonKey || !secretKey) {
       return response(
         {
-          error:
-            "إعدادات Supabase غير مكتملة. تحقق من إعدادات مفاتيح المشروع.",
+          success: false,
+          message: "إعدادات Supabase غير مكتملة في إعدادات الخادم",
         },
         500,
       );
     }
 
-    /* =====================================================
-       02 — التحقق من جلسة المستخدم
-    ===================================================== */
+    const authorization = req.headers.get("Authorization");
 
-    const authHeader =
-      req.headers.get("Authorization");
-
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (!authorization?.startsWith("Bearer ")) {
       return response(
-        { error: "غير مصرح." },
+        { success: false, message: "يجب تسجيل الدخول أولاً" },
         401,
       );
     }
 
-    const token = authHeader.slice(7);
-
-    const authClient = createClient(
-      supabaseUrl,
-      publishableKey,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: {
+        headers: {
+          Authorization: authorization,
         },
       },
-    );
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+
+    const admin = createClient(supabaseUrl, secretKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
 
     const {
-      data: authData,
+      data: { user },
       error: authError,
     } = await authClient.auth.getUser();
 
-    if (authError || !authData.user) {
-      console.error(
-        "Authentication error:",
-        authError,
-      );
-
+    if (authError || !user) {
       return response(
-        { error: "جلسة الدخول غير صالحة." },
+        { success: false, message: "جلسة الدخول غير صالحة" },
         401,
       );
     }
 
-    const callerId = authData.user.id;
-
-    /* =====================================================
-       03 — إنشاء عميل الإدارة
-    ===================================================== */
-
-    const admin = createClient(
-      supabaseUrl,
-      secretKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      },
-    );
-
-    /* =====================================================
-       04 — التحقق من مالك السيرفر أولاً
-    ===================================================== */
-
-    const isServerOwner =
-      SERVER_OWNER_IDS.has(callerId);
+    const isServerOwner = SERVER_OWNER_IDS.has(user.id);
 
     let caller: CallerProfile;
 
     if (isServerOwner) {
       caller = {
-        id: callerId,
-        email: authData.user.email ?? null,
+        id: user.id,
+        email: user.email ?? null,
         full_name:
-          authData.user.user_metadata?.full_name ??
-          authData.user.user_metadata?.display_name ??
-          "Server Owner",
+          user.user_metadata?.full_name ??
+          user.user_metadata?.display_name ??
+          null,
         role: "server_owner",
         branch_id: null,
       };
     } else {
-      const {
-        data: profile,
-        error: profileError,
-      } = await admin
+      const { data: profile, error: profileError } = await admin
         .from("profiles")
         .select("id,email,full_name,role,branch_id")
-        .eq("id", callerId)
+        .eq("id", user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.error(
-          "Profile lookup error:",
-          profileError,
-        );
-
-        throw new Error(
-          `خطأ قراءة profiles: ${profileError.message}`,
-        );
-      }
-
-      if (!profile) {
+      if (profileError || !profile) {
         return response(
           {
-            error:
-              "الحساب غير موجود في جدول profiles.",
+            success: false,
+            message: "تعذر التحقق من صلاحيات حسابك",
           },
           403,
         );
@@ -365,34 +298,20 @@ Deno.serve(async (req) => {
       caller = profile as CallerProfile;
     }
 
-    /* =====================================================
-       05 — تحديد صلاحيات المستدعي
-    ===================================================== */
-
-    const isOwner =
-      isServerOwner ||
-      caller.role === "owner" ||
-      caller.role === "server_owner";
-
-    const isManager =
-      caller.role === "manager";
+    const isOwner = isServerOwner || caller.role === "owner";
+    const isManager = caller.role === "manager";
 
     if (!isOwner && !isManager) {
       return response(
         {
-          error:
-            "ليس لديك صلاحية إدارة المستخدمين.",
+          success: false,
+          message: "ليس لديك صلاحية إدارة المستخدمين",
         },
         403,
       );
     }
 
-    /* =====================================================
-       06 — جلب صلاحيات المدير عند الحاجة
-    ===================================================== */
-
-    let ownPermissions: Record<string, any> | null =
-      null;
+    let managerPermissions: Record<string, unknown> | null = null;
 
     if (isManager) {
       const {
@@ -401,188 +320,158 @@ Deno.serve(async (req) => {
       } = await admin
         .from("manager_permissions")
         .select("*")
-        .eq("user_id", callerId)
+        .eq("user_id", caller.id)
         .maybeSingle();
 
       if (permissionsError) {
-        console.error(
-          "Manager permissions error:",
-          permissionsError,
-        );
-
-        throw new Error(
-          `خطأ قراءة manager_permissions: ${permissionsError.message}`,
+        return response(
+          {
+            success: false,
+            message: "تعذر تحميل صلاحيات المدير: " +
+              permissionsError.message,
+          },
+          400,
         );
       }
 
-      ownPermissions = permissions;
+      managerPermissions = permissions;
+
+      if (
+        !hasPermission(
+          managerPermissions,
+          "can_manage_branch_staff",
+        )
+      ) {
+        return response(
+          {
+            success: false,
+            message: "ليس لديك صلاحية إدارة موظفي الفرع",
+          },
+          403,
+        );
+      }
     }
 
-    const canManageBranchStaff =
-      isManager &&
-      ownPermissions?.can_manage_branch_staff === true;
-
-    const canDeleteStaff =
-      isManager &&
-      ownPermissions?.can_delete_staff === true;
-
-    /* =====================================================
-       07 — قراءة بيانات الطلب
-    ===================================================== */
-
-    let body: Record<string, any>;
+    let body: Record<string, unknown>;
 
     try {
       body = await req.json();
     } catch {
       return response(
-        { error: "صيغة الطلب غير صحيحة." },
+        { success: false, message: "بيانات الطلب غير صالحة" },
         400,
       );
     }
 
-    const action = body.action;
+    const action = cleanText(body.action);
 
-    /* =====================================================
-       08 — عرض المستخدمين
-    ===================================================== */
+    // ==========================================
+    // LIST USERS
+    // ==========================================
 
     if (action === "list") {
-      if (isOwner) {
-        const {
-          data: users,
-          error: usersError,
-        } = await admin
-          .from("profiles")
-          .select(
-            "id,email,full_name,role,branch_id,created_at,updated_at",
-          )
-          .order("created_at", {
-            ascending: false,
-          });
+      let query = admin
+        .from("profiles")
+        .select(
+          "id,email,full_name,role,branch_id,created_at",
+        )
+        .order("created_at", { ascending: false });
 
-        if (usersError) {
-          console.error(
-            "Users list error:",
-            usersError,
-          );
+      if (isServerOwner) {
+        // مالك السيرفر يرى جميع الحسابات.
+      } else if (caller.role === "owner") {
+        query = query.neq("role", "server_owner");
+      } else {
+        query = query
+          .eq("branch_id", caller.branch_id)
+          .eq("role", "staff");
+      }
 
-          throw new Error(
-            `خطأ قراءة قائمة المستخدمين: ${usersError.message}`,
-          );
-        }
+      const { data: users, error: usersError } = await query;
 
+      if (usersError) {
+        return response(
+          {
+            success: false,
+            message: "تعذر تحميل قائمة المستخدمين: " +
+              usersError.message,
+          },
+          400,
+        );
+      }
+
+      const userIds = (users ?? []).map((item) => item.id);
+
+      let permissionsByManager: Record<string, unknown>[] = [];
+
+      if (isServerOwner && userIds.length > 0) {
         const {
           data: permissions,
           error: permissionsError,
         } = await admin
           .from("manager_permissions")
-          .select("*");
+          .select("*")
+          .in("user_id", userIds);
 
         if (permissionsError) {
-          console.error(
-            "Permissions list error:",
-            permissionsError,
-          );
-
-          throw new Error(
-            `خطأ قراءة صلاحيات المستخدمين: ${permissionsError.message}`,
+          return response(
+            {
+              success: false,
+              message: "تعذر تحميل صلاحيات المديرين: " +
+                permissionsError.message,
+            },
+            400,
           );
         }
 
-        return response({
-          users: users ?? [],
-          permissions: permissions ?? [],
-          ownPermissions: null,
-          isOwner: true,
-          isServerOwner,
-          canManageBranchStaff: true,
-          canDeleteStaff: true,
-        });
-      }
-
-      if (!canManageBranchStaff) {
-        return response({
-          users: [],
-          permissions: [],
-          ownPermissions,
-          isOwner: false,
-          isServerOwner: false,
-          canManageBranchStaff: false,
-          canDeleteStaff,
-          warning:
-            "لم يمنحك المالك صلاحية مشاهدة الموظفين.",
-        });
-      }
-
-      const {
-        data: users,
-        error: usersError,
-      } = await admin
-        .from("profiles")
-        .select(
-          "id,email,full_name,role,branch_id,created_at",
-        )
-        .eq("role", "staff")
-        .eq("branch_id", caller.branch_id)
-        .order("created_at", {
-          ascending: false,
-        });
-
-      if (usersError) {
-        console.error(
-          "Staff list error:",
-          usersError,
-        );
-
-        throw new Error(
-          `خطأ قراءة قائمة الموظفين: ${usersError.message}`,
-        );
+        permissionsByManager = permissions ?? [];
       }
 
       return response({
+        success: true,
         users: users ?? [],
-        permissions: [],
-        ownPermissions,
-        isOwner: false,
-        isServerOwner: false,
-        canManageBranchStaff: true,
-        canDeleteStaff,
+        permissions: permissionsByManager,
+        caller: {
+          id: caller.id,
+          role: caller.role,
+          branch_id: caller.branch_id,
+        },
       });
     }
 
-    /* =====================================================
-       09 — إنشاء مستخدم أو مدير أو صاحب مطعم أو زبون
-    ===================================================== */
+    // ==========================================
+    // CREATE USER
+    // ==========================================
 
     if (action === "create") {
       if (!isOwner) {
         return response(
           {
-            error:
-              "ليس لديك صلاحية إنشاء الحسابات.",
+            success: false,
+            message: "إنشاء الحسابات متاح لمالك النظام فقط",
           },
           403,
         );
       }
 
-      const email = String(body.email ?? "")
-        .trim()
-        .toLowerCase();
-
-      const password = String(body.password ?? "");
-      const name = String(body.name ?? "").trim();
-      const branchId = String(body.branchId ?? "").trim();
-      const role = body.role;
+      const email = cleanText(body.email).toLowerCase();
+      const password = typeof body.password === "string"
+        ? body.password
+        : "";
+      const name = cleanText(body.name);
+      const role = cleanText(body.role);
+      const branchId = readText(body, "branch_id", "branchId") || null;
+      const phone = cleanText(body.phone) || null;
 
       if (
         !email ||
+        email.length > 254 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       ) {
         return response(
           {
-            error:
-              "يرجى إدخال بريد إلكتروني صحيح.",
+            success: false,
+            message: "يرجى إدخال بريد إلكتروني صحيح",
           },
           400,
         );
@@ -591,108 +480,100 @@ Deno.serve(async (req) => {
       if (password.length < 8) {
         return response(
           {
-            error:
-              "كلمة المرور يجب أن تكون 8 أحرف على الأقل.",
+            success: false,
+            message: "كلمة المرور يجب ألا تقل عن 8 أحرف",
           },
           400,
         );
       }
 
-      if (!name) {
+      if (!name || name.length > 150) {
         return response(
           {
-            error:
-              "يرجى إدخال اسم المستخدم.",
+            success: false,
+            message: "يرجى إدخال الاسم الكامل بشكل صحيح",
           },
           400,
         );
       }
 
-      if (
-        !["staff", "manager", "owner", "customer"].includes(
-          role,
-        )
-      ) {
+      if (phone && phone.length > 30) {
         return response(
           {
-            error:
-              "الرتبة المطلوبة غير مسموحة.",
+            success: false,
+            message: "رقم الهاتف طويل جداً",
           },
           400,
         );
       }
 
-      let finalBranchId: string | null = null;
+      const allowedRoles = isServerOwner
+        ? [
+          "staff",
+          "manager",
+          "owner",
+          "customer",
+          "delivery_driver",
+        ]
+        : ["staff"];
 
-      if (role === "staff" || role === "manager") {
-        if (!branchId) {
-          return response(
-            {
-              error:
-                "يرجى اختيار فرع المستخدم.",
-            },
-            400,
-          );
-        }
+      if (!allowedRoles.includes(role)) {
+        return response(
+          {
+            success: false,
+            message: "ليس لديك صلاحية إنشاء هذا النوع من الحسابات",
+          },
+          403,
+        );
+      }
 
-        const {
-          data: branch,
-          error: branchError,
-        } = await admin
+      if (role === "delivery_driver" && !isServerOwner) {
+        return response(
+          {
+            success: false,
+            message: "إضافة حسابات المندوبين متاحة لمالك السيرفر فقط",
+          },
+          403,
+        );
+      }
+
+      const requiresBranch = [
+        "staff",
+        "manager",
+        "delivery_driver",
+      ].includes(role);
+
+      if (requiresBranch && !branchId) {
+        return response(
+          {
+            success: false,
+            message: "يجب تحديد الفرع لهذا الحساب",
+          },
+          400,
+        );
+      }
+
+      if (requiresBranch && branchId) {
+        const { data: branch, error: branchError } = await admin
           .from("branches")
           .select("id")
           .eq("id", branchId)
           .maybeSingle();
 
-        if (branchError) {
-          throw new Error(
-            `خطأ التحقق من الفرع: ${branchError.message}`,
-          );
-        }
-
-        if (!branch) {
+        if (branchError || !branch) {
           return response(
             {
-              error:
-                "الفرع المحدد غير موجود.",
+              success: false,
+              message: "الفرع المحدد غير موجود أو تعذر التحقق منه",
             },
             400,
           );
         }
-
-        finalBranchId = branchId;
-      } else if (branchId) {
-        const {
-          data: branch,
-          error: branchError,
-        } = await admin
-          .from("branches")
-          .select("id")
-          .eq("id", branchId)
-          .maybeSingle();
-
-        if (branchError) {
-          throw new Error(
-            `خطأ التحقق من الفرع: ${branchError.message}`,
-          );
-        }
-
-        if (!branch) {
-          return response(
-            {
-              error:
-                "الفرع المحدد غير موجود.",
-            },
-            400,
-          );
-        }
-
-        finalBranchId = branchId;
       }
 
       const {
-        data: created,
-        error: createError,
+        data: createdAuth,
+        error: createAuthError,
       } = await admin.auth.admin.createUser({
         email,
         password,
@@ -703,341 +584,139 @@ Deno.serve(async (req) => {
         },
       });
 
-      if (createError || !created.user) {
-        throw new Error(
-          createError?.message ||
-            "تعذر إنشاء الحساب.",
+      if (createAuthError || !createdAuth.user) {
+        return response(
+          {
+            success: false,
+            message: createAuthError?.message ??
+              "تعذر إنشاء حساب تسجيل الدخول",
+          },
+          400,
         );
       }
 
-      const newUserId = created.user.id;
+      const newUserId = createdAuth.user.id;
 
-      const {
-        error: profileError,
-      } = await admin
+      const { error: profileInsertError } = await admin
         .from("profiles")
-        .upsert(
+        .upsert({
+          id: newUserId,
+          email,
+          full_name: name,
+          role,
+          branch_id: branchId,
+        });
+
+      if (profileInsertError) {
+        await cleanupCreatedUser(admin, newUserId);
+
+        return response(
           {
+            success: false,
+            message: "تعذر إنشاء ملف المستخدم: " +
+              profileInsertError.message,
+          },
+          400,
+        );
+      }
+
+      if (role === "delivery_driver") {
+        const { error: driverInsertError } = await admin
+          .from("delivery_drivers")
+          .insert({
             id: newUserId,
-            email,
             full_name: name,
-            role,
-            branch_id: finalBranchId,
-          },
-          {
-            onConflict: "id",
-          },
-        );
+            phone,
+            branch_id: branchId,
+            is_active: true,
+          });
 
-      if (profileError) {
-        await admin.auth.admin.deleteUser(newUserId);
+        if (driverInsertError) {
+          await cleanupCreatedUser(admin, newUserId, true);
 
-        throw new Error(
-          `خطأ إنشاء سجل المستخدم: ${profileError.message}`,
-        );
+          return response(
+            {
+              success: false,
+              message: "تعذر تسجيل بيانات المندوب: " +
+                driverInsertError.message,
+            },
+            400,
+          );
+        }
       }
 
       if (role === "manager") {
-        const {
-          error: permissionError,
-        } = await admin
+        const { error: permissionsError } = await admin
           .from("manager_permissions")
-          .upsert(
-            defaultPermissions(newUserId),
+          .upsert({
+            user_id: newUserId,
+            ...defaultPermissions(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (permissionsError) {
+          await cleanupCreatedUser(admin, newUserId);
+
+          return response(
             {
-              onConflict: "user_id",
+              success: false,
+              message: "تعذر إعداد صلاحيات المدير: " +
+                permissionsError.message,
             },
-          );
-
-        if (permissionError) {
-          await admin.auth.admin.deleteUser(newUserId);
-
-          throw new Error(
-            `خطأ إنشاء صلاحيات المدير: ${permissionError.message}`,
+            400,
           );
         }
       }
 
       return response({
         success: true,
+        message: role === "delivery_driver"
+          ? "تم إنشاء حساب المندوب بنجاح"
+          : "تم إنشاء الحساب بنجاح",
         user: {
           id: newUserId,
           email,
           full_name: name,
           role,
-          branch_id: finalBranchId,
+          branch_id: branchId,
+          phone,
         },
-        message:
-          role === "owner"
-            ? "تم إنشاء حساب صاحب المطعم بنجاح."
-            : "تم إنشاء المستخدم بنجاح.",
       });
     }
 
-    /* =====================================================
-       10 — تغيير رتبة المستخدم
-    ===================================================== */
+    // ==========================================
+    // CHANGE USER ROLE
+    // ==========================================
 
     if (action === "set_role") {
       if (!isOwner) {
         return response(
           {
-            error:
-              "ليس لديك صلاحية تغيير الرتب.",
+            success: false,
+            message: "غير مصرح لك بتغيير الأدوار",
           },
           403,
         );
       }
 
-      const { userId, role } = body;
+      const userId = readText(body, "user_id", "userId");
+      const newRole = cleanText(body.role);
 
       if (!validUUID(userId)) {
         return response(
           {
-            error:
-              "معرّف المستخدم غير صحيح.",
+            success: false,
+            message: "معرف المستخدم غير صحيح",
           },
           400,
         );
       }
 
-      if (
-        !["owner", "manager", "staff", "customer"].includes(
-          role,
-        )
-      ) {
+      if (userId === caller.id) {
         return response(
           {
-            error:
-              "الرتبة المطلوبة غير مسموحة.",
-          },
-          400,
-        );
-      }
-
-      if (userId === callerId) {
-        return response(
-          {
-            error:
-              "لا يمكن تغيير رتبة حسابك من هنا.",
-          },
-          400,
-        );
-      }
-
-      if (SERVER_OWNER_IDS.has(userId)) {
-        return response(
-          {
-            error:
-              "لا يمكن تغيير رتبة مالك السيرفر.",
-          },
-          403,
-        );
-      }
-
-      const {
-        data: target,
-        error: targetError,
-      } = await admin
-        .from("profiles")
-        .select("id,role")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (targetError) {
-        throw new Error(
-          `خطأ قراءة المستخدم المطلوب: ${targetError.message}`,
-        );
-      }
-
-      if (!target) {
-        return response(
-          {
-            error:
-              "المستخدم غير موجود.",
-          },
-          404,
-        );
-      }
-
-      if (target.role === "server_owner") {
-        return response(
-          {
-            error:
-              "لا يمكن تغيير رتبة مالك السيرفر.",
-          },
-          403,
-        );
-      }
-
-      if (
-        target.role === "owner" &&
-        !isServerOwner
-      ) {
-        return response(
-          {
-            error:
-              "لا يمكن تعديل رتبة صاحب مطعم آخر.",
-          },
-          403,
-        );
-      }
-
-      if (role === "manager") {
-        const { error } = await admin
-          .from("manager_permissions")
-          .upsert(
-            defaultPermissions(userId),
-            {
-              onConflict: "user_id",
-              ignoreDuplicates: true,
-            },
-          );
-
-        if (error) {
-          throw new Error(
-            `خطأ تجهيز صلاحيات المدير: ${error.message}`,
-          );
-        }
-      }
-
-      const {
-        error: updateError,
-      } = await admin
-        .from("profiles")
-        .update({ role })
-        .eq("id", userId);
-
-      if (updateError) {
-        throw new Error(
-          `خطأ تحديث رتبة المستخدم: ${updateError.message}`,
-        );
-      }
-
-      if (role !== "manager") {
-        const { error } = await admin
-          .from("manager_permissions")
-          .delete()
-          .eq("user_id", userId);
-
-        if (error) {
-          throw new Error(
-            `خطأ حذف صلاحيات المدير: ${error.message}`,
-          );
-        }
-      }
-
-      return response({
-        success: true,
-        message:
-          "تم تحديث رتبة المستخدم.",
-      });
-    }
-
-    /* =====================================================
-       11 — حفظ صلاحيات المدير
-    ===================================================== */
-
-    if (action === "save_permissions") {
-      if (!isOwner) {
-        return response(
-          {
-            error:
-              "ليس لديك صلاحية تحديد الصلاحيات.",
-          },
-          403,
-        );
-      }
-
-      const { userId, permissions } = body;
-
-      if (!validUUID(userId)) {
-        return response(
-          {
-            error:
-              "معرّف المستخدم غير صحيح.",
-          },
-          400,
-        );
-      }
-
-      const {
-        data: target,
-        error: targetError,
-      } = await admin
-        .from("profiles")
-        .select("id,role")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (targetError) {
-        throw new Error(
-          `خطأ قراءة المدير: ${targetError.message}`,
-        );
-      }
-
-      if (!target || target.role !== "manager") {
-        return response(
-          {
-            error:
-              "المستخدم المحدد ليس مديراً.",
-          },
-          400,
-        );
-      }
-
-      const payload: Record<string, boolean | string> = {
-        user_id: userId,
-      };
-
-      for (const key of permissionKeys) {
-        payload[key] = permissions?.[key] === true;
-      }
-
-      const { error } = await admin
-        .from("manager_permissions")
-        .upsert(
-          payload,
-          {
-            onConflict: "user_id",
-          },
-        );
-
-      if (error) {
-        throw new Error(
-          `خطأ حفظ صلاحيات المدير: ${error.message}`,
-        );
-      }
-
-      return response({
-        success: true,
-        message:
-          "تم حفظ صلاحيات المدير.",
-      });
-    }
-
-    /* =====================================================
-       12 — حذف مستخدم
-    ===================================================== */
-
-    if (action === "delete") {
-      const { userId } = body;
-
-      if (!validUUID(userId)) {
-        return response(
-          {
-            error:
-              "معرّف المستخدم غير صحيح.",
-          },
-          400,
-        );
-      }
-
-      if (userId === callerId) {
-        return response(
-          {
-            error:
-              "لا يمكنك حذف حسابك.",
+            success: false,
+            message: "لا يمكنك تغيير صلاحيات حسابك من هنا",
           },
           403,
         );
@@ -1046,33 +725,274 @@ Deno.serve(async (req) => {
       if (SERVER_OWNER_IDS.has(userId)) {
         return response(
           {
-            error:
-              "لا يمكن حذف حساب مالك السيرفر.",
+            success: false,
+            message: "لا يمكن تعديل حساب مالك السيرفر",
           },
           403,
         );
       }
 
-      const {
-        data: target,
-        error: targetError,
-      } = await admin
+      const allowedRoles = [
+        "owner",
+        "manager",
+        "staff",
+        "customer",
+      ];
+
+      if (!allowedRoles.includes(newRole)) {
+        return response(
+          {
+            success: false,
+            message: "الدور المحدد غير مسموح",
+          },
+          400,
+        );
+      }
+
+      const { data: target, error: targetError } = await admin
         .from("profiles")
         .select("id,role,branch_id")
         .eq("id", userId)
         .maybeSingle();
 
-      if (targetError) {
-        throw new Error(
-          `خطأ قراءة حساب المستخدم: ${targetError.message}`,
+      if (targetError || !target) {
+        return response(
+          {
+            success: false,
+            message: "المستخدم غير موجود",
+          },
+          404,
         );
       }
 
-      if (!target) {
+      if (
+        target.role === "delivery_driver" ||
+        newRole === "delivery_driver"
+      ) {
         return response(
           {
-            error:
-              "المستخدم غير موجود.",
+            success: false,
+            message: "حسابات المندوبين محمية، ولا يمكن تغيير أدوارها من إدارة المستخدمين العامة",
+          },
+          403,
+        );
+      }
+
+      if (target.role === "server_owner") {
+        return response(
+          {
+            success: false,
+            message: "لا يمكن تعديل حساب مالك السيرفر",
+          },
+          403,
+        );
+      }
+
+      if (
+        !isServerOwner &&
+        (
+          target.role === "owner" ||
+          newRole === "owner" ||
+          newRole === "manager"
+        )
+      ) {
+        return response(
+          {
+            success: false,
+            message: "لا تملك صلاحية تعيين هذا الدور",
+          },
+          403,
+        );
+      }
+
+      const { error: updateRoleError } = await admin
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", userId);
+
+      if (updateRoleError) {
+        return response(
+          {
+            success: false,
+            message: "تعذر تحديث الدور: " +
+              updateRoleError.message,
+          },
+          400,
+        );
+      }
+
+      if (newRole === "manager") {
+        const { error: permissionError } = await admin
+          .from("manager_permissions")
+          .upsert({
+            user_id: userId,
+            ...defaultPermissions(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (permissionError) {
+          return response(
+            {
+              success: false,
+              message: "تم تحديث الدور لكن تعذر إعداد صلاحيات المدير: " +
+                permissionError.message,
+            },
+            400,
+          );
+        }
+      } else if (target.role === "manager") {
+        const { error: deletePermissionsError } = await admin
+          .from("manager_permissions")
+          .delete()
+          .eq("user_id", userId);
+
+        if (deletePermissionsError) {
+          return response(
+            {
+              success: false,
+              message: "تم تحديث الدور لكن تعذر حذف صلاحيات المدير: " +
+                deletePermissionsError.message,
+            },
+            400,
+          );
+        }
+      }
+
+      return response({
+        success: true,
+        message: "تم تحديث دور المستخدم بنجاح",
+      });
+    }
+
+    // ==========================================
+    // SAVE MANAGER PERMISSIONS
+    // ==========================================
+
+    if (action === "save_permissions") {
+      if (!isOwner) {
+        return response(
+          {
+            success: false,
+            message: "غير مصرح لك بتعديل الصلاحيات",
+          },
+          403,
+        );
+      }
+
+      const managerId = readText(
+        body,
+        "manager_id",
+        "managerId",
+      );
+
+      if (!validUUID(managerId)) {
+        return response(
+          {
+            success: false,
+            message: "معرف المدير غير صحيح",
+          },
+          400,
+        );
+      }
+
+      const { data: manager, error: managerError } = await admin
+        .from("profiles")
+        .select("id,role")
+        .eq("id", managerId)
+        .maybeSingle();
+
+      if (
+        managerError ||
+        !manager ||
+        manager.role !== "manager"
+      ) {
+        return response(
+          {
+            success: false,
+            message: "حساب المدير غير موجود",
+          },
+          404,
+        );
+      }
+
+      const permissions: Record<string, boolean> = {};
+
+      for (const key of permissionKeys) {
+        permissions[key] = body[key] === true;
+      }
+
+      const { error: saveError } = await admin
+        .from("manager_permissions")
+        .upsert({
+          user_id: managerId,
+          ...permissions,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (saveError) {
+        return response(
+          {
+            success: false,
+            message: "تعذر حفظ الصلاحيات: " + saveError.message,
+          },
+          400,
+        );
+      }
+
+      return response({
+        success: true,
+        message: "تم حفظ صلاحيات المدير بنجاح",
+      });
+    }
+
+    // ==========================================
+    // DELETE USER
+    // ==========================================
+
+    if (action === "delete") {
+      const userId = readText(body, "user_id", "userId");
+
+      if (!validUUID(userId)) {
+        return response(
+          {
+            success: false,
+            message: "معرف المستخدم غير صحيح",
+          },
+          400,
+        );
+      }
+
+      if (userId === caller.id) {
+        return response(
+          {
+            success: false,
+            message: "لا يمكنك حذف حسابك الحالي",
+          },
+          403,
+        );
+      }
+
+      if (SERVER_OWNER_IDS.has(userId)) {
+        return response(
+          {
+            success: false,
+            message: "لا يمكن حذف حساب مالك السيرفر",
+          },
+          403,
+        );
+      }
+
+      const { data: target, error: targetError } = await admin
+        .from("profiles")
+        .select("id,role,branch_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (targetError || !target) {
+        return response(
+          {
+            success: false,
+            message: "المستخدم غير موجود",
           },
           404,
         );
@@ -1081,110 +1001,105 @@ Deno.serve(async (req) => {
       if (target.role === "server_owner") {
         return response(
           {
-            error:
-              "لا يمكن حذف حساب مالك السيرفر.",
+            success: false,
+            message: "لا يمكن حذف حساب مالك السيرفر",
           },
           403,
         );
       }
 
-      if (
-        target.role === "owner" &&
-        !isServerOwner
-      ) {
+      if (target.role === "delivery_driver") {
         return response(
           {
-            error:
-              "لا يمكن حذف حساب صاحب المطعم إلا بواسطة مالك السيرفر.",
+            success: false,
+            message: "حساب المندوب محمي. حذفه يحتاج إجراء مخصص لإدارة المندوبين",
           },
           403,
         );
       }
 
-      if (isOwner) {
-        // المالك يستطيع حذف الموظفين والمديرين والزبائن.
-        // مالك السيرفر يستطيع أيضاً حذف أصحاب المطاعم.
-      } else if (isManager) {
-        if (!canDeleteStaff) {
-          return response(
-            {
-              error:
-                "لم يمنحك المالك صلاحية حذف الموظفين.",
-            },
-            403,
-          );
-        }
-
-        if (target.role !== "staff") {
-          return response(
-            {
-              error:
-                "المدير يستطيع حذف الموظفين فقط.",
-            },
-            403,
-          );
-        }
-
+      if (isManager) {
         if (
-          !caller.branch_id ||
+          !hasPermission(managerPermissions, "can_delete_staff") ||
+          target.role !== "staff" ||
           target.branch_id !== caller.branch_id
         ) {
           return response(
             {
-              error:
-                "لا يمكنك حذف موظف من فرع آخر.",
+              success: false,
+              message: "لا تملك صلاحية حذف هذا المستخدم",
+            },
+            403,
+          );
+        }
+      } else if (!isServerOwner) {
+        const allowedDeleteRoles = [
+          "manager",
+          "staff",
+          "customer",
+        ];
+
+        if (!allowedDeleteRoles.includes(target.role)) {
+          return response(
+            {
+              success: false,
+              message: "لا تملك صلاحية حذف هذا الحساب",
             },
             403,
           );
         }
       } else {
-        return response(
-          {
-            error:
-              "ليس لديك صلاحية الحذف.",
-          },
-          403,
-        );
+        const allowedDeleteRoles = [
+          "owner",
+          "manager",
+          "staff",
+          "customer",
+        ];
+
+        if (!allowedDeleteRoles.includes(target.role)) {
+          return response(
+            {
+              success: false,
+              message: "لا يمكن حذف هذا النوع من الحسابات",
+            },
+            403,
+          );
+        }
       }
 
-      const {
-        error: deleteError,
-      } = await admin.auth.admin.deleteUser(userId);
+      const { error: deleteError } =
+        await admin.auth.admin.deleteUser(userId);
 
       if (deleteError) {
-        throw new Error(
-          `خطأ حذف الحساب: ${deleteError.message}`,
+        return response(
+          {
+            success: false,
+            message: "تعذر حذف الحساب: " + deleteError.message,
+          },
+          400,
         );
       }
 
       return response({
         success: true,
-        message:
-          "تم حذف الحساب.",
+        message: "تم حذف الحساب بنجاح",
       });
     }
 
-    /* =====================================================
-       13 — عملية غير معروفة
-    ===================================================== */
-
     return response(
       {
-        error:
-          "العملية المطلوبة غير معروفة.",
+        success: false,
+        message: "الإجراء المطلوب غير معروف",
       },
       400,
     );
-
   } catch (error) {
-    console.error(
-      "manage-users error details:",
-      error,
-    );
+    console.error("manage-users error:", getErrorMessage(error));
 
     return response(
       {
-        error: getErrorMessage(error),
+        success: false,
+        message: getErrorMessage(error),
       },
       500,
     );

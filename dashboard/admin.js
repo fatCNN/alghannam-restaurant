@@ -1,4 +1,3 @@
-
 import {
   supabaseClient as client,
   isSupabaseConfigured as readyConfig
@@ -20,17 +19,32 @@ const PERMISSION_LABELS = {
   can_manage_orders: 'إدارة الطلبات',
   can_manage_conversations: 'إدارة المحادثات',
   can_manage_offers: 'إدارة العروض',
-  can_manage_coupons: 'إدارة القسائم',
   can_manage_branch_staff: 'مشاهدة موظفي جميع الفروع',
   can_delete_staff: 'حذف موظفي الفرع'
 };
 
 const PERMISSION_KEYS = Object.keys(PERMISSION_LABELS);
 
+const CATEGORY_SCHEDULE_DAYS = [
+  { value: 1, label: 'الأحد' },
+  { value: 2, label: 'الاثنين' },
+  { value: 3, label: 'الثلاثاء' },
+  { value: 4, label: 'الأربعاء' },
+  { value: 5, label: 'الخميس' },
+  { value: 6, label: 'الجمعة' },
+  { value: 7, label: 'السبت' }
+];
+
 let branches = [];
 let categories = [];
 let products = [];
 let offers = [];
+let coupons = [];
+let discounts = [];
+let discountBranches = [];
+let discountCategories = [];
+let discountProducts = [];
+let editingDiscountId = null;
 let users = [];
 
 let activeBranch = 'fastfood';
@@ -191,6 +205,12 @@ function canManageOffers() {
   return hasPermission('can_manage_offers');
 }
 
+// الخصومات التلقائية تستخدم صلاحية إدارة العروض الحالية لتجنب كسر تكامل manage-users.
+function canManageDiscounts() {
+  // نعيد استخدام صلاحية إدارة العروض الحالية حتى لا نحتاج إلى تغيير Edge Function الحالية.
+  return canManageOffers();
+}
+
 function canManageUsers() {
   return isServerOwner || isOwner || (
     isManager() &&
@@ -219,6 +239,21 @@ function isGrillBranch(branchId = activeBranch) {
   );
 }
 
+// الأحجام متاحة للمشاوي والوجبات السريعة.
+function canUseProductSizes(branchId = activeBranch) {
+  const branch = branches.find(item =>
+    String(item.id) === String(branchId)
+  );
+
+  const identity = `${branchId || ''} ${branch?.name || ''}`.toLowerCase();
+
+  return isGrillBranch(branchId) ||
+    identity.includes('fastfood') ||
+    identity.includes('fast food') ||
+    identity.includes('وجبات') ||
+    identity.includes('الوجبات السريعة');
+}
+
 /* =====================================================
    الأحجام — products.extra.size_options
 ===================================================== */
@@ -244,9 +279,9 @@ function renderProductSizes(sizeOptions = []) {
 
   if (!panel || !list) return;
 
-  panel.hidden = !isGrillBranch();
+  panel.hidden = !canUseProductSizes();
 
-  if (!isGrillBranch()) {
+  if (!canUseProductSizes()) {
     list.innerHTML = '';
     return;
   }
@@ -320,8 +355,8 @@ function addProductSize() {
     return;
   }
 
-  if (!isGrillBranch($('#productBranch').value || activeBranch)) {
-    toast('الأحجام الإضافية مخصصة لفرع المشاوي.', 'error');
+  if (!canUseProductSizes($('#productBranch').value || activeBranch)) {
+    toast('إضافة الأحجام متاحة لفرعي المشاوي والوجبات السريعة.', 'error');
     return;
   }
 
@@ -390,7 +425,7 @@ function addProductSize() {
 }
 
 function collectProductSizes() {
-  if (!isGrillBranch($('#productBranch').value || activeBranch)) {
+  if (!canUseProductSizes($('#productBranch').value || activeBranch)) {
     return null;
   }
 
@@ -558,11 +593,17 @@ function applyDashboardPermissions() {
   $('#newProductButton').hidden = !productCreationAllowed;
   $('#productEditorPanel').hidden = !productsAllowed;
 
-  const categoriesPanel = $('#categoriesList')
-    ?.closest('.categories-panel');
+  // حاوية زر التصنيفات؛ مع دعم البنية القديمة إذا لم يُحدّث HTML بعد.
+  const categoriesPanel = $('#categoriesPanel') ||
+    $('#categoriesList')?.closest('.categories-panel');
 
   if (categoriesPanel) {
     categoriesPanel.hidden = !categoriesAllowed;
+  }
+
+  const openCategoriesButton = $('#openCategoriesModal');
+  if (openCategoriesButton) {
+    openCategoriesButton.hidden = !categoriesAllowed;
   }
 
   $('#categoryForm').hidden = !categoriesAllowed;
@@ -571,8 +612,11 @@ function applyDashboardPermissions() {
   const couponsPanel = $('#couponsPanel');
 
   if (couponsPanel) {
-    couponsPanel.hidden = !isOwner;
+    couponsPanel.hidden = !(isOwner || isServerOwner);
   }
+
+  const discountsPanel = $('#discountsPanel');
+  if (discountsPanel) discountsPanel.hidden = !canManageDiscounts();
 
   const ordersLink = document.querySelector('a[href="orders.html"]');
   const conversationsLink = document.querySelector('a[href="conversations.html"]');
@@ -626,7 +670,7 @@ function setProductFormPermissions() {
   const sizesPanel = $('#productSizesPanel');
 
   if (sizesPanel) {
-    sizesPanel.hidden = !isGrillBranch(
+    sizesPanel.hidden = !canUseProductSizes(
       $('#productBranch')?.value || activeBranch
     );
 
@@ -754,6 +798,8 @@ async function authorizeAndLoad() {
   await loadUsers();
 
   applyDashboardPermissions();
+  if (isOwner || isServerOwner) await loadCoupons();
+  await loadDiscounts();
 }
 
 /* =====================================================
@@ -1263,6 +1309,7 @@ async function loadBranches() {
   await loadCategories();
   await loadProducts();
   await loadOffers();
+  await loadDiscounts();
 
   if (isOwner) {
     $('#newUserBranch').innerHTML =
@@ -1329,49 +1376,153 @@ function renderCategorySelect(selectedId = '') {
   }
 }
 
+function ensureCategoryScheduleStyles() {
+  if ($('#categoryScheduleStyles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'categoryScheduleStyles';
+  style.textContent = `
+    .category-schedule {
+      flex-basis: 100%; width: 100%; margin-top: 12px; padding: 12px;
+      border: 1px solid #e5d9cf; border-radius: 10px; background: #fffaf6;
+    }
+    .category-schedule summary { cursor: pointer; font-weight: 700; padding: 5px; }
+    .category-schedule-content { display: grid; gap: 14px; padding-top: 15px; }
+    .category-schedule-content label { display: flex; align-items: center; gap: 8px; }
+    .category-schedule-content input[type="time"] { width: 100%; min-height: 42px; padding: 8px; }
+    .category-schedule-days { display: grid; grid-template-columns: repeat(auto-fit,minmax(90px,1fr)); gap: 10px; }
+    .category-schedule-days label { padding: 8px; background: #fff; border: 1px solid #e5d9cf; border-radius: 8px; }
+    .category-schedule-save { justify-self: start; }
+    .category-schedule-hint { color: #76665c; font-size: .88em; }
+  `;
+  document.head.appendChild(style);
+}
+
 function renderCategoriesList() {
   const list = $('#categoriesList');
   if (!list) return;
 
+  ensureCategoryScheduleStyles();
+
   list.innerHTML = categories.length
-    ? categories.map(category => `
-        <div class="category-chip" data-category-id="${escapeHTML(category.id)}">
+    ? categories.map(category => {
+        const selectedDays = Array.isArray(category.visible_days) && category.visible_days.length
+          ? category.visible_days.map(Number)
+          : [1, 2, 3, 4, 5, 6, 7];
 
-          <span>
-            <strong>${escapeHTML(category.name)}</strong>
+        return `
+          <div class="category-chip" data-category-id="${escapeHTML(category.id)}">
+            <span>
+              <strong>${escapeHTML(category.name)}</strong>
+              <small dir="ltr">${escapeHTML(category.name_en || 'No English name')}</small>
+              <small>ترتيب العرض: ${Number(category.sort_order) || 0}</small>
+            </span>
 
-            <small dir="ltr">
-              ${escapeHTML(category.name_en || 'No English name')}
-            </small>
+            <button type="button" data-order-category="${escapeHTML(category.id)}">ترتيب العرض</button>
+            <button type="button" data-rename-category="${escapeHTML(category.id)}">تعديل الاسمين</button>
+            <button type="button" data-delete-category="${escapeHTML(category.id)}">حذف</button>
 
-            <small>
-              ترتيب العرض: ${Number(category.sort_order) || 0}
-            </small>
-          </span>
-
-          <button
-            type="button"
-            data-order-category="${escapeHTML(category.id)}">
-            ترتيب العرض
-          </button>
-
-          <button
-            type="button"
-            data-rename-category="${escapeHTML(category.id)}">
-            تعديل الاسمين
-          </button>
-
-          <button
-            type="button"
-            data-delete-category="${escapeHTML(category.id)}">
-            حذف
-          </button>
-
-        </div>
-      `).join('')
+            <details class="category-schedule">
+              <summary>⏰ جدولة ظهور القسم</summary>
+              <div class="category-schedule-content">
+                <label>
+                  <input type="checkbox" data-schedule-enabled ${category.schedule_enabled ? 'checked' : ''}>
+                  تفعيل الجدولة لهذا القسم
+                </label>
+                <p class="category-schedule-hint">عند التفعيل، يظهر القسم ومنتجاته فقط في الأيام والأوقات المحددة حسب توقيت بغداد.</p>
+                <div class="user-form-grid">
+                  <label>
+                    وقت بداية الظهور
+                    <input type="time" data-visible-from value="${escapeHTML(category.visible_from || '')}">
+                  </label>
+                  <label>
+                    وقت نهاية الظهور
+                    <input type="time" data-visible-until value="${escapeHTML(category.visible_until || '')}">
+                  </label>
+                </div>
+                <div>
+                  <strong>أيام ظهور القسم</strong>
+                  <div class="category-schedule-days">
+                    ${CATEGORY_SCHEDULE_DAYS.map(day => `
+                      <label>
+                        <input type="checkbox" data-visible-day="${day.value}" ${selectedDays.includes(day.value) ? 'checked' : ''}>
+                        ${day.label}
+                      </label>
+                    `).join('')}
+                  </div>
+                </div>
+                <button type="button" class="button button-primary category-schedule-save" data-save-category-schedule="${escapeHTML(category.id)}">
+                  💾 حفظ الجدولة
+                </button>
+              </div>
+            </details>
+          </div>
+        `;
+      }).join('')
     : '<p class="muted">ماكو تصنيفات بهذا الفرع.</p>';
 
   $('#statCategories').textContent = categories.length;
+}
+
+async function saveCategorySchedule(id, button) {
+  if (!canManageCategories()) {
+    toast('ليس لديك صلاحية تعديل جدولة التصنيفات.', 'error');
+    return;
+  }
+
+  const category = categories.find(item => String(item.id) === String(id));
+  const card = button?.closest('[data-category-id]');
+  if (!category || !card) return;
+
+  const enabled = Boolean(card.querySelector('[data-schedule-enabled]')?.checked);
+  const visibleFrom = card.querySelector('[data-visible-from]')?.value || '';
+  const visibleUntil = card.querySelector('[data-visible-until]')?.value || '';
+  const visibleDays = [...card.querySelectorAll('[data-visible-day]:checked')]
+    .map(input => Number(input.dataset.visibleDay))
+    .filter(day => day >= 1 && day <= 7)
+    .sort((a, b) => a - b);
+
+  if (enabled) {
+    if (!visibleFrom || !visibleUntil) {
+      toast('حدد وقت بداية ونهاية ظهور القسم.', 'error');
+      return;
+    }
+
+    if (!visibleDays.length) {
+      toast('حدد يوماً واحداً على الأقل لظهور القسم.', 'error');
+      return;
+    }
+  }
+
+  setBusy(button, true, 'جارٍ حفظ الجدولة...');
+
+  try {
+    const { data, error } = await client
+      .from('categories')
+      .update({
+        schedule_enabled: enabled,
+        visible_from: visibleFrom || null,
+        visible_until: visibleUntil || null,
+        visible_days: visibleDays.length ? visibleDays : [1, 2, 3, 4, 5, 6, 7]
+      })
+      .eq('id', id)
+      .eq('branch_id', activeBranch)
+      .select('id')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error('لم يتم تحديث أي صف. تحقق من صلاحيات RLS لهذا الحساب.');
+    }
+
+    await loadCategories();
+    toast(enabled ? 'تم حفظ جدولة القسم بنجاح.' : 'تم إيقاف الجدولة، والقسم سيظهر دائماً.');
+  } catch (error) {
+    toast(`تعذر حفظ الجدولة: ${error.message}`, 'error');
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 async function addCategory(event) {
@@ -1919,11 +2070,8 @@ async function saveProduct(event) {
       if (!categoryId) throw new Error('اختر التصنيف.');
       if (!name) throw new Error('اكتب اسم المنتج بالعربية.');
 
-      /*
-        تحديث الأحجام لفرع المشاوي فقط.
-        في بقية الفروع نترك size_options القديمة كما هي.
-      */
-      if (isGrillBranch(branchId)) {
+      // حفظ أحجام المنتج للمشاوي والوجبات السريعة مع الحفاظ على بقية extra.
+      if (canUseProductSizes(branchId)) {
         extra.size_options = collectProductSizes();
       }
 
@@ -2489,10 +2637,667 @@ async function deleteOffer(id) {
 }
 
 /* =====================================================
+   الخصومات التلقائية — مستقلة عن الكوبونات والعروض
+===================================================== */
+
+function ensureDiscountUI() {
+  if ($('#discountsPanel')) return;
+
+  const panel = document.createElement('section');
+  panel.id = 'discountsPanel';
+  panel.className = 'panel discounts-panel';
+  panel.innerHTML = `
+    <div class="section-heading">
+      <div><h2>الخصومات التلقائية</h2><p class="muted">خصومات حسب المنتج أو التصنيف أو الفرع أو جميع الفروع، مع تحديد مدة الصلاحية.</p></div>
+      <button type="button" class="button button-primary" id="newDiscountButton">＋ إضافة خصم</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>اسم الخصم</th><th>النسبة</th><th>النطاق</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody id="discountsTable"><tr><td colspan="6" class="empty-cell">جارٍ تحميل الخصومات...</td></tr></tbody>
+      </table>
+    </div>
+    <p id="discountsMessage" class="form-message" role="status"></p>
+  `;
+
+  const modal = document.createElement('div');
+  modal.id = 'discountModal';
+  modal.className = 'discount-modal';
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="discount-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="discountModalTitle">
+      <div class="discount-modal-head"><h2 id="discountModalTitle">إضافة خصم تلقائي</h2><button type="button" class="button button-quiet" id="closeDiscountModal" aria-label="إغلاق">✕</button></div>
+      <form id="discountForm" class="form-stack">
+        <label>اسم الخصم *<input id="discountName" maxlength="120" required placeholder="مثلاً: خصم نهاية الأسبوع"></label>
+        <label>نسبة الخصم (%) *<input id="discountPercent" type="number" min="0" max="100" step="0.01" required placeholder="20"></label>
+        <label>تطبيق الخصم على *<select id="discountScope" required>
+          <option value="all_branches">جميع الفروع</option>
+          <option value="branch">فرع أو عدة فروع</option>
+          <option value="category">تصنيف أو عدة تصنيفات</option>
+          <option value="product">منتج أو عدة منتجات</option>
+        </select></label>
+        <label id="discountTargetsWrap" hidden>حدد العناصر المستهدفة *<select id="discountTargets" multiple size="6"></select><small>يمكن اختيار أكثر من عنصر باستخدام Ctrl أو Cmd.</small></label>
+        <div class="discount-dates-grid">
+          <label>يبدأ الخصم *<input id="discountStartsAt" type="datetime-local" required></label>
+          <label>ينتهي الخصم *<input id="discountEndsAt" type="datetime-local" required></label>
+        </div>
+        <label class="switch-row"><input id="discountActive" type="checkbox" checked><span><strong>تفعيل الخصم</strong><small>يمكن إيقافه أو تشغيله لاحقاً دون حذفه.</small></span></label>
+        <div class="discount-modal-actions"><button type="button" class="button button-quiet" id="cancelDiscountButton">إلغاء</button><button type="submit" class="button button-primary" id="saveDiscountButton">حفظ الخصم</button></div>
+        <p id="discountFormMessage" class="form-message" role="status"></p>
+      </form>
+    </div>
+  `;
+
+  const style = document.createElement('style');
+  style.id = 'discountUIStyles';
+  style.textContent = `
+    .discounts-panel{margin-top:22px}.discounts-panel .section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .discount-modal[hidden]{display:none!important}.discount-modal{position:fixed;inset:0;z-index:10000;background:rgba(25,12,10,.62);display:grid;place-items:center;padding:16px;overflow:auto}
+    .discount-modal-dialog{width:min(680px,100%);max-height:min(90vh,900px);overflow:auto;background:#fffaf5;border:1px solid #ead9c7;border-radius:18px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.24)}
+    .discount-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.discount-modal-head h2{margin:0;color:#4b1111;font-size:1.2rem}
+    .discount-dates-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.discount-modal input,.discount-modal select{width:100%;box-sizing:border-box}
+    #discountTargets{min-height:150px}.discount-modal-actions{display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap}
+    .discount-status{display:inline-flex;padding:5px 9px;border-radius:20px;background:#eee;color:#51433b;font-size:.82rem}.discount-status.is-active{background:#e4f3e7;color:#17642b}.discount-status.is-off{background:#f6e7e4;color:#8a3026}
+    .discount-actions{display:flex;gap:6px;flex-wrap:wrap}.discount-actions .button{padding:6px 9px;font-size:.84rem}
+    @media(max-width:600px){.discount-modal-dialog{padding:14px}.discount-dates-grid{grid-template-columns:1fr}.discounts-panel .table-wrap{overflow-x:auto}}
+  `;
+
+  document.head.appendChild(style);
+  dashboard.appendChild(panel);
+  document.body.appendChild(modal);
+}
+
+function toLocalDateTimeValue(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function discountScopeLabel(discount) {
+  if (discount.scope_type === 'all_branches') return 'جميع الفروع';
+  if (discount.scope_type === 'branch') {
+    const names = (discount.branch_ids || []).map(id =>
+      discountBranches.find(item => String(item.id) === String(id))?.name || id
+    );
+    return `الفروع: ${names.join('، ') || '—'}`;
+  }
+  if (discount.scope_type === 'category') {
+    const names = (discount.category_ids || []).map(id =>
+      discountCategories.find(item => String(item.id) === String(id))?.name || id
+    );
+    return `التصنيفات: ${names.join('، ') || '—'}`;
+  }
+  const names = (discount.product_ids || []).map(id =>
+    discountProducts.find(item => String(item.id) === String(id))?.name || id
+  );
+  return `المنتجات: ${names.join('، ') || '—'}`;
+}
+
+function discountIsCurrentlyValid(discount) {
+  const now = Date.now();
+  return discount.is_active === true &&
+    new Date(discount.starts_at).getTime() <= now &&
+    new Date(discount.ends_at).getTime() > now;
+}
+
+async function loadDiscountReferenceData() {
+  const [branchResult, categoryResult, productResult] = await Promise.all([
+    client.from('branches').select('id,name').order('sort_order'),
+    client.from('categories').select('id,name,branch_id').order('name'),
+    client.from('products').select('id,name,branch_id,category_id').order('name')
+  ]);
+
+  if (branchResult.error) throw branchResult.error;
+  if (categoryResult.error) throw categoryResult.error;
+  if (productResult.error) throw productResult.error;
+
+  discountBranches = branchResult.data || [];
+  discountCategories = categoryResult.data || [];
+  discountProducts = productResult.data || [];
+}
+
+async function loadDiscounts() {
+  ensureDiscountUI();
+  const body = $('#discountsTable');
+  if (!body) return;
+
+  if (!canManageDiscounts()) {
+    $('#discountsPanel').hidden = true;
+    return;
+  }
+
+  $('#discountsPanel').hidden = false;
+  body.innerHTML = '<tr><td colspan="6" class="empty-cell">جارٍ تحميل الخصومات...</td></tr>';
+
+  try {
+    await loadDiscountReferenceData();
+    const { data, error } = await client.from('discounts')
+      .select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    discounts = data || [];
+    renderDiscounts();
+  } catch (error) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-cell">تعذر تحميل الخصومات.</td></tr>';
+    message($('#discountsMessage'), `تعذر تحميل الخصومات: ${error.message}`, 'error');
+  }
+}
+
+function renderDiscounts() {
+  const body = $('#discountsTable');
+  if (!body) return;
+
+  if (!discounts.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-cell">لا توجد خصومات تلقائية مضافة حالياً.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = discounts.map(item => {
+    const status = discountIsCurrentlyValid(item)
+      ? '<span class="discount-status is-active">فعال الآن</span>'
+      : item.is_active
+        ? '<span class="discount-status">مجدول / منتهي</span>'
+        : '<span class="discount-status is-off">متوقف</span>';
+    const start = new Date(item.starts_at).toLocaleString('ar-IQ');
+    const end = new Date(item.ends_at).toLocaleString('ar-IQ');
+    return `<tr>
+      <td>${escapeHTML(item.name)}</td>
+      <td><strong>${Number(item.discount_percent)}%</strong></td>
+      <td>${escapeHTML(discountScopeLabel(item))}</td>
+      <td><small>من ${escapeHTML(start)}<br>إلى ${escapeHTML(end)}</small></td>
+      <td>${status}</td>
+      <td><div class="discount-actions">
+        <button type="button" class="button button-quiet" data-edit-discount="${escapeHTML(item.id)}">تعديل</button>
+        <button type="button" class="button button-quiet" data-toggle-discount="${escapeHTML(item.id)}">${item.is_active ? 'إيقاف' : 'تفعيل'}</button>
+        <button type="button" class="button button-danger" data-delete-discount="${escapeHTML(item.id)}">حذف</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateDiscountTargetOptions(selected = []) {
+  const scope = $('#discountScope').value;
+  const wrap = $('#discountTargetsWrap');
+  const select = $('#discountTargets');
+  if (!wrap || !select) return;
+
+  const managerBranch = isManager() ? String(currentProfile?.branch_id || '') : '';
+  let rows = [];
+  if (scope === 'branch') {
+    rows = discountBranches.filter(item => !managerBranch || String(item.id) === managerBranch)
+      .map(item => ({ id: item.id, name: item.name }));
+  } else if (scope === 'category') {
+    rows = discountCategories.filter(item => !managerBranch || String(item.branch_id) === managerBranch)
+      .map(item => ({ id: item.id, name: `${item.name} — ${branchName(item.branch_id)}` }));
+  } else if (scope === 'product') {
+    rows = discountProducts.filter(item => !managerBranch || String(item.branch_id) === managerBranch)
+      .map(item => ({ id: item.id, name: `${item.name} — ${branchName(item.branch_id)}` }));
+  }
+
+  wrap.hidden = scope === 'all_branches';
+  select.innerHTML = rows.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`).join('');
+  [...select.options].forEach(option => { option.selected = selected.map(String).includes(String(option.value)); });
+}
+
+function openDiscountModal(discount = null) {
+  if (!canManageDiscounts()) return;
+  editingDiscountId = discount?.id || null;
+  $('#discountModalTitle').textContent = discount ? 'تعديل الخصم التلقائي' : 'إضافة خصم تلقائي';
+  $('#discountName').value = discount?.name || '';
+  $('#discountPercent').value = discount?.discount_percent ?? '';
+  $('#discountScope').value = discount?.scope_type || 'all_branches';
+  $('#discountStartsAt').value = discount ? toLocalDateTimeValue(discount.starts_at) : '';
+  $('#discountEndsAt').value = discount ? toLocalDateTimeValue(discount.ends_at) : '';
+  $('#discountActive').checked = discount ? discount.is_active === true : true;
+  const selected = discount?.scope_type === 'branch' ? discount.branch_ids || []
+    : discount?.scope_type === 'category' ? discount.category_ids || []
+    : discount?.scope_type === 'product' ? discount.product_ids || [] : [];
+  updateDiscountTargetOptions(selected);
+  message($('#discountFormMessage'), '');
+  $('#discountModal').hidden = false;
+  document.body.classList.add('discount-modal-open');
+  $('#discountName').focus();
+}
+
+function closeDiscountModal() {
+  $('#discountModal').hidden = true;
+  document.body.classList.remove('discount-modal-open');
+  editingDiscountId = null;
+}
+
+async function saveDiscount(event) {
+  event.preventDefault();
+  if (!canManageDiscounts()) return;
+
+  const button = $('#saveDiscountButton');
+  const scope = $('#discountScope').value;
+  const percent = Number($('#discountPercent').value);
+  const startsAt = new Date($('#discountStartsAt').value);
+  const endsAt = new Date($('#discountEndsAt').value);
+  const targets = [...$('#discountTargets').selectedOptions].map(option => option.value);
+
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+    message($('#discountFormMessage'), 'نسبة الخصم يجب أن تكون بين 0 و100%.', 'error');
+    return;
+  }
+  if (!$('#discountStartsAt').value || !$('#discountEndsAt').value ||
+      Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || startsAt >= endsAt) {
+    message($('#discountFormMessage'), 'تأكد من تاريخ ووقت البداية والنهاية؛ يجب أن تكون النهاية بعد البداية.', 'error');
+    return;
+  }
+  if (scope !== 'all_branches' && !targets.length) {
+    message($('#discountFormMessage'), 'حدد عنصراً واحداً على الأقل لتطبيق الخصم عليه.', 'error');
+    return;
+  }
+
+  const payload = {
+    name: $('#discountName').value.trim(),
+    discount_percent: percent,
+    scope_type: scope,
+    branch_ids: scope === 'branch' ? targets : [],
+    category_ids: scope === 'category' ? targets : [],
+    product_ids: scope === 'product' ? targets : [],
+    starts_at: startsAt.toISOString(),
+    ends_at: endsAt.toISOString(),
+    is_active: $('#discountActive').checked
+  };
+
+  if (!payload.name) {
+    message($('#discountFormMessage'), 'اكتب اسم الخصم.', 'error');
+    return;
+  }
+
+  const wasEditing = Boolean(editingDiscountId);
+  setBusy(button, true);
+  try {
+    const query = editingDiscountId
+      ? client.from('discounts').update(payload).eq('id', editingDiscountId)
+      : client.from('discounts').insert(payload);
+    const { error } = await query;
+    if (error) throw error;
+    closeDiscountModal();
+    await loadDiscounts();
+    toast(wasEditing ? 'تم تحديث الخصم.' : 'تمت إضافة الخصم.');
+  } catch (error) {
+    message($('#discountFormMessage'), `تعذر حفظ الخصم: ${error.message}`, 'error');
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function toggleDiscount(id) {
+  if (!canManageDiscounts()) return;
+  const item = discounts.find(row => String(row.id) === String(id));
+  if (!item) return;
+  const { error } = await client.from('discounts').update({ is_active: !item.is_active }).eq('id', id);
+  if (error) { toast(`تعذر تغيير حالة الخصم: ${error.message}`, 'error'); return; }
+  await loadDiscounts();
+  toast(item.is_active ? 'تم إيقاف الخصم.' : 'تم تفعيل الخصم.');
+}
+
+async function deleteDiscount(id) {
+  if (!canManageDiscounts()) return;
+  const item = discounts.find(row => String(row.id) === String(id));
+  if (!item || !confirm(`متأكد تريد حذف الخصم «${item.name}» نهائياً؟`)) return;
+  const { error } = await client.from('discounts').delete().eq('id', id);
+  if (error) { toast(`تعذر حذف الخصم: ${error.message}`, 'error'); return; }
+  await loadDiscounts();
+  toast('تم حذف الخصم.');
+}
+
+function wireDiscountEvents() {
+  ensureDiscountUI();
+  $('#newDiscountButton')?.addEventListener('click', () => openDiscountModal());
+  $('#closeDiscountModal')?.addEventListener('click', closeDiscountModal);
+  $('#cancelDiscountButton')?.addEventListener('click', closeDiscountModal);
+  $('#discountScope')?.addEventListener('change', () => updateDiscountTargetOptions());
+  $('#discountForm')?.addEventListener('submit', saveDiscount);
+  $('#discountModal')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeDiscountModal();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && $('#discountModal') && !$('#discountModal').hidden) closeDiscountModal();
+  });
+  $('#discountsTable')?.addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    if (button.dataset.editDiscount) {
+      const item = discounts.find(row => String(row.id) === String(button.dataset.editDiscount));
+      if (item) openDiscountModal(item);
+    }
+    if (button.dataset.toggleDiscount) toggleDiscount(button.dataset.toggleDiscount);
+    if (button.dataset.deleteDiscount) deleteDiscount(button.dataset.deleteDiscount);
+  });
+}
+
+/* =====================================================
+   نافذة تصنيفات الفرع المنبثقة
+===================================================== */
+
+function openCategoriesModal() {
+  const modal = $('#categoriesModal');
+  if (!modal) return;
+
+  modal.hidden = false;
+  document.body.classList.add('categories-modal-open');
+  $('#closeCategoriesModal')?.focus();
+}
+
+function closeCategoriesModal() {
+  const modal = $('#categoriesModal');
+  if (!modal) return;
+
+  modal.hidden = true;
+  document.body.classList.remove('categories-modal-open');
+  $('#openCategoriesModal')?.focus();
+}
+
+function wireCategoriesModalEvents() {
+  $('#openCategoriesModal')?.addEventListener('click', openCategoriesModal);
+  $('#closeCategoriesModal')?.addEventListener('click', closeCategoriesModal);
+  $('#closeCategoriesModalFooter')?.addEventListener('click', closeCategoriesModal);
+
+  $('#categoriesModal')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) {
+      closeCategoriesModal();
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    const modal = $('#categoriesModal');
+    if (event.key === 'Escape' && modal && !modal.hidden) {
+      closeCategoriesModal();
+    }
+  });
+}
+
+/* =====================================================
+   إدارة القسائم (المالك ومالك السيرفر فقط)
+===================================================== */
+
+function canManageCoupons() {
+  return Boolean(isOwner || isServerOwner);
+}
+
+function couponDateValue(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ar-IQ');
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function renderCouponBranches(selectedIds = []) {
+  const list = $('#couponBranchesList');
+  if (!list) return;
+  list.innerHTML = branches.map(branch => `
+    <label class="coupon-branch-option">
+      <input type="checkbox" data-coupon-branch="${escapeHTML(branch.id)}" ${selectedIds.map(String).includes(String(branch.id)) ? 'checked' : ''}>
+      ${escapeHTML(branch.name)}
+    </label>
+  `).join('') || '<p class="muted">لا توجد فروع.</p>';
+  const allBranches = $('#couponAllBranches')?.checked;
+  list.querySelectorAll('[data-coupon-branch]').forEach(input => { input.disabled = Boolean(allBranches); });
+}
+
+function renderCoupons() {
+  const table = $('#couponsTable');
+  if (!table) return;
+  if (!coupons.length) {
+    table.innerHTML = '<tr><td colspan="7" class="empty-cell">لا توجد قسائم حالياً.</td></tr>';
+    return;
+  }
+  table.innerHTML = coupons.map(coupon => {
+    const branchIds = Array.isArray(coupon.branch_ids)
+      ? coupon.branch_ids
+      : (coupon.coupon_branches || []).map(item => item.branch_id);
+    const branchLabel = coupon.applies_to_all_branches
+      ? 'جميع الفروع'
+      : branchIds.map(branchName).join('، ') || '—';
+    const discountLabel = coupon.discount_type === 'percent' ? 'نسبة' : 'مبلغ';
+    const valueLabel = coupon.discount_type === 'percent'
+      ? `${coupon.discount_value}%`
+      : `${Number(coupon.discount_value).toLocaleString('en-US')} د.ع`;
+    return `<tr>
+      <td><span class="coupon-code">${escapeHTML(coupon.code)}</span></td>
+      <td>${discountLabel}</td><td>${valueLabel}</td>
+      <td>${escapeHTML(branchLabel)}</td>
+      <td>${escapeHTML(couponDateValue(coupon.expires_at))}</td>
+      <td><span class="coupon-status ${coupon.is_active ? 'active' : 'inactive'}">${coupon.is_active ? 'مفعّلة' : 'متوقفة'}</span></td>
+      <td class="coupon-row-actions">
+        <button type="button" class="button button-quiet" data-edit-coupon="${escapeHTML(coupon.id)}">تعديل</button>
+        <button type="button" class="button button-danger" data-delete-coupon="${escapeHTML(coupon.id)}">حذف</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadCoupons() {
+  if (!canManageCoupons() || !client) return;
+  const table = $('#couponsTable');
+  if (table) table.innerHTML = '<tr><td colspan="7" class="empty-cell">جارٍ تحميل القسائم...</td></tr>';
+  try {
+    const { data, error } = await client
+      .from('coupons')
+      .select('*,coupon_branches(branch_id)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    coupons = data || [];
+    renderCoupons();
+  } catch (error) {
+    if (table) table.innerHTML = `<tr><td colspan="7" class="empty-cell">تعذر تحميل القسائم: ${escapeHTML(error.message)}</td></tr>`;
+  }
+}
+
+function resetCouponForm() {
+  const form = $('#couponForm');
+  if (!form) return;
+  form.reset();
+  $('#couponId').value = '';
+  $('#couponEditorTitle').textContent = 'إنشاء قسيمة جديدة';
+  $('#couponStartsAt').value = toDateTimeLocal(new Date());
+  $('#couponPerCustomerLimit').value = '1';
+  $('#couponAllBranches').checked = true;
+  $('#couponAudienceType').value = 'all';
+  $('#couponCustomerIds').value = '';
+  $('#couponCustomerIdsWrap').hidden = true;
+  $('#couponEditorPanel').hidden = true;
+  message($('#couponEditorMessage'), '');
+  renderCouponBranches([]);
+}
+
+async function openCouponEditor(coupon = null) {
+  if (!canManageCoupons()) {
+    toast('إدارة القسائم متاحة لصاحب المطعم ومالك السيرفر فقط.', 'error');
+    return;
+  }
+  resetCouponForm();
+  if (coupon) {
+    $('#couponId').value = coupon.id;
+    $('#couponCode').value = coupon.code || '';
+    $('#couponDescription').value = coupon.description || '';
+    $('#couponDiscountType').value = coupon.discount_type || 'percent';
+    $('#couponDiscountValue').value = coupon.discount_value ?? '';
+    $('#couponMaxDiscount').value = coupon.max_discount ?? '';
+    $('#couponMinOrder').value = coupon.min_order_amount ?? coupon.min_order ?? 0;
+    $('#couponStartsAt').value = toDateTimeLocal(coupon.starts_at);
+    $('#couponExpiresAt').value = toDateTimeLocal(coupon.expires_at);
+    $('#couponUsageLimit').value = coupon.usage_limit ?? '';
+    $('#couponPerCustomerLimit').value = coupon.per_customer_limit ?? 1;
+    $('#couponActive').checked = Boolean(coupon.is_active);
+    $('#couponAudienceType').value = coupon.audience_type || 'all';
+    const branchIds = Array.isArray(coupon.branch_ids)
+      ? coupon.branch_ids
+      : (coupon.coupon_branches || []).map(item => item.branch_id);
+    $('#couponAllBranches').checked = Boolean(coupon.applies_to_all_branches);
+    renderCouponBranches(branchIds);
+    if (coupon.audience_type === 'selected') {
+      const { data, error } = await client.from('customer_coupons').select('customer_id').eq('coupon_id', coupon.id);
+      if (error) {
+        toast(`تعذر تحميل قائمة الزبائن: ${error.message}`, 'error');
+      } else {
+        $('#couponCustomerIds').value = (data || []).map(row => row.customer_id).join(', ');
+      }
+    }
+    $('#couponEditorTitle').textContent = 'تعديل القسيمة';
+  }
+  $('#couponCustomerIdsWrap').hidden = $('#couponAudienceType').value !== 'selected';
+  $('#couponEditorPanel').hidden = false;
+  $('#couponEditorPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('#couponCode').focus();
+}
+
+function openCouponsModal() {
+  if (!canManageCoupons()) {
+    toast('إدارة القسائم متاحة لصاحب المطعم ومالك السيرفر فقط.', 'error');
+    return;
+  }
+  $('#couponsModal').hidden = false;
+  document.body.classList.add('coupon-modal-open');
+  loadCoupons();
+  $('#closeCouponsModal')?.focus();
+}
+
+function closeCouponsModal() {
+  const modal = $('#couponsModal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove('coupon-modal-open');
+  resetCouponForm();
+  $('#openCouponsModal')?.focus();
+}
+
+function parseCouponCustomerIds() {
+  const raw = $('#couponCustomerIds').value.trim();
+  if (!raw) return [];
+  const ids = raw.split(/[\s,;]+/).map(value => value.trim()).filter(Boolean);
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (ids.some(id => !uuidPattern.test(id))) {
+    throw new Error('تأكد من أن جميع معرفات الزبائن UUID صحيحة.');
+  }
+  return [...new Set(ids)];
+}
+
+async function saveCoupon(event) {
+  event.preventDefault();
+  if (!canManageCoupons()) {
+    toast('ليس لديك صلاحية إدارة القسائم.', 'error');
+    return;
+  }
+  const button = $('#saveCouponButton');
+  setBusy(button, true, 'جارٍ الحفظ...');
+  message($('#couponEditorMessage'), '');
+  try {
+    const audienceType = $('#couponAudienceType').value;
+    const customerIds = audienceType === 'selected' ? parseCouponCustomerIds() : [];
+    if (audienceType === 'selected' && !customerIds.length) {
+      throw new Error('أدخل معرف زبون واحداً على الأقل للقسيمة المحددة.');
+    }
+    const allBranches = $('#couponAllBranches').checked;
+    const branchIds = allBranches ? [] : [...document.querySelectorAll('[data-coupon-branch]:checked')].map(input => input.dataset.couponBranch);
+    if (!allBranches && !branchIds.length) throw new Error('حدد فرعاً واحداً على الأقل أو اختر جميع الفروع.');
+    const startsAt = new Date($('#couponStartsAt').value);
+    const expiresRaw = $('#couponExpiresAt').value;
+    const expiresAt = expiresRaw ? new Date(expiresRaw) : null;
+    if (Number.isNaN(startsAt.getTime())) throw new Error('تاريخ بداية القسيمة غير صحيح.');
+    if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= startsAt)) throw new Error('تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية.');
+    const usageRaw = $('#couponUsageLimit').value;
+    const maxRaw = $('#couponMaxDiscount').value;
+    const { data, error } = await client.rpc('admin_save_coupon_v2', {
+      p_id: $('#couponId').value || null,
+      p_code: $('#couponCode').value.trim().toUpperCase(),
+      p_description: $('#couponDescription').value.trim() || null,
+      p_discount_type: $('#couponDiscountType').value,
+      p_discount_value: Number($('#couponDiscountValue').value),
+      p_max_discount: maxRaw === '' ? null : Number(maxRaw),
+      p_min_order_amount: Number($('#couponMinOrder').value || 0),
+      p_starts_at: startsAt.toISOString(),
+      p_expires_at: expiresAt ? expiresAt.toISOString() : null,
+      p_usage_limit: usageRaw === '' ? null : Number(usageRaw),
+      p_per_customer_limit: Number($('#couponPerCustomerLimit').value),
+      p_applies_to_all_branches: allBranches,
+      p_branch_ids: branchIds,
+      p_is_active: $('#couponActive').checked,
+      p_audience_type: audienceType,
+      p_customer_ids: customerIds
+    });
+    if (error) throw error;
+    if (!data) throw new Error('لم تُرجع قاعدة البيانات معرف القسيمة المحفوظة.');
+    toast('تم حفظ القسيمة بنجاح.');
+    resetCouponForm();
+    await loadCoupons();
+  } catch (error) {
+    message($('#couponEditorMessage'), `تعذر حفظ القسيمة: ${error.message}`, 'error');
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function deleteCoupon(couponId) {
+  if (!canManageCoupons()) {
+    toast('ليس لديك صلاحية حذف القسائم.', 'error');
+    return;
+  }
+  const coupon = coupons.find(item => String(item.id) === String(couponId));
+  if (!coupon || !confirm(`هل أنت متأكد من حذف القسيمة ${coupon.code}؟`)) return;
+  try {
+    const { data, error } = await client.rpc('admin_delete_coupon', { p_id: couponId });
+    if (error) throw error;
+    if (data !== true) throw new Error('لم يتم تأكيد حذف القسيمة من قاعدة البيانات.');
+    toast('تم حذف القسيمة.');
+    await loadCoupons();
+  } catch (error) {
+    toast(`تعذر حذف القسيمة: ${error.message}`, 'error');
+  }
+}
+
+function wireCouponEvents() {
+  $('#openCouponsModal')?.addEventListener('click', openCouponsModal);
+  $('#closeCouponsModal')?.addEventListener('click', closeCouponsModal);
+  $('#newCouponButton')?.addEventListener('click', () => openCouponEditor());
+  $('#resetCouponButton')?.addEventListener('click', resetCouponForm);
+  $('#cancelCouponButton')?.addEventListener('click', resetCouponForm);
+  $('#couponForm')?.addEventListener('submit', saveCoupon);
+  $('#couponAudienceType')?.addEventListener('change', event => {
+    $('#couponCustomerIdsWrap').hidden = event.target.value !== 'selected';
+  });
+  $('#couponAllBranches')?.addEventListener('change', event => {
+    document.querySelectorAll('[data-coupon-branch]').forEach(input => {
+      input.disabled = event.target.checked;
+    });
+  });
+  $('#couponsTable')?.addEventListener('click', async event => {
+    const button = event.target.closest('button');
+    if (!button || !canManageCoupons()) return;
+    if (button.dataset.editCoupon) {
+      const coupon = coupons.find(item => String(item.id) === String(button.dataset.editCoupon));
+      if (coupon) await openCouponEditor(coupon);
+    }
+    if (button.dataset.deleteCoupon) await deleteCoupon(button.dataset.deleteCoupon);
+  });
+  $('#couponsModal')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeCouponsModal();
+  });
+  document.addEventListener('keydown', event => {
+    const modal = $('#couponsModal');
+    if (event.key === 'Escape' && modal && !modal.hidden) closeCouponsModal();
+  });
+}
+
+/* =====================================================
    أحداث الواجهة
 ===================================================== */
 
 function wireEvents() {
+  wireCategoriesModalEvents();
+  wireDiscountEvents();
+  wireCouponEvents();
   $('#loginForm').addEventListener('submit', signIn);
 
   $('#logoutButton').addEventListener('click', async () => {
@@ -2520,6 +3325,7 @@ function wireEvents() {
     resetProductForm();
 
     await loadProducts();
+    await loadDiscounts();
   });
 
   $('#productBranch').addEventListener('change', async event => {
@@ -2537,6 +3343,7 @@ function wireEvents() {
       resetProductForm();
 
       await loadProducts();
+      await loadDiscounts();
     }
 
     renderProductSizes([]);
@@ -2713,6 +3520,11 @@ function wireEvents() {
   $('#categoriesList').addEventListener('click', async event => {
     const button = event.target.closest('button');
     if (!button) return;
+
+    if (button.dataset.saveCategorySchedule) {
+      await saveCategorySchedule(button.dataset.saveCategorySchedule, button);
+      return;
+    }
 
     if (button.dataset.orderCategory) {
       await changeCategoryOrder(button.dataset.orderCategory);

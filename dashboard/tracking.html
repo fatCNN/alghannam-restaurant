@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4b1111">
+  <title>تتبع الطلبات | مطعم الغنّام</title>
+  <link rel="icon" href="../image/logo.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="./tracking.css">
+  <link rel="stylesheet" href="./loader.css">
+</head>
+<body>
+  <header class="tracking-topbar">
+    <div class="tracking-brand">
+      <img src="../image/logo.png" alt="مطعم الغنّام">
+      <div>
+        <strong>مطعم الغنّام</strong>
+        <span>تتبع الطلبات والمندوبين</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="userRole">جارٍ التحقق...</span>
+      <a class="btn btn-light" href="./admin.html">لوحة الإدارة</a>
+      <a class="btn btn-light" href="./orders.html">إدارة الطلبات</a>
+      <button class="btn btn-light" id="refreshButton" type="button">تحديث</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="heading">
+      <div>
+        <p class="eyebrow">متابعة التوصيل</p>
+        <h1>تتبع الطلبات</h1>
+        <p class="muted">موقع الفرع هو نقطة البداية، مع متابعة المندوب ومسار التوصيل إلى الزبون.</p>
+      </div>
+      <div class="live-state"><span class="pulse"></span> تحديث مباشر</div>
+    </section>
+
+    <div id="message" class="message" hidden></div>
+
+    <section class="stats">
+      <article><span>المندوبون</span><strong id="driversCount">—</strong></article>
+      <article><span>مواقع حديثة</span><strong id="onlineCount">—</strong></article>
+      <article><span>طلبات قيد التوصيل</span><strong id="activeOrdersCount">—</strong></article>
+    </section>
+
+    <section class="toolbar panel">
+      <label>الفرع
+        <select id="branchFilter">
+          <option value="">كل الفروع</option>
+        </select>
+      </label>
+      <label>الطلب
+        <select id="orderFilter">
+          <option value="">اختر طلباً لعرض مساره</option>
+        </select>
+      </label>
+      <label>المندوب
+        <select id="driverFilter">
+          <option value="">كل المندوبين</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="main-grid">
+      <div class="map-panel panel">
+        <div class="panel-heading">
+          <div>
+            <h2>خريطة التوصيل</h2>
+            <p class="muted" id="mapHint">مواقع الفروع والمندوبين النشطين</p>
+          </div>
+          <span class="map-label">OpenStreetMap</span>
+        </div>
+
+        <div id="map" role="application" aria-label="خريطة مواقع الفروع والمندوبين">
+          <div class="map-placeholder" id="mapPlaceholder">
+            <strong>الخريطة قيد التحميل</strong>
+            <span>جارٍ تحميل خريطة OpenStreetMap المجانية</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><i class="dot branch-dot"></i> موقع الفرع</span>
+          <span><i class="dot driver-dot"></i> موقع المندوب</span>
+          <span><i class="dot customer-dot"></i> عنوان الزبون</span>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <section class="panel selected-card">
+          <h2>تفاصيل التوصيل</h2>
+          <div id="selectedDetails" class="muted">اختاري طلباً أو مندوباً لعرض التفاصيل.</div>
+          <a id="openRouteLink" class="route-link" href="#" target="_blank" rel="noopener" hidden>
+            فتح الاتجاهات في Google Maps
+          </a>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>المندوبون</h2>
+            <span id="driversLabel" class="muted">0</span>
+          </div>
+          <div id="driversList" class="drivers-list">
+            <p class="muted">جارٍ تحميل المندوبين...</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>طلبات التوصيل</h2>
+            <span id="ordersLabel" class="muted">0</span>
+          </div>
+          <div id="ordersList" class="orders-list">
+            <p class="muted">جارٍ تحميل الطلبات...</p>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <p class="footnote">
+      تظهر مواقع المندوبين وفق صلاحيات حسابك وسياسات أمان قاعدة البيانات.
+      قد يتأخر الموقع إذا أوقف المندوب مشاركة GPS.
+    </p>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="./tracking.js"></script>
+  <script type="module" src="./notifications.js"></script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 "use strict";
 
 import {
@@ -7,11 +6,24 @@ import {
     ensureMenuDescriptionStyle
 } from "./menu-db.js";
 
+import {
+    loadBranchDiscounts,
+    getBestAutomaticDiscount,
+    priceAfterAutomaticDiscount,
+    automaticDiscountValue
+} from "./discounts.js";
+
+import {
+    supabaseClient as supabase,
+    isSupabaseConfigured as configured
+} from "./dashboard/supabase-client.js";
+
 /* =========================================================
    مطعم الغنّام — فرع المشاوي
    GRILL BRANCH
    Supabase Database Only
    Arabic / English
+   Orders: Supabase + WhatsApp
 ========================================================= */
 
 /* =========================================================
@@ -41,8 +53,17 @@ let grillMenuLoading = false;
 let grillOffers = [];
 let grillOffersLoading = false;
 
+/* الخصومات التلقائية — تُحمّل من Supabase */
+let automaticDiscounts = [];
+let automaticDiscountsLoading = false;
+
 let cart = loadSavedCart();
 let activeCoupon = loadSavedCoupon();
+let couponPreviewAmount = 0;
+let couponValidationSequence = 0;
+
+/* منع تسجيل الطلب أكثر من مرة */
+let orderSubmitting = false;
 
 /* =========================================================
    02 — قاموس الخيارات الإنجليزية
@@ -148,9 +169,12 @@ const EN_TEXT = {
     customerName: "Customer name",
     customerPhone: "Phone number",
     customerAddress: "Delivery address",
+    customerLocationUrl: "Google Maps location link",
+    customerLocationPlaceholder: "Paste your Google Maps link (optional)",
     customerNotes: "Order notes",
-    sendOrder: "Send order via WhatsApp",
+    sendOrder: "Save order and continue to WhatsApp",
     fillRequired: "Please enter your name, phone number and address.",
+    invalidLocationUrl: "Please enter a valid http or https location link.",
     orderTitle: "New order — Al Ghannam Restaurant",
     suggestedAddons: "You may also like",
     currency: "IQD",
@@ -163,7 +187,11 @@ const EN_TEXT = {
     error: "An error occurred. Please try again.",
     viewGrid: "Grid view",
     viewList: "List view",
-    offers: "Special Offers"
+    offers: "Special Offers",
+    savingOrder: "Saving your order...",
+    orderSaved: "Order saved successfully.",
+    orderSaveError: "Could not save your order. Please try again.",
+    orderNumber: "Order number"
 };
 
 /* =========================================================
@@ -198,9 +226,12 @@ const AR_TEXT = {
     customerName: "اسم الزبون",
     customerPhone: "رقم الهاتف",
     customerAddress: "عنوان التوصيل",
+    customerLocationUrl: "رابط الموقع على الخريطة",
+    customerLocationPlaceholder: "ألصق رابط موقعك من Google Maps (اختياري)",
     customerNotes: "ملاحظات الطلب",
-    sendOrder: "إرسال الطلب عبر واتساب",
+    sendOrder: "حفظ الطلب والمتابعة إلى واتساب",
     fillRequired: "يرجى إدخال الاسم ورقم الهاتف والعنوان.",
+    invalidLocationUrl: "يرجى إدخال رابط موقع صحيح يبدأ بـ http أو https.",
     orderTitle: "طلب جديد — مطعم الغنّام",
     suggestedAddons: "قد يعجبك أيضاً",
     currency: "د.ع",
@@ -213,24 +244,11 @@ const AR_TEXT = {
     error: "حدث خطأ، حاول مرة أخرى.",
     viewGrid: "عرض شبكي",
     viewList: "عرض قائمة",
-    offers: "عروضنا المميزة"
-};
-
-/* =========================================================
-   06 — قواعد الكوبونات
-========================================================= */
-
-const COUPON_RULES = {
-    GHANNAM10: { type: "percent", value: 10 },
-    WELCOME5: { type: "percent", value: 5 },
-    GRILL15: { type: "percent", value: 15 },
-    MEAT10: { type: "percent", value: 10 },
-    CHICKEN10: { type: "percent", value: 10 },
-    SHAWARMA5: { type: "percent", value: 5 },
-    BREAKFAST10: { type: "percent", value: 10 },
-    FAMILY15: { type: "percent", value: 15 },
-    VIP20: { type: "percent", value: 20 },
-    SAVE2000: { type: "fixed", value: 2000 }
+    offers: "عروضنا المميزة",
+    savingOrder: "جاري حفظ طلبك...",
+    orderSaved: "تم حفظ طلبك بنجاح.",
+    orderSaveError: "تعذر حفظ الطلب. حاول مرة أخرى.",
+    orderNumber: "رقم الطلب"
 };
 
 /* =========================================================
@@ -262,13 +280,6 @@ function escapeHTML(value) {
         "'": "&#039;"
     })[char]);
 }
-
-/*
-   تنسيق الأرقام:
-   نستخدم en-US دائماً حتى تظهر الأرقام بهذا الشكل:
-   1234567890
-   في الواجهة العربية والإنجليزية.
-*/
 
 function formatPrice(value) {
     const number = Number(value) || 0;
@@ -311,6 +322,28 @@ function normalizeText(value) {
         .replace(/[أإآ]/g, "ا")
         .replace(/ة/g, "ه")
         .replace(/ى/g, "ي");
+}
+
+function normalizeLocationUrl(value) {
+    const raw = String(value || "").trim();
+
+    if (!raw) return "";
+
+    try {
+        const parsed = new URL(raw);
+
+        if (
+            parsed.protocol !== "https:" &&
+            parsed.protocol !== "http:"
+        ) {
+            return null;
+        }
+
+        return parsed.href;
+
+    } catch {
+        return null;
+    }
 }
 
 /* =========================================================
@@ -414,6 +447,29 @@ function getCartCount() {
     );
 }
 
+function getGrillAutomaticRule(item) {
+    const section = grillSections.find(section =>
+        String(section.id) === String(item.sectionId)
+    );
+    return getBestAutomaticDiscount(
+        { id: item.productId || "" },
+        GRILL_BRANCH_ID,
+        section?.categoryId || item.categoryId || "",
+        automaticDiscounts
+    );
+}
+
+function getGrillAutomaticUnitPrice(item) {
+    return priceAfterAutomaticDiscount(item.price, getGrillAutomaticRule(item));
+}
+
+function getAutomaticDiscountTotal() {
+    return cart.reduce((total, item) => {
+        return total + automaticDiscountValue(item.price, getGrillAutomaticRule(item)) *
+            (Number(item.quantity) || 0);
+    }, 0);
+}
+
 function getCartSubtotal() {
     return cart.reduce((total, item) => {
         return total +
@@ -425,25 +481,21 @@ function getCartSubtotal() {
 function getCouponDiscount() {
     if (!activeCoupon) return 0;
 
-    const subtotal = getCartSubtotal();
-    const rule = COUPON_RULES[activeCoupon.code];
+    const currentSubtotal = Math.max(
+        0,
+        getCartSubtotal() - getAutomaticDiscountTotal()
+    );
 
-    if (!rule) return 0;
-
-    if (rule.type === "percent") {
-        return Math.min(
-            subtotal,
-            Math.round(subtotal * rule.value / 100)
-        );
-    }
-
-    return Math.min(subtotal, rule.value);
+    return Math.min(
+        currentSubtotal,
+        Math.max(0, Number(couponPreviewAmount) || 0)
+    );
 }
 
 function getCartTotal() {
     return Math.max(
         0,
-        getCartSubtotal() - getCouponDiscount()
+        getCartSubtotal() - getAutomaticDiscountTotal() - getCouponDiscount()
     );
 }
 
@@ -829,6 +881,10 @@ async function syncGrillMenuFromDatabase() {
 
         renderCart();
         updateFixedCart();
+
+        if (activeCoupon) {
+            void validateActiveCoupon();
+        }
 
     } catch (error) {
         console.error(
@@ -1233,6 +1289,17 @@ function renderMenu() {
                 `
                 : `<div class="grill-no-image">🍽️</div>`;
 
+            const initialRule = getBestAutomaticDiscount(
+                { id: item[6] || "" },
+                GRILL_BRANCH_ID,
+                section.categoryId,
+                automaticDiscounts
+            );
+
+            const initialPrice = initialRule
+                ? `<del>${escapeHTML(money(firstOption[1]))}</del> ${escapeHTML(money(priceAfterAutomaticDiscount(firstOption[1], initialRule)))}`
+                : escapeHTML(money(firstOption[1]));
+
             return `
                 <article
                     class="grill-product-card"
@@ -1264,7 +1331,7 @@ function renderMenu() {
 
                             <div class="grill-product-bottom">
                                 <strong class="grill-product-price">
-                                    ${escapeHTML(money(firstOption[1]))}
+                                    ${initialPrice}
                                 </strong>
 
                                 <button
@@ -1342,7 +1409,13 @@ function bindProductControls() {
                     selectedOption?.dataset.price
                 ) || 0;
 
-                priceElement.textContent = money(price);
+                const productId = card.dataset.productId || "";
+                const sectionElement = card.closest("[data-section-id]");
+                const section = grillSections.find(item => String(item.id) === String(sectionElement?.dataset.sectionId));
+                const rule = getBestAutomaticDiscount({ id: productId }, GRILL_BRANCH_ID, section?.categoryId, automaticDiscounts);
+                priceElement.innerHTML = rule
+                    ? `<del>${escapeHTML(money(price))}</del> ${escapeHTML(money(priceAfterAutomaticDiscount(price, rule)))}`
+                    : escapeHTML(money(price));
             });
         }
 
@@ -1427,9 +1500,13 @@ function addItemToCart(
         if (!existingItem.productId && productId) {
             existingItem.productId = productId;
         }
+        if (!existingItem.categoryId && section.categoryId) {
+            existingItem.categoryId = section.categoryId;
+        }
     } else {
         cart.push({
             productId,
+            categoryId: section.categoryId || null,
             name,
             name_en: product[4] || "",
             image,
@@ -1444,6 +1521,11 @@ function addItemToCart(
     }
 
     saveCart();
+
+    if (activeCoupon) {
+        void validateActiveCoupon();
+    }
+
     playAddToCartSound();
     renderCart();
 
@@ -1482,10 +1564,17 @@ function changeCartQuantity(index, change) {
 
     if (!cart.length) {
         activeCoupon = null;
+        couponPreviewAmount = 0;
+        couponValidationSequence++;
         saveCoupon();
     }
 
     saveCart();
+
+    if (activeCoupon) {
+        void validateActiveCoupon();
+    }
+
     renderCart();
 }
 
@@ -1496,10 +1585,17 @@ function removeCartItem(index) {
 
     if (!cart.length) {
         activeCoupon = null;
+        couponPreviewAmount = 0;
+        couponValidationSequence++;
         saveCoupon();
     }
 
     saveCart();
+
+    if (activeCoupon) {
+        void validateActiveCoupon();
+    }
+
     renderCart();
 }
 
@@ -1703,7 +1799,9 @@ function renderPopupCart() {
                         </p>
 
                         <strong>
-                            ${escapeHTML(money(item.price * item.quantity))}
+                            ${getGrillAutomaticRule(item)
+                                ? `<del>${escapeHTML(money(item.price * item.quantity))}</del> ${escapeHTML(money(getGrillAutomaticUnitPrice(item) * item.quantity))}`
+                                : escapeHTML(money(item.price * item.quantity))}
                         </strong>
                     </div>
 
@@ -1770,7 +1868,9 @@ function bindCartItemActions() {
 
 function updateCartTotals() {
     const subtotal = getCartSubtotal();
-    const discount = getCouponDiscount();
+    const automaticDiscount = getAutomaticDiscountTotal();
+    const couponDiscount = getCouponDiscount();
+    const discount = automaticDiscount + couponDiscount;
     const total = getCartTotal();
 
     const subtotalElement = $("#popupSubtotal");
@@ -1783,7 +1883,7 @@ function updateCartTotals() {
     }
 
     if (discountElement) {
-        discountElement.textContent = `-${money(discount)}`;
+        discountElement.textContent = `-${money(discount)} (تلقائي ${money(automaticDiscount)} + كوبون ${money(couponDiscount)})`;
     }
 
     if (grandTotalElement) {
@@ -1836,102 +1936,360 @@ function closeCartModal() {
    26 — الخصومات
 ========================================================= */
 
-function applyCoupon() {
+function normalizeGrillCouponCode(value) {
+    return String(value || "").trim().toUpperCase();
+}
+
+function readGrillCouponResult(data) {
+    let result = data;
+
+    if (Array.isArray(result)) {
+        result = result[0] ?? null;
+    }
+
+    if (result && typeof result === "object" && result.data) {
+        result = result.data;
+    }
+
+    if (typeof result === "string") {
+        try {
+            result = JSON.parse(result);
+        } catch {
+            return null;
+        }
+    }
+
+    return result && typeof result === "object"
+        ? result
+        : null;
+}
+
+function grillCouponIsValid(result) {
+    if (!result) return false;
+
+    if (
+        result.success === false ||
+        result.valid === false ||
+        result.is_valid === false
+    ) {
+        return false;
+    }
+
+    if (
+        result.success === true ||
+        result.valid === true ||
+        result.is_valid === true
+    ) {
+        return true;
+    }
+
+    return (
+        result.discount_amount != null ||
+        result.discount_value != null ||
+        result.calculated_discount != null
+    );
+}
+
+function getGrillCouponSubtotal() {
+    return Math.max(
+        0,
+        getCartSubtotal() - getAutomaticDiscountTotal()
+    );
+}
+
+async function requestGrillCouponValidation(code) {
+    if (!configured || !supabase) {
+        throw new Error("اتصال قاعدة البيانات غير متاح");
+    }
+
+    const { data, error } = await supabase.rpc(
+        "validate_customer_coupon",
+        {
+            p_code: code,
+            p_branch_id: GRILL_BRANCH_ID,
+            p_subtotal: getGrillCouponSubtotal()
+        }
+    );
+
+    if (error) throw error;
+
+    return readGrillCouponResult(data);
+}
+
+async function validateActiveCoupon() {
+    const code = normalizeGrillCouponCode(activeCoupon?.code);
+    const sequence = ++couponValidationSequence;
+
+    if (!code || !cart.length || getGrillCouponSubtotal() <= 0) {
+        couponPreviewAmount = 0;
+        renderCart();
+        return false;
+    }
+
+    try {
+        const result = await requestGrillCouponValidation(code);
+
+        if (sequence !== couponValidationSequence) {
+            return false;
+        }
+
+        if (!grillCouponIsValid(result)) {
+            activeCoupon = null;
+            couponPreviewAmount = 0;
+            saveCoupon();
+
+            const status = $("#couponStatus");
+            if (status) {
+                status.textContent =
+                    result?.message ||
+                    result?.error ||
+                    text("couponInvalid");
+                status.className = "coupon-status error";
+            }
+
+            renderCart();
+            return false;
+        }
+
+        couponPreviewAmount = Math.max(
+            0,
+            Number(
+                result.discount_amount ??
+                result.discount_value ??
+                result.calculated_discount ??
+                0
+            ) || 0
+        );
+
+        const status = $("#couponStatus");
+        if (status) {
+            status.textContent =
+                result.message || text("couponApplied");
+            status.className = "coupon-status success";
+        }
+
+        renderCart();
+        return true;
+
+    } catch (error) {
+        if (sequence !== couponValidationSequence) {
+            return false;
+        }
+
+        console.error("فشل التحقق من كوبون المشاوي:", error);
+
+        activeCoupon = null;
+        couponPreviewAmount = 0;
+        saveCoupon();
+
+        const status = $("#couponStatus");
+        if (status) {
+            status.textContent = text("couponInvalid");
+            status.className = "coupon-status error";
+        }
+
+        renderCart();
+        return false;
+    }
+}
+
+async function applyCoupon() {
     const input = $("#couponCode");
     const status = $("#couponStatus");
 
     if (!input || !status) return;
 
-    const code = input.value.trim().toUpperCase();
+    const code = normalizeGrillCouponCode(input.value);
 
-    if (!code || !COUPON_RULES[code]) {
+    if (!code) {
         activeCoupon = null;
+        couponPreviewAmount = 0;
+        couponValidationSequence++;
         saveCoupon();
 
         status.textContent = text("couponInvalid");
         status.className = "coupon-status error";
-
         renderCart();
         return;
     }
 
-    if (!cart.length) {
+    if (!cart.length || getGrillCouponSubtotal() <= 0) {
         status.textContent = text("emptyCart");
         status.className = "coupon-status error";
         return;
     }
 
-    activeCoupon = { code };
+    const sequence = ++couponValidationSequence;
 
-    saveCoupon();
+    status.textContent = isEnglish()
+        ? "Validating discount code..."
+        : "جاري التحقق من رمز الخصم...";
+    status.className = "coupon-status";
 
-    status.textContent = text("couponApplied");
-    status.className = "coupon-status success";
+    try {
+        const result = await requestGrillCouponValidation(code);
 
-    renderCart();
+        if (sequence !== couponValidationSequence) return;
+
+        if (!grillCouponIsValid(result)) {
+            activeCoupon = null;
+            couponPreviewAmount = 0;
+            saveCoupon();
+
+            status.textContent =
+                result?.message ||
+                result?.error ||
+                text("couponInvalid");
+            status.className = "coupon-status error";
+            renderCart();
+            return;
+        }
+
+        activeCoupon = { code };
+        couponPreviewAmount = Math.max(
+            0,
+            Number(
+                result.discount_amount ??
+                result.discount_value ??
+                result.calculated_discount ??
+                0
+            ) || 0
+        );
+
+        saveCoupon();
+
+        status.textContent =
+            result.message || text("couponApplied");
+        status.className = "coupon-status success";
+
+        renderCart();
+
+    } catch (error) {
+        if (sequence !== couponValidationSequence) return;
+
+        console.error("خطأ تطبيق كوبون المشاوي:", error);
+
+        activeCoupon = null;
+        couponPreviewAmount = 0;
+        saveCoupon();
+
+        status.textContent = text("couponInvalid");
+        status.className = "coupon-status error";
+        renderCart();
+    }
 }
 
 function restoreCouponUI() {
     const input = $("#couponCode");
     const status = $("#couponStatus");
 
-    if (!activeCoupon) return;
+    if (!activeCoupon?.code) return;
 
     if (input) {
-        input.value = activeCoupon.code || "";
+        input.value = activeCoupon.code;
     }
 
     if (status) {
-        status.textContent = text("couponApplied");
-        status.className = "coupon-status success";
+        status.textContent = isEnglish()
+            ? "Checking saved discount code..."
+            : "جاري إعادة التحقق من رمز الخصم...";
+        status.className = "coupon-status";
     }
+
+    void validateActiveCoupon();
 }
 
 /* =========================================================
-   27 — إرسال الطلب إلى واتساب
+   27 — تجهيز بيانات الطلب
 ========================================================= */
 
-function buildWhatsAppOrderMessage(customer) {
+function buildOrderItemsForDatabase() {
+    return cart.map(item => {
+        const price = Number(item.price) || 0;
+        const quantity = Math.max(
+            1,
+            Number(item.quantity) || 1
+        );
+
+        const autoRule = getGrillAutomaticRule(item);
+        const discountedPrice = priceAfterAutomaticDiscount(price, autoRule);
+        return {
+            product_id: item.productId || null,
+            category_id: item.categoryId || null,
+            name: String(item.name || ""),
+            name_en: String(item.name_en || ""),
+            option: String(item.option || ""),
+            option_en: String(item.option_en || ""),
+            section: String(item.sectionName || ""),
+            section_en: String(item.sectionName_en || ""),
+            price,
+            original_unit_price: price,
+            automatic_discount_percent: autoRule?.percent || 0,
+            automatic_discount_amount: automaticDiscountValue(price, autoRule),
+            unit_price_after_auto_discount: discountedPrice,
+            quantity,
+            total: discountedPrice * quantity
+        };
+    });
+}
+
+/* =========================================================
+   28 — تجهيز رسالة واتساب
+========================================================= */
+
+function buildSecureWhatsAppOrderMessage(order, customer) {
+    const savedItems = Array.isArray(order.items)
+        ? order.items
+        : [];
+
     const lines = [];
 
     lines.push(text("orderTitle"));
     lines.push("====================");
+    lines.push(`${text("orderNumber")}: ${formatPrice(order.order_number)}`);
     lines.push("");
-
     lines.push(text("orderItems"));
     lines.push("--------------------");
 
-    cart.forEach((item, index) => {
+    savedItems.forEach((item, index) => {
         const name = isEnglish()
-            ? item.name_en || EN_PRODUCTS[item.name] || item.name
-            : item.name;
+            ? (item.name_en || item.name || "")
+            : (item.name || item.name_en || "");
 
-        const option = isEnglish()
-            ? getCartOptionEnglish(item)
-            : item.option;
+        const quantity = Math.max(1, Number(item.quantity) || 1);
+        const itemTotal = Number(item.total) || 0;
 
-        lines.push(
-            `${formatPrice(index + 1)}. ${name} (${option})`
-        );
-
-        lines.push(
-            `${text("quantity")}: ${formatPrice(item.quantity)}`
-        );
-
-        lines.push(
-            `${money(item.price)} × ${formatPrice(item.quantity)} = ${money(item.price * item.quantity)}`
-        );
-
+        lines.push(`${formatPrice(index + 1)}. ${name}`);
+        if (item.option || item.option_en) {
+            lines.push(
+                `${text("selectedOption")}: ${
+                    isEnglish()
+                        ? (item.option_en || item.option || "")
+                        : (item.option || item.option_en || "")
+                }`
+            );
+        }
+        lines.push(`${text("quantity")}: ${formatPrice(quantity)}`);
+        lines.push(`${money(itemTotal)}`);
         lines.push("");
     });
 
-    lines.push("--------------------");
-    lines.push(`${text("subtotal")}: ${money(getCartSubtotal())}`);
-    lines.push(`${text("discount")}: ${money(getCouponDiscount())}`);
-    lines.push(`${text("total")}: ${money(getCartTotal())}`);
+    const automaticSaving = savedItems.reduce(
+        (sum, item) =>
+            sum +
+            (Number(item.automatic_discount_amount) || 0) *
+            (Number(item.quantity) || 0),
+        0
+    );
 
-    if (activeCoupon?.code) {
-        lines.push(`Coupon: ${activeCoupon.code}`);
+    lines.push("--------------------");
+    lines.push(`${text("subtotal")}: ${money(order.subtotal)}`);
+    lines.push(`الخصم التلقائي: ${money(automaticSaving)}`);
+    lines.push(`خصم الكوبون: ${money(order.discount_amount)}`);
+    lines.push(`${text("total")}: ${money(order.total)}`);
+
+    if (order.coupon_code) {
+        lines.push(`Coupon: ${order.coupon_code}`);
     }
 
     lines.push("");
@@ -1940,6 +2298,12 @@ function buildWhatsAppOrderMessage(customer) {
     lines.push(`${text("customerName")}: ${customer.name}`);
     lines.push(`${text("customerPhone")}: ${customer.phone}`);
     lines.push(`${text("customerAddress")}: ${customer.address}`);
+
+    if (customer.locationUrl) {
+        lines.push(
+            `${text("customerLocationUrl")}: ${customer.locationUrl}`
+        );
+    }
 
     if (customer.notes) {
         lines.push(`${text("customerNotes")}: ${customer.notes}`);
@@ -1951,59 +2315,276 @@ function buildWhatsAppOrderMessage(customer) {
     return lines.join("\n");
 }
 
-function sendOrderToWhatsApp(event) {
+function getGrillRpcOrderResult(data) {
+    let result = data;
+
+    if (Array.isArray(result)) {
+        result = result[0] ?? null;
+    }
+
+    if (typeof result === "string") {
+        try {
+            result = JSON.parse(result);
+        } catch {
+            return null;
+        }
+    }
+
+    return result && typeof result === "object"
+        ? result
+        : null;
+}
+
+function getGrillCartProductId(item) {
+    if (item?.productId) {
+        return String(item.productId);
+    }
+
+    const product = findCartProduct(item);
+    const productId = product?.[6];
+
+    return productId ? String(productId) : "";
+}
+
+async function createSecureGrillOrder(customer, orderCart, orderCoupon) {
+    const rpcItems = orderCart.map(item => {
+        const productId = getGrillCartProductId(item);
+
+        if (!productId) {
+            throw new Error(
+                `تعذر تحديد معرّف المنتج: ${item.name || "منتج"}`
+            );
+        }
+
+        return {
+            product_id: productId,
+            quantity: Math.max(
+                1,
+                Math.min(99, Math.floor(Number(item.quantity) || 1))
+            )
+        };
+    });
+
+    const { data, error } = await supabase.rpc(
+        "create_order_secure",
+        {
+            p_branch_id: GRILL_BRANCH_ID,
+            p_customer_name: customer.name,
+            p_customer_phone: customer.phone,
+            p_items: rpcItems,
+            p_customer_address: customer.address || null,
+            p_customer_notes: customer.notes || null,
+            p_coupon_code: orderCoupon || null,
+            p_customer_location_url: customer.locationUrl || null
+        }
+    );
+
+    if (error) throw error;
+
+    const result = getGrillRpcOrderResult(data);
+
+    if (!result) {
+        throw new Error("لم تُرجع قاعدة البيانات بيانات الطلب.");
+    }
+
+    if (result.success !== true) {
+        throw new Error(
+            result.message ||
+            result.error ||
+            "لم تتم الموافقة على إنشاء الطلب."
+        );
+    }
+
+    if (!result.order_id || !result.order_number) {
+        throw new Error("بيانات الطلب المرجعة غير مكتملة.");
+    }
+
+    if (!Array.isArray(result.items)) {
+        throw new Error("لم تُرجع قاعدة البيانات تفاصيل المنتجات المحفوظة.");
+    }
+
+    return result;
+}
+
+/* =========================================================
+   29 — حفظ الطلب في Supabase ثم فتح واتساب
+========================================================= */
+
+function setOrderButtonState(disabled, label = null) {
+    const form = $("#popupOrderForm");
+
+    const button = form?.querySelector(
+        'button[type="submit"], button:not([type])'
+    );
+
+    if (!button) return;
+
+    button.disabled = disabled;
+
+    if (label) {
+        button.textContent = label;
+    } else {
+        button.textContent = text("sendOrder");
+    }
+}
+
+function showOrderStatus(message, type = "error") {
+    const status = $("#popupOrderStatus");
+
+    if (!status) return;
+
+    status.textContent = message;
+    status.className = `order-status ${type}`;
+}
+
+async function sendOrderToWhatsApp(event) {
     event?.preventDefault();
+
+    if (orderSubmitting) return;
 
     const name = $("#popupCustomerName")?.value.trim() || "";
     const phone = $("#popupCustomerPhone")?.value.trim() || "";
     const address = $("#popupCustomerAddress")?.value.trim() || "";
     const notes = $("#popupCustomerNotes")?.value.trim() || "";
 
-    const status = $("#popupOrderStatus");
+    const rawLocationUrl =
+        $("#popupCustomerLocationUrl")?.value.trim() || "";
+
+    const locationUrl = normalizeLocationUrl(rawLocationUrl);
 
     if (!cart.length) {
-        if (status) {
-            status.textContent = text("emptyCart");
-            status.className = "order-status error";
-        }
+        showOrderStatus(text("emptyCart"));
         return;
     }
 
     if (!name || !phone || !address) {
-        if (status) {
-            status.textContent = text("fillRequired");
-            status.className = "order-status error";
-        }
+        showOrderStatus(text("fillRequired"));
         return;
     }
 
-    const message = buildWhatsAppOrderMessage({
+    if (rawLocationUrl && !locationUrl) {
+        showOrderStatus(text("invalidLocationUrl"));
+        return;
+    }
+
+    if (!configured || !supabase) {
+        console.error("Supabase client is not configured.");
+        showOrderStatus(text("orderSaveError"));
+        return;
+    }
+
+    // Take a stable snapshot; the database rechecks prices,
+    // automatic discounts, coupon validity and usage limits.
+    const orderCart = cart.map(item => ({
+        ...item,
+        quantity: Math.max(
+            1,
+            Math.min(99, Math.floor(Number(item.quantity) || 1))
+        )
+    }));
+
+    const orderCoupon = activeCoupon?.code || null;
+
+    const customer = {
         name,
         phone,
         address,
+        locationUrl,
         notes
-    });
+    };
 
-    const whatsappURL =
-        `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    orderSubmitting = true;
+    setOrderButtonState(true, text("savingOrder"));
+    showOrderStatus(text("savingOrder"), "success");
 
-    window.open(
-        whatsappURL,
-        "_blank",
-        "noopener,noreferrer"
-    );
+    let whatsappWindow = null;
 
-    if (status) {
-        status.textContent = isEnglish()
-            ? "Your order is ready to send via WhatsApp."
-            : "تم تجهيز طلبك للإرسال عبر واتساب.";
+    try {
+        whatsappWindow = window.open("about:blank", "_blank");
+    } catch (error) {
+        console.warn("Could not open WhatsApp window early:", error);
+    }
 
-        status.className = "order-status success";
+    try {
+        const savedOrder = await createSecureGrillOrder(
+            customer,
+            orderCart,
+            orderCoupon
+        );
+
+        const message = buildSecureWhatsAppOrderMessage(
+            savedOrder,
+            customer
+        );
+
+        const whatsappURL =
+            `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+        if (whatsappWindow && !whatsappWindow.closed) {
+            whatsappWindow.location.href = whatsappURL;
+        } else {
+            window.location.href = whatsappURL;
+        }
+
+        // Clear the cart only after the secure RPC confirms success.
+        cart = [];
+        activeCoupon = null;
+        couponPreviewAmount = 0;
+        couponValidationSequence++;
+
+        saveCart();
+        saveCoupon();
+
+        const couponInput = $("#couponCode");
+        const couponStatus = $("#couponStatus");
+
+        if (couponInput) couponInput.value = "";
+        if (couponStatus) {
+            couponStatus.textContent = "";
+            couponStatus.className = "coupon-status";
+        }
+
+        const nameInput = $("#popupCustomerName");
+        const phoneInput = $("#popupCustomerPhone");
+        const addressInput = $("#popupCustomerAddress");
+        const locationUrlInput = $("#popupCustomerLocationUrl");
+        const notesInput = $("#popupCustomerNotes");
+
+        if (nameInput) nameInput.value = "";
+        if (phoneInput) phoneInput.value = "";
+        if (addressInput) addressInput.value = "";
+        if (locationUrlInput) locationUrlInput.value = "";
+        if (notesInput) notesInput.value = "";
+
+        renderCart();
+
+        showOrderStatus(
+            isEnglish()
+                ? `Order #${formatPrice(savedOrder.order_number)} saved. Continue sending it through WhatsApp.`
+                : `تم حفظ طلبك بنجاح. رقم الطلب: ${formatPrice(savedOrder.order_number)}. أكمل الإرسال عبر واتساب.`,
+            "success"
+        );
+
+    } catch (error) {
+        console.error("Failed to save secure grill order:", error);
+
+        if (whatsappWindow && !whatsappWindow.closed) {
+            whatsappWindow.close();
+        }
+
+        showOrderStatus(
+            error?.message || text("orderSaveError"),
+            "error"
+        );
+
+    } finally {
+        orderSubmitting = false;
+        setOrderButtonState(false);
     }
 }
 
 /* =========================================================
-   28 — اللغة العربية والإنجليزية
+   30 — اللغة العربية والإنجليزية
 ========================================================= */
 
 function applyStaticLanguage() {
@@ -2043,23 +2624,50 @@ function applyStaticLanguage() {
         continueButton.textContent = text("continueShopping");
     }
 
-    const orderButton = $("#popupOrderForm")?.querySelector(
-        'button[type="submit"], button:not([type])'
-    );
+    if (!orderSubmitting) {
+        const orderButton = $("#popupOrderForm")?.querySelector(
+            'button[type="submit"], button:not([type])'
+        );
 
-    if (orderButton) {
-        orderButton.textContent = text("sendOrder");
+        if (orderButton) {
+            orderButton.textContent = text("sendOrder");
+        }
     }
 
     const nameInput = $("#popupCustomerName");
     const phoneInput = $("#popupCustomerPhone");
     const addressInput = $("#popupCustomerAddress");
+    const locationUrlInput = $("#popupCustomerLocationUrl");
     const notesInput = $("#popupCustomerNotes");
 
-    if (nameInput) nameInput.placeholder = text("customerName");
-    if (phoneInput) phoneInput.placeholder = text("customerPhone");
-    if (addressInput) addressInput.placeholder = text("customerAddress");
-    if (notesInput) notesInput.placeholder = text("customerNotes");
+    if (nameInput) {
+        nameInput.placeholder = text("customerName");
+    }
+
+    if (phoneInput) {
+        phoneInput.placeholder = text("customerPhone");
+    }
+
+    if (addressInput) {
+        addressInput.placeholder = text("customerAddress");
+    }
+
+    if (locationUrlInput) {
+        locationUrlInput.placeholder =
+            text("customerLocationPlaceholder");
+    }
+
+    if (notesInput) {
+        notesInput.placeholder = text("customerNotes");
+    }
+
+    const locationUrlLabel =
+        $('label[for="popupCustomerLocationUrl"]');
+
+    if (locationUrlLabel) {
+        locationUrlLabel.textContent =
+            text("customerLocationUrl");
+    }
 
     const offersTitle = $("#grillOffersTitle");
 
@@ -2101,7 +2709,7 @@ function setGrillLanguage(language) {
 }
 
 /* =========================================================
-   29 — طريقة عرض المنتجات Grid / List
+   31 — طريقة عرض المنتجات Grid / List
 ========================================================= */
 
 function setGrillView(view) {
@@ -2137,7 +2745,7 @@ function setGrillView(view) {
 }
 
 /* =========================================================
-   30 — ربط أحداث الصفحة
+   32 — ربط أحداث الصفحة
 ========================================================= */
 
 function bindPageEvents() {
@@ -2210,7 +2818,7 @@ function bindPageEvents() {
 }
 
 /* =========================================================
-   31 — مزامنة السلة بين الصفحات والتبويبات
+   33 — مزامنة السلة بين الصفحات والتبويبات
 ========================================================= */
 
 window.addEventListener("storage", event => {
@@ -2259,7 +2867,44 @@ window.addEventListener("pageshow", () => {
 });
 
 /* =========================================================
-   32 — تهيئة الصفحة
+   34 — تحميل الخصومات التلقائية
+========================================================= */
+
+async function refreshGrillAutomaticDiscounts() {
+    if (automaticDiscountsLoading) return;
+
+    automaticDiscountsLoading = true;
+
+    try {
+        const result = await loadBranchDiscounts(
+            GRILL_BRANCH_ID,
+            true
+        );
+
+        automaticDiscounts = Array.isArray(result)
+            ? result
+            : [];
+
+        if (grillMenuLoaded) {
+            renderMenu();
+            renderCart();
+
+            if (activeCoupon) {
+                void validateActiveCoupon();
+            }
+        }
+    } catch (error) {
+        console.error(
+            "Failed to load grill automatic discounts:",
+            error
+        );
+    } finally {
+        automaticDiscountsLoading = false;
+    }
+}
+
+/* =========================================================
+   35 — تهيئة الصفحة
 ========================================================= */
 
 function initializeGrillPage() {
@@ -2276,6 +2921,11 @@ function initializeGrillPage() {
 
     void syncGrillMenuFromDatabase();
     void syncGrillOffersFromDatabase();
+    void refreshGrillAutomaticDiscounts();
+
+    window.setInterval(() => {
+        void refreshGrillAutomaticDiscounts();
+    }, 60000);
 
     restoreCouponUI();
     renderCart();

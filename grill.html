@@ -162,6 +162,7 @@
             </div>
         </section>
 
+        <!-- العروض -->
         <section
             class="grill-offers-section"
             id="grillOffersSection"
@@ -377,6 +378,23 @@
                            maxlength="250"
                            autocomplete="street-address"
                            placeholder="منطقة السكن وأقرب نقطة دالة">
+
+                    <!-- رابط موقع الزبون على الخريطة -->
+                    <label for="popupCustomerLocationUrl">
+                        رابط الموقع على الخريطة (اختياري)
+                    </label>
+
+                    <input id="popupCustomerLocationUrl"
+                           name="location_url"
+                           type="url"
+                           maxlength="1000"
+                           autocomplete="url"
+                           placeholder="ألصق رابط موقعك من Google Maps"
+                           dir="ltr">
+
+                    <small class="location-url-hint">
+                        يمكنك نسخ رابط موقعك من خرائط Google ولصقه هنا
+                    </small>
 
                     <label for="popupCustomerNotes">ملاحظات إضافية</label>
 

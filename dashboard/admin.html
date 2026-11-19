@@ -168,6 +168,12 @@
 
                 <a
                     class="button button-secondary"
+                    href="tracking.html">
+                    📍 تتبع الطلبات
+                </a>
+
+                <a
+                    class="button button-secondary"
                     href="conversations.html">
                     💬 محادثات ليلى
                 </a>
@@ -244,7 +250,7 @@
                     <h2>إدارة المستخدمين والصلاحيات</h2>
 
                     <p class="muted">
-                        إدارة حسابات المالك والمديرين والموظفين.
+                        إدارة حسابات المالك والمديرين والموظفين ومندوبي التوصيل.
                     </p>
                 </div>
 
@@ -312,7 +318,18 @@
                             type="text"
                             maxlength="120"
                             required
-                            placeholder="اسم الموظف أو المدير">
+                            placeholder="اسم الموظف أو المدير أو المندوب">
+                    </label>
+
+                    <label>
+                        رقم الهاتف
+
+                        <input
+                            id="newUserPhone"
+                            type="tel"
+                            maxlength="30"
+                            inputmode="tel"
+                            placeholder="07xxxxxxxxx">
                     </label>
 
                     <label>
@@ -681,7 +698,6 @@
                         <select id="productCategory" required></select>
                     </label>
 
-                    <!-- اسم المنتج بالعربية -->
                     <label>
                         اسم الوجبة بالعربية *
                         <input
@@ -691,7 +707,6 @@
                             placeholder="مثلاً: كباب لحم">
                     </label>
 
-                    <!-- اسم المنتج بالإنجليزية -->
                     <label>
                         اسم الوجبة بالإنجليزية
                         <input
@@ -701,7 +716,6 @@
                             dir="ltr">
                     </label>
 
-                    <!-- وصف المنتج بالعربية -->
                     <label>
                         الوصف / التفاصيل بالعربية
                         <textarea
@@ -711,7 +725,6 @@
                             placeholder="تفاصيل الوجبة أو المكونات"></textarea>
                     </label>
 
-                    <!-- وصف المنتج بالإنجليزية -->
                     <label>
                         الوصف / التفاصيل بالإنجليزية
                         <textarea
@@ -722,7 +735,6 @@
                             dir="ltr"></textarea>
                     </label>
 
-                    <!-- السعر الأساسي -->
                     <label>
                         السعر الأساسي بالدينار العراقي *
                         <input
@@ -764,7 +776,6 @@
 
                     </section>
 
-                    <!-- ترتيب الظهور -->
                     <label>
                         ترتيب الظهور
                         <input
@@ -774,7 +785,6 @@
                             value="0">
                     </label>
 
-                    <!-- صورة المنتج -->
                     <label class="upload-box">
                         <span>صورة المنتج (PNG أو JPG أو WebP)</span>
 
@@ -800,7 +810,6 @@
                         <span id="imageFileLabel"></span>
                     </div>
 
-                    <!-- حالة التوفر -->
                     <label class="switch-row">
                         <input
                             id="productAvailable"
@@ -833,100 +842,197 @@
             </section>
         </div>
 
-        <!-- تصنيفات الفرع -->
-        <section class="panel categories-panel">
+        <!-- مدخل نافذة تصنيفات الفرع -->
+        <section
+            class="panel categories-panel"
+            id="categoriesPanel">
 
             <div class="section-heading">
                 <div>
                     <h2>تصنيفات الفرع</h2>
 
                     <p class="muted">
-                        إدارة التصنيفات والتحكم بترتيب ظهورها في المنيو.
+                        إدارة التصنيفات والتحكم بترتيب ظهورها وجدولتها في المنيو.
                     </p>
                 </div>
-            </div>
-
-            <!-- إضافة تصنيف جديد -->
-            <form
-                id="categoryForm"
-                class="category-create-form">
-
-                <label>
-                    اسم التصنيف بالعربية *
-                    <input
-                        id="newCategoryName"
-                        type="text"
-                        required
-                        maxlength="100"
-                        placeholder="مثلاً: وجبات عائلية">
-                </label>
-
-                <label>
-                    اسم التصنيف بالإنجليزية
-                    <input
-                        id="newCategoryNameEn"
-                        type="text"
-                        maxlength="100"
-                        placeholder="Example: Family Meals"
-                        dir="ltr">
-                </label>
-
-                <label>
-                    ترتيب العرض
-                    <input
-                        id="newCategoryOrder"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value="1"
-                        required
-                        placeholder="مثلاً: 1">
-
-                    <small>
-                        الرقم الأصغر يظهر أولاً في المنيو.
-                    </small>
-                </label>
 
                 <button
-                    class="button button-secondary"
-                    type="submit">
-                    ＋ إضافة تصنيف
+                    type="button"
+                    class="button button-primary categories-modal-open-button"
+                    id="openCategoriesModal">
+                    ⚙️ إدارة التصنيفات
                 </button>
+            </div>
 
-            </form>
+            <div class="categories-summary">
+                <span>إدارة أقسام المنيو</span>
+                <small>
+                    أضف التصنيفات وعدّل أسماءها وترتيبها وجدولتها من النافذة.
+                </small>
+            </div>
 
-            <!-- قائمة التصنيفات -->
-            <div class="categories-management">
+        </section>
 
-                <div class="section-heading">
+        <!-- نافذة إدارة التصنيفات -->
+        <div
+            class="categories-modal"
+            id="categoriesModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="categoriesModalTitle"
+            aria-describedby="categoriesModalDescription"
+            hidden>
+
+            <div class="categories-modal-dialog">
+
+                <!-- رأس النافذة -->
+                <div class="categories-modal-header">
+
                     <div>
-                        <h3>الأقسام الحالية</h3>
+                        <span class="eyebrow">إعدادات المنيو</span>
 
-                        <p class="muted">
-                            يمكنك تعديل اسم القسم بالعربية والإنجليزية أو تغيير رقم ترتيبه.
+                        <h2 id="categoriesModalTitle">
+                            إدارة تصنيفات الفرع
+                        </h2>
+
+                        <p
+                            class="muted"
+                            id="categoriesModalDescription">
+                            إضافة الأقسام وتعديلها والتحكم بترتيب ظهورها وجدولتها.
                         </p>
                     </div>
+
+                    <button
+                        type="button"
+                        class="categories-modal-close"
+                        id="closeCategoriesModal"
+                        aria-label="إغلاق نافذة التصنيفات">
+                        ×
+                    </button>
+
                 </div>
 
-                <div
-                    id="categoriesList"
-                    class="category-list">
+                <!-- محتوى النافذة -->
+                <div class="categories-modal-body">
 
-                    <p class="muted">
-                        جاري تحميل التصنيفات...
+                    <!-- إضافة تصنيف -->
+                    <section class="category-create-section">
+
+                        <div class="section-heading">
+                            <div>
+                                <h3>＋ إضافة تصنيف جديد</h3>
+
+                                <p class="muted">
+                                    أدخل اسم التصنيف وحدد رقم ترتيبه في المنيو.
+                                </p>
+                            </div>
+                        </div>
+
+                        <form
+                            id="categoryForm"
+                            class="category-create-form">
+
+                            <label>
+                                اسم التصنيف بالعربية *
+
+                                <input
+                                    id="newCategoryName"
+                                    type="text"
+                                    required
+                                    maxlength="100"
+                                    placeholder="مثلاً: وجبات عائلية">
+                            </label>
+
+                            <label>
+                                اسم التصنيف بالإنجليزية
+
+                                <input
+                                    id="newCategoryNameEn"
+                                    type="text"
+                                    maxlength="100"
+                                    placeholder="Example: Family Meals"
+                                    dir="ltr">
+                            </label>
+
+                            <label>
+                                ترتيب العرض
+
+                                <input
+                                    id="newCategoryOrder"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value="1"
+                                    required
+                                    placeholder="مثلاً: 1">
+
+                                <small>
+                                    الرقم الأصغر يظهر أولاً في المنيو.
+                                </small>
+                            </label>
+
+                            <button
+                                class="button button-primary"
+                                type="submit">
+                                ＋ إضافة التصنيف
+                            </button>
+
+                        </form>
+
+                    </section>
+
+                    <!-- قائمة التصنيفات -->
+                    <section class="categories-management">
+
+                        <div class="section-heading">
+                            <div>
+                                <h3>الأقسام الحالية</h3>
+
+                                <p class="muted">
+                                    يمكنك تعديل الاسم بالعربية والإنجليزية أو تغيير رقم الترتيب والجدولة.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            id="categoriesList"
+                            class="category-list">
+
+                            <p class="muted">
+                                جاري تحميل التصنيفات...
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <p
+                        id="categoryMessage"
+                        class="form-message"
+                        role="status"
+                        aria-live="polite">
                     </p>
 
                 </div>
 
+                <!-- أسفل النافذة -->
+                <div class="categories-modal-footer">
+
+                    <span class="muted">
+                        التغييرات تُحفظ في قاعدة البيانات.
+                    </span>
+
+                    <button
+                        type="button"
+                        class="button button-quiet"
+                        id="closeCategoriesModalFooter">
+                        إغلاق النافذة
+                    </button>
+
+                </div>
+
             </div>
-
-            <p
-                id="categoryMessage"
-                class="form-message"
-                role="status">
-            </p>
-
-        </section>
+        </div>
 
         <!-- العروض الخاصة -->
         <section class="panel offers-panel" id="offersPanel">
@@ -948,7 +1054,6 @@
                 </button>
             </div>
 
-            <!-- جدول العروض -->
             <div class="table-wrap">
 
                 <table>
@@ -1085,6 +1190,7 @@
                                 id="offerImage"
                                 type="file"
                                 accept="image/png,image/jpeg,image/webp">
+
                             <small>
                                 يمكن تركها فارغة للإبقاء على الصورة الحالية.
                             </small>
@@ -1143,230 +1249,82 @@
 
         <!-- إدارة القسائم -->
         <section class="panel coupons-panel" id="couponsPanel">
-
             <div class="section-heading">
-
                 <div>
                     <h2>إدارة القسائم</h2>
-
-                    <p class="muted">
-                        إنشاء قسائم الخصم وتحديد الفروع وشروط الاستخدام.
-                    </p>
+                    <p class="muted">إنشاء القسائم وتحديد الفروع وشروط الاستخدام.</p>
                 </div>
-
-                <button
-                    type="button"
-                    class="button button-primary"
-                    id="newCouponButton">
-                    ＋ إنشاء قسيمة
+                <button type="button" class="button button-primary" id="openCouponsModal">
+                    إدارة القسائم
                 </button>
-
             </div>
 
-            <!-- محرر القسائم -->
-            <div class="coupon-editor" id="couponEditorPanel" hidden>
-
-                <div class="section-heading">
-
-                    <div>
-                        <h2 id="couponEditorTitle">
-                            إنشاء قسيمة جديدة
-                        </h2>
+            <div class="coupon-modal" id="couponsModal" hidden>
+                <div class="coupon-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="couponsModalTitle">
+                    <div class="coupon-modal-header">
+                        <div>
+                            <h2 id="couponsModalTitle">إدارة قسائم الخصم</h2>
+                            <p class="muted">هذه الإدارة متاحة لصاحب المطعم ومالك السيرفر فقط.</p>
+                        </div>
+                        <button type="button" class="button button-quiet" id="closeCouponsModal" aria-label="إغلاق">✕</button>
                     </div>
 
-                    <button
-                        type="button"
-                        class="button button-quiet"
-                        id="resetCouponButton">
-                        إلغاء
-                    </button>
+                    <div class="coupon-modal-toolbar">
+                        <h3>القسائم الحالية</h3>
+                        <button type="button" class="button button-primary" id="newCouponButton">＋ إنشاء قسيمة</button>
+                    </div>
 
+                    <div class="coupon-editor" id="couponEditorPanel" hidden>
+                        <div class="section-heading">
+                            <h3 id="couponEditorTitle">إنشاء قسيمة جديدة</h3>
+                            <button type="button" class="button button-quiet" id="resetCouponButton">إلغاء</button>
+                        </div>
+
+                        <form id="couponForm" class="form-stack">
+                            <input type="hidden" id="couponId">
+                            <div class="coupon-form-grid">
+                                <label>كود القسيمة<input type="text" id="couponCode" maxlength="40" placeholder="مثال: GHANNAM15" required></label>
+                                <label>وصف القسيمة<input type="text" id="couponDescription" placeholder="خصم خاص للزبائن"></label>
+                                <label>نوع الخصم<select id="couponDiscountType" required><option value="percent">نسبة مئوية %</option><option value="fixed">مبلغ ثابت بالدينار</option></select></label>
+                                <label>قيمة الخصم<input type="number" id="couponDiscountValue" min="0.01" step="0.01" required></label>
+                                <label>الحد الأعلى للخصم (اختياري)<input type="number" id="couponMaxDiscount" min="0" step="0.01" placeholder="بدون حد"></label>
+                                <label>أقل مبلغ للطلب<input type="number" id="couponMinOrder" min="0" step="0.01" value="0"></label>
+                                <label>تاريخ بداية القسيمة<input type="datetime-local" id="couponStartsAt" required></label>
+                                <label>تاريخ انتهاء القسيمة<input type="datetime-local" id="couponExpiresAt"></label>
+                                <label>الحد الأقصى للاستخدام<input type="number" id="couponUsageLimit" min="1" placeholder="بدون حد"></label>
+                                <label>الحد لكل زبون<input type="number" id="couponPerCustomerLimit" min="1" value="1" required></label>
+                                <label>الفئة المستهدفة
+                                    <select id="couponAudienceType"><option value="all">جميع الزبائن</option><option value="authenticated">الزبائن المسجلون بحساب</option><option value="selected">زبائن محددون (أدخل معرفاتهم)</option></select>
+                                </label>
+                                <label id="couponCustomerIdsWrap" class="coupon-customer-ids-wrap" hidden>معرفات الزبائن (UUID، افصل بينها بفاصلة)
+                                    <textarea id="couponCustomerIds" rows="3" placeholder="UUID1, UUID2"></textarea>
+                                </label>
+                            </div>
+
+                            <div class="coupon-branches">
+                                <h4>الفروع المسموح لها باستخدام القسيمة</h4>
+                                <label class="coupon-branch-option"><input type="checkbox" id="couponAllBranches" checked> جميع الفروع</label>
+                                <div id="couponBranchesList"></div>
+                            </div>
+
+                            <label class="coupon-active-option"><input type="checkbox" id="couponActive" checked><span>القسيمة مفعّلة</span></label>
+                            <div class="coupon-actions">
+                                <button type="submit" class="button button-primary" id="saveCouponButton">حفظ القسيمة</button>
+                                <button type="button" class="button button-quiet" id="cancelCouponButton">إلغاء</button>
+                            </div>
+                            <p id="couponEditorMessage" class="form-message" role="status"></p>
+                        </form>
+                    </div>
+
+                    <div class="table-wrap coupon-table-wrap">
+                        <table>
+                            <thead><tr><th>الكود</th><th>نوع الخصم</th><th>القيمة</th><th>الفروع</th><th>الانتهاء</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                            <tbody id="couponsTable"><tr><td colspan="7" class="empty-cell">جارٍ تحميل القسائم...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <p id="couponsMessage" class="form-message" role="status"></p>
                 </div>
-
-                <form id="couponForm" class="form-stack">
-
-                    <input type="hidden" id="couponId">
-
-                    <div class="coupon-form-grid">
-
-                        <label>
-                            كود القسيمة
-                            <input
-                                type="text"
-                                id="couponCode"
-                                maxlength="40"
-                                placeholder="مثال: GHANNAM15"
-                                required>
-                        </label>
-
-                        <label>
-                            وصف القسيمة
-                            <input
-                                type="text"
-                                id="couponDescription"
-                                placeholder="خصم خاص للزبائن">
-                        </label>
-
-                        <label>
-                            نوع الخصم
-                            <select id="couponDiscountType" required>
-                                <option value="percent">نسبة مئوية %</option>
-                                <option value="fixed">مبلغ ثابت بالدينار</option>
-                            </select>
-                        </label>
-
-                        <label>
-                            قيمة الخصم
-                            <input
-                                type="number"
-                                id="couponDiscountValue"
-                                min="0.01"
-                                step="0.01"
-                                required>
-                        </label>
-
-                        <label>
-                            الحد الأعلى للخصم (اختياري)
-                            <input
-                                type="number"
-                                id="couponMaxDiscount"
-                                min="0"
-                                step="0.01"
-                                placeholder="اتركه فارغاً بدون حد">
-                        </label>
-
-                        <label>
-                            أقل مبلغ للطلب
-                            <input
-                                type="number"
-                                id="couponMinOrder"
-                                min="0"
-                                step="0.01"
-                                value="0">
-                        </label>
-
-                        <label>
-                            تاريخ بداية القسيمة
-                            <input
-                                type="datetime-local"
-                                id="couponStartsAt"
-                                required>
-                        </label>
-
-                        <label>
-                            تاريخ انتهاء القسيمة
-                            <input
-                                type="datetime-local"
-                                id="couponExpiresAt">
-                        </label>
-
-                        <label>
-                            الحد الأقصى للاستخدام
-                            <input
-                                type="number"
-                                id="couponUsageLimit"
-                                min="1"
-                                placeholder="بدون حد">
-                        </label>
-
-                        <label>
-                            الحد لكل زبون
-                            <input
-                                type="number"
-                                id="couponPerCustomerLimit"
-                                min="1"
-                                value="1"
-                                required>
-                        </label>
-
-                    </div>
-
-                    <!-- الفروع المسموح بها -->
-                    <div class="coupon-branches">
-
-                        <h4>
-                            الفروع المسموح لها باستخدام القسيمة
-                        </h4>
-
-                        <label class="coupon-branch-option">
-                            <input
-                                type="checkbox"
-                                id="couponAllBranches"
-                                checked>
-                            جميع الفروع
-                        </label>
-
-                        <div id="couponBranchesList"></div>
-
-                    </div>
-
-                    <!-- حالة القسيمة -->
-                    <label class="coupon-active-option">
-                        <input
-                            type="checkbox"
-                            id="couponActive"
-                            checked>
-                        <span>القسيمة مفعّلة</span>
-                    </label>
-
-                    <!-- أزرار الحفظ والإلغاء -->
-                    <div class="coupon-actions">
-
-                        <button
-                            type="submit"
-                            class="button button-primary"
-                            id="saveCouponButton">
-                            حفظ القسيمة
-                        </button>
-
-                        <button
-                            type="button"
-                            class="button button-quiet"
-                            id="cancelCouponButton">
-                            إلغاء
-                        </button>
-
-                    </div>
-
-                    <p
-                        id="couponEditorMessage"
-                        class="form-message"
-                        role="status">
-                    </p>
-
-                </form>
-
             </div>
-
-            <!-- جدول القسائم -->
-            <div class="table-wrap">
-
-                <table>
-
-                    <thead>
-                        <tr>
-                            <th>الكود</th>
-                            <th>نوع الخصم</th>
-                            <th>القيمة</th>
-                            <th>الفروع</th>
-                            <th>الانتهاء</th>
-                            <th>الحالة</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="couponsTable">
-                        <tr>
-                            <td colspan="7" class="empty-cell">
-                                لا توجد قسائم بعد.
-                            </td>
-                        </tr>
-                    </tbody>
-
-                </table>
-
-            </div>
-
         </section>
 
     </section>
@@ -1410,5 +1368,6 @@
 <script type="module" src="admin.js"></script>
 <script src="./loader.js"></script>
 
+  <script type="module" src="./notifications.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -131,7 +131,6 @@
 
             </section>
 
-
             <!-- عنوان المنيو والتحكم بطريقة العرض -->
             <section
                 class="menu-heading-row glass-panel"
@@ -184,7 +183,7 @@
                 <div class="fastfood-offers-container">
 
                     <div class="fastfood-offers-heading">
-                        <h2 id="fastfoodOffersTitle"> عروضنا المميزة</h2>
+                        <h2 id="fastfoodOffersTitle">عروضنا المميزة</h2>
 
                         <p id="fastfoodOffersSubtitle">
                             استمتع بأفضل عروض مطعم الغنّام
@@ -453,6 +452,24 @@
                         autocomplete="street-address"
                         placeholder="منطقة السكن وأقرب نقطة دالة"
                         data-i18n-placeholder="addressPlaceholder"
+                    >
+
+                    <!-- رابط موقع الزبون على الخريطة — اختياري -->
+                    <label
+                        for="popupCustomerLocationUrl"
+                        data-i18n="customerLocationUrl"
+                    >
+                        رابط الموقع على الخريطة (اختياري)
+                    </label>
+
+                    <input
+                        id="popupCustomerLocationUrl"
+                        name="location_url"
+                        type="url"
+                        maxlength="1000"
+                        placeholder="ألصق رابط موقعك من Google Maps (اختياري)"
+                        data-i18n-placeholder="customerLocationPlaceholder"
+                        dir="ltr"
                     >
 
                     <label for="popupCustomerNotes" data-i18n="notesLabel">

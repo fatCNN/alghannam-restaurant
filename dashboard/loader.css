@@ -32,74 +32,156 @@
 
 /* محتوى شاشة التحميل */
 .loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+
   text-align: center;
   padding: 20px;
 }
 
-/* صورة اللوغو */
+/* صورة الشعار */
 .loader-content img {
-  width: 75px;
-  height: 75px;
+  width: clamp(115px, 20vw, 145px);
+  height: clamp(115px, 20vw, 145px);
 
-  max-width: 75px;
+  max-width: 80vw;
   object-fit: contain;
 
   display: block;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
 
-  animation: logoPulse 1.5s infinite ease-in-out;
+  animation: logoReveal 1s ease-out both;
+}
+
+/* اسم المطعم */
+.loader-content h2 {
+  color: #741f1f;
+  font-size: clamp(27px, 5vw, 34px);
+  font-weight: 900;
+
+  margin: 5px 0 12px;
+  letter-spacing: 1px;
+
+  animation: nameReveal 0.8s ease-out 0.35s both;
 }
 
 /* دائرة التحميل */
 .loader-spinner {
-  width: 35px;
-  height: 35px;
+  width: 27px;
+  height: 27px;
 
   border: 3px solid #ead9d0;
-  border-top-color: #741f1f;
+  border-top-color: #f04418;
   border-radius: 50%;
 
-  margin: 0 auto 15px;
+  margin: 5px auto 12px;
 
   animation: loaderSpin 0.8s linear infinite;
 }
 
-/* اسم المطعم */
-.loader-content p {
-  color: #741f1f;
-  font-size: 21px;
-  font-weight: bold;
-  margin: 8px 0;
-}
-
 /* عبارة الانتظار */
-.loader-content span {
-  color: #777;
+.loader-content p {
+  color: #999;
   font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+
+  animation: nameReveal 0.7s ease-out 0.65s both;
 }
 
-/* حركة دوران دائرة التحميل */
+/* ظهور الشعار */
+@keyframes logoReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ظهور اسم الغنام */
+@keyframes nameReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* دوران دائرة التحميل */
 @keyframes loaderSpin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* حركة اللوغو */
-@keyframes logoPulse {
-  50% {
-    transform: scale(1.06);
+/* الهاتف */
+@media (max-width: 480px) {
+  .loader-content img {
+    width: 125px;
+    height: 125px;
+  }
+
+  .loader-content h2 {
+    font-size: 29px;
   }
 }
 
-/* ضبط شاشة التحميل على الهاتف */
-@media (max-width: 480px) {
-  .loader-content img {
-    width: 75px;
-    height: 75px;
+/* احترام إعداد تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  .loader-content img,
+  .loader-content h2,
+  .loader-content p,
+  .loader-spinner {
+    animation: none;
   }
+}
 
-  .loader-content p {
-    font-size: 19px;
-  }
+/* خلفية داكنة بتوهج أحمر */
+.page-loader {
+    background:
+        radial-gradient(
+            circle at 50% 43%,
+            rgba(190, 48, 25, 0.30) 0%,
+            rgba(100, 25, 20, 0.13) 35%,
+            transparent 65%
+        ),
+        linear-gradient(
+            145deg,
+            #421515 0%,
+            #2b0d0d 55%,
+            #170808 100%
+        );
+}
+
+/* توهج خفيف خلف الشعار */
+.loader-content img {
+    filter: drop-shadow(0 8px 22px rgba(255, 65, 25, 0.22));
+}
+
+/* اسم المطعم */
+.loader-content h2 {
+    color: #fff1e5;
+    text-shadow: 0 2px 12px rgba(240, 68, 24, 0.25);
+}
+
+/* عبارة التحميل */
+.loader-content p {
+    color: #d6b5a8;
+}
+
+/* دائرة التحميل */
+.loader-spinner {
+    border-color: rgba(255, 255, 255, 0.15);
+    border-top-color: #ff4b25;
 }

@@ -989,3 +989,478 @@ select {
     animation-duration: .01ms !important;
   }
 }
+/* =========================================
+   تعديل الطلب — نافذة وحقول
+========================================= */
+
+.order-edit-actions {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 12px;
+}
+
+.edit-order-button {
+  width: 100%;
+  background: #8b5b18;
+}
+
+.edit-order-button:hover {
+  background: #68400e;
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-card-header h3 {
+  margin: 0 0 5px;
+  color: var(--wine);
+  font-size: 17px;
+}
+
+.order-card-header span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.order-customer {
+  padding: 14px 0;
+  overflow-wrap: anywhere;
+}
+
+.order-customer p {
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+.order-customer strong {
+  color: var(--muted);
+}
+
+.customer-location-missing {
+  color: #a05d19;
+}
+
+.customer-location-link a {
+  color: var(--green);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.customer-location-link a:hover {
+  text-decoration: underline;
+}
+
+.assigned-driver-info {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  background: #f2eee8;
+  color: var(--ink);
+}
+
+.status-out_for_delivery {
+  background: #e8efff;
+  color: #3158a5;
+}
+
+.order-edit-modal[hidden] {
+  display: none !important;
+}
+
+.order-edit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.order-edit-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(25, 12, 9, .68);
+  backdrop-filter: blur(3px);
+}
+
+.order-edit-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(760px, 100%);
+  max-height: min(92vh, 900px);
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, .25);
+  padding: 22px;
+  overscroll-behavior: contain;
+}
+
+body.edit-modal-open {
+  overflow: hidden;
+}
+
+.order-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  padding-bottom: 15px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-edit-header h2 {
+  color: var(--wine);
+  font-size: 21px;
+  margin: 0 0 5px;
+}
+
+.order-edit-header p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.edit-modal-close {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #f8eeee;
+  color: var(--wine);
+  font-size: 27px;
+  line-height: 1;
+}
+
+.edit-modal-close:hover {
+  background: #f0dada;
+}
+
+.edit-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.edit-section h3 {
+  color: var(--wine);
+  font-size: 15px;
+  margin: 0 0 14px;
+}
+
+.edit-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 13px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.edit-section input,
+.edit-section textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.edit-section textarea {
+  resize: vertical;
+  min-height: 75px;
+}
+
+.edit-section input:focus,
+.edit-section textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(215, 168, 75, .14);
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.edit-help {
+  color: var(--muted);
+  font-size: 11px;
+  margin: -5px 0 0;
+}
+
+.edit-items-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.edit-items-heading h3 {
+  margin: 0;
+}
+
+.add-item-button {
+  min-height: 39px;
+  padding: 8px 13px;
+  border: 1px solid var(--green);
+  border-radius: 9px;
+  background: #edf8f0;
+  color: var(--green);
+  font: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.add-item-button:hover {
+  background: #dff1e4;
+}
+
+.edit-order-items {
+  display: grid;
+  gap: 12px;
+}
+
+.edit-item-row {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fffaf5;
+}
+
+.edit-item-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.edit-item-row input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-item-row input:focus {
+  border-color: var(--gold);
+}
+
+.edit-item-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.edit-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+
+.edit-item-footer strong {
+  color: var(--wine);
+  font-size: 13px;
+}
+
+.remove-edit-item-button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #fde8e8;
+  color: var(--red);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.remove-edit-item-button:hover {
+  background: #f8d6d6;
+}
+
+.edit-no-items {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.edit-totals {
+  display: grid;
+  gap: 10px;
+  margin-top: 17px;
+  padding: 15px;
+  border-radius: 11px;
+  background: #fff8ed;
+  border: 1px solid #f0dfc7;
+}
+
+.edit-totals > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.edit-totals span {
+  color: var(--muted);
+}
+
+.edit-totals strong {
+  color: var(--wine);
+  overflow-wrap: anywhere;
+}
+
+.edit-totals > div:last-child {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 16px;
+}
+
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.edit-cancel-button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.edit-order-message {
+  padding: 11px;
+  margin: 13px 0 0;
+  border-radius: 9px;
+  background: #fde8e8;
+  color: var(--red);
+  font-size: 12px;
+}
+
+.edit-order-message[hidden] {
+  display: none;
+}
+
+.edit-order-message.error {
+  background: #fde8e8;
+  color: var(--red);
+}
+
+/* =========================================
+   تحسين عرض الطلبات على الهاتف
+========================================= */
+
+@media (max-width: 600px) {
+  .order-edit-modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .order-edit-dialog {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 17px 17px 0 0;
+    padding: 17px 14px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .order-edit-header h2 {
+    font-size: 18px;
+  }
+
+  .edit-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .edit-item-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .edit-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .edit-modal-actions button {
+    width: 100%;
+    min-height: 45px;
+  }
+
+  .order-card-header h3 {
+    font-size: 15px;
+  }
+
+  .order-customer p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .edit-item-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .edit-item-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .remove-edit-item-button {
+    width: 100%;
+    min-height: 42px;
+  }
+}
