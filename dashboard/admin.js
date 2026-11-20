@@ -1939,6 +1939,80 @@ function fillProductForm(product) {
   });
 }
 
+
+/* =========================================================
+   ضغط الصور قبل رفعها إلى Supabase
+   يحافظ على الأبعاد والنسبة والشفافية، ويحوّل إلى WebP
+========================================================= */
+async function prepareImageForUpload(file, {
+  maxWidth = 1400,
+  maxHeight = 1400,
+  quality = 0.84
+} = {}) {
+  if (!file || !file.type.startsWith('image/')) {
+    return file;
+  }
+
+  if (typeof createImageBitmap !== 'function') {
+    return file;
+  }
+
+  let bitmap;
+
+  try {
+    bitmap = await createImageBitmap(file);
+
+    const scale = Math.min(
+      1,
+      maxWidth / bitmap.width,
+      maxHeight / bitmap.height
+    );
+
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d', { alpha: true });
+    if (!context) return file;
+
+    context.drawImage(bitmap, 0, 0, width, height);
+
+    const webpBlob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/webp', quality);
+    });
+
+    if (!webpBlob || webpBlob.type !== 'image/webp') {
+      return file;
+    }
+
+    // لا نستبدل الملف إذا كانت نسخة WebP أكبر من الأصل.
+    if (webpBlob.size >= file.size) {
+      return file;
+    }
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+
+    return new File(
+      [webpBlob],
+      `${baseName}.webp`,
+      {
+        type: 'image/webp',
+        lastModified: Date.now()
+      }
+    );
+  } catch (error) {
+    console.warn('تعذّر ضغط الصورة؛ سيتم رفع الأصل:', error);
+    return file;
+  } finally {
+    if (bitmap && typeof bitmap.close === 'function') {
+      bitmap.close();
+    }
+  }
+}
+
 async function uploadProductImage(file, branchId) {
   if (!file) {
     return {
@@ -1954,23 +2028,28 @@ async function uploadProductImage(file, branchId) {
   }
 
   if (file.size > 8 * 1024 * 1024) {
-    throw new Error('حجم الصورة يجب أن يكون أقل من 8 ميغابايت.');
+    throw new Error('حجم الصورة الأصلية يجب أن يكون أقل من 8 ميغابايت.');
   }
 
-  const extension = file.name
-    .split('.')
-    .pop()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '') || 'png';
+  const optimizedFile = await prepareImageForUpload(file, {
+    maxWidth: 1400,
+    maxHeight: 1400,
+    quality: 0.84
+  });
+
+  const extension = optimizedFile.type === 'image/webp'
+    ? 'webp'
+    : (optimizedFile.name.split('.').pop().toLowerCase()
+        .replace(/[^a-z0-9]/g, '') || 'png');
 
   const path = `${branchId}/${crypto.randomUUID()}.${extension}`;
 
   const { error } = await client.storage
     .from(IMAGE_BUCKET)
-    .upload(path, file, {
-      cacheControl: '3600',
+    .upload(path, optimizedFile, {
+      cacheControl: '31536000',
       upsert: false,
-      contentType: file.type
+      contentType: optimizedFile.type
     });
 
   if (error) throw error;
@@ -2447,23 +2526,28 @@ async function uploadOfferImage(file) {
   }
 
   if (file.size > 8 * 1024 * 1024) {
-    throw new Error('حجم الصورة يجب أن يكون أقل من 8 ميغابايت.');
+    throw new Error('حجم الصورة الأصلية يجب أن يكون أقل من 8 ميغابايت.');
   }
 
-  const extension = file.name
-    .split('.')
-    .pop()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '') || 'png';
+  const optimizedFile = await prepareImageForUpload(file, {
+    maxWidth: 1800,
+    maxHeight: 1400,
+    quality: 0.84
+  });
+
+  const extension = optimizedFile.type === 'image/webp'
+    ? 'webp'
+    : (optimizedFile.name.split('.').pop().toLowerCase()
+        .replace(/[^a-z0-9]/g, '') || 'png');
 
   const path = `offers/${crypto.randomUUID()}.${extension}`;
 
   const { error } = await client.storage
     .from(IMAGE_BUCKET)
-    .upload(path, file, {
-      cacheControl: '3600',
+    .upload(path, optimizedFile, {
+      cacheControl: '31536000',
       upsert: false,
-      contentType: file.type
+      contentType: optimizedFile.type
     });
 
   if (error) throw error;
