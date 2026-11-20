@@ -1,4 +1,3 @@
-
 /* =========================================================
    مطعم الغنّام — فرع المشاوي
    GRILL BRANCH
@@ -3564,7 +3563,8 @@ html[dir="ltr"] .fixed-cart-bar {
     }
 }
 /* =========================================================
-   صور المنتجات والإضافات داخل سلة المشاوي
+   30 — تحسينات صور المنتجات والإضافات داخل السلة
+   قواعد إضافية مكملة لتنسيقات السلة السابقة
 ========================================================= */
 
 /* صورة المنتج داخل السلة */
@@ -3668,7 +3668,7 @@ html[dir="ltr"] .fixed-cart-bar {
    تنسيق نافذة السلة فقط
 ========================================================= */
 
-/* 01 — خلفية النافذة */
+/* خلفية النافذة */
 
 #cartModalOverlay,
 .cart-modal-overlay {
@@ -3689,7 +3689,7 @@ html[dir="ltr"] .fixed-cart-bar {
     display: none !important;
 }
 
-/* 02 — النافذة الرئيسية */
+/* النافذة الرئيسية */
 
 #cartModalOverlay .cart-modal {
     width: 100%;
@@ -3717,7 +3717,7 @@ html[dir="ltr"] .fixed-cart-bar {
     }
 }
 
-/* 03 — رأس السلة */
+/* رأس السلة */
 
 #cartModalOverlay .cart-modal-header {
     flex-shrink: 0;
@@ -3767,7 +3767,7 @@ html[dir="ltr"] .fixed-cart-bar {
     transform: rotate(90deg);
 }
 
-/* 04 — محتوى السلة */
+/* محتوى السلة */
 
 #cartModalOverlay .cart-modal-body {
     flex: 1;
@@ -3788,7 +3788,7 @@ html[dir="ltr"] .fixed-cart-bar {
     border-radius: 10px;
 }
 
-/* 05 — عنوان الأقسام */
+/* عناوين الأقسام */
 
 #cartModalOverlay .popup-section-title,
 #cartModalOverlay .popup-order-form h3 {
@@ -3800,7 +3800,7 @@ html[dir="ltr"] .fixed-cart-bar {
     border-bottom: 1px solid #ead3bc;
 }
 
-/* 06 — المنتجات داخل السلة */
+/* المنتجات داخل السلة */
 
 #cartModalOverlay #popupCartItems {
     display: flex;
@@ -3909,7 +3909,7 @@ html[dir="ltr"] .fixed-cart-bar {
     background: #b42318;
 }
 
-/* 07 — الإضافات المقترحة */
+/* الإضافات المقترحة */
 
 #cartModalOverlay .cart-addons-section {
     margin-top: 23px;
@@ -4031,7 +4031,7 @@ html[dir="ltr"] .fixed-cart-bar {
     font-size: 13px;
 }
 
-/* 08 — كود الخصم */
+/* كود الخصم */
 
 #cartModalOverlay .coupon-box {
     margin-top: 20px;
@@ -4095,7 +4095,7 @@ html[dir="ltr"] .fixed-cart-bar {
     font-size: 12px;
 }
 
-/* 09 — ملخص الحساب */
+/* ملخص الحساب */
 
 #cartModalOverlay .coupon-summary {
     display: flex;
@@ -4137,7 +4137,7 @@ html[dir="ltr"] .fixed-cart-bar {
     font-size: 20px;
 }
 
-/* 10 — معلومات الزبون */
+/* معلومات الزبون */
 
 #cartModalOverlay .popup-order-form {
     display: flex;
@@ -4219,7 +4219,7 @@ html[dir="ltr"] .fixed-cart-bar {
     text-align: center;
 }
 
-/* 11 — أسفل نافذة السلة */
+/* أسفل نافذة السلة */
 
 #cartModalOverlay .cart-modal-footer {
     flex-shrink: 0;
@@ -4267,7 +4267,7 @@ html[dir="ltr"] .fixed-cart-bar {
     font-weight: 900;
 }
 
-/* 12 — اتجاه اللغة الإنجليزية */
+/* اتجاه اللغة الإنجليزية */
 
 html[lang="en"] #cartModalOverlay,
 html[dir="ltr"] #cartModalOverlay {
@@ -4284,7 +4284,7 @@ html[dir="ltr"] #cartModalOverlay .popup-footer-total {
     align-items: flex-end;
 }
 
-/* 13 — الأجهزة اللوحية */
+/* الأجهزة اللوحية */
 
 @media (max-width: 700px) {
     #cartModalOverlay {
@@ -4306,7 +4306,7 @@ html[dir="ltr"] #cartModalOverlay .popup-footer-total {
     }
 }
 
-/* 14 — الهواتف */
+/* الهواتف */
 
 @media (max-width: 480px) {
     #cartModalOverlay {
@@ -4376,7 +4376,7 @@ html[dir="ltr"] #cartModalOverlay .popup-footer-total {
     }
 }
 
-/* 15 — منع التمرير خلف السلة */
+/* منع التمرير خلف السلة */
 
 body.cart-modal-open {
     overflow: hidden;
