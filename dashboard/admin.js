@@ -5,7 +5,9 @@ import {
 
 const $ = selector => document.querySelector(selector);
 
-const IMAGE_BUCKET = 'menu-images';
+// Cloudflare R2 image service. Replace after deploying the Worker.
+const R2_IMAGE_WORKER_URL = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+const IMAGE_BUCKET = 'menu-images'; // Legacy bucket name; retained only for old records.
 
 const SERVER_OWNER_IDS = new Set([
   '489c60eb-5ae5-4611-96d6-b1d911e2686c',
@@ -2013,6 +2015,54 @@ async function prepareImageForUpload(file, {
   }
 }
 
+async function getR2WorkerToken() {
+  const { data, error } = await client.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error('انتهت جلسة الدخول. سجّل الدخول مجدداً.');
+  return token;
+}
+
+async function uploadImageToR2(file, folder) {
+  if (!R2_IMAGE_WORKER_URL || R2_IMAGE_WORKER_URL.includes('YOUR-WORKER-NAME')) {
+    throw new Error('يجب إعداد رابط Cloudflare Worker أولاً.');
+  }
+
+  const token = await getR2WorkerToken();
+  const form = new FormData();
+  form.append('file', file, file.name || 'image');
+  form.append('branch', folder);
+
+  const response = await fetch(`${R2_IMAGE_WORKER_URL}/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'فشل رفع الصورة إلى Cloudflare R2.');
+  if (!result.image_url || !result.image_path) throw new Error('استجابة رفع الصورة غير مكتملة.');
+  return result;
+}
+
+async function deleteR2Image(key) {
+  if (!key || /^https?:\/\//i.test(key)) return;
+  if (!R2_IMAGE_WORKER_URL || R2_IMAGE_WORKER_URL.includes('YOUR-WORKER-NAME')) return;
+
+  const token = await getR2WorkerToken();
+  const response = await fetch(`${R2_IMAGE_WORKER_URL}/delete`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ key })
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || 'تعذر حذف الصورة من Cloudflare R2.');
+  }
+}
+
 async function uploadProductImage(file, branchId) {
   if (!file) {
     return {
@@ -2044,24 +2094,8 @@ async function uploadProductImage(file, branchId) {
 
   const path = `${branchId}/${crypto.randomUUID()}.${extension}`;
 
-  const { error } = await client.storage
-    .from(IMAGE_BUCKET)
-    .upload(path, optimizedFile, {
-      cacheControl: '31536000',
-      upsert: false,
-      contentType: optimizedFile.type
-    });
-
-  if (error) throw error;
-
-  const { data } = client.storage
-    .from(IMAGE_BUCKET)
-    .getPublicUrl(path);
-
-  return {
-    image_url: data.publicUrl,
-    image_path: path
-  };
+  const uploaded = await uploadImageToR2(optimizedFile, branchId);
+  return uploaded;
 }
 
 async function saveProduct(event) {
@@ -2295,10 +2329,11 @@ async function deleteProduct(id) {
   }
 
   if (product.image_path) {
-    await client.storage
-      .from(IMAGE_BUCKET)
-      .remove([product.image_path])
-      .catch(() => {});
+    if (String(product.image_url || '').includes('.r2.dev/')) {
+      await deleteR2Image(product.image_path).catch(error => console.warn('R2 delete failed:', error));
+    } else {
+      await client.storage.from(IMAGE_BUCKET).remove([product.image_path]).catch(() => {});
+    }
   }
 
   await loadProducts();
@@ -2542,24 +2577,8 @@ async function uploadOfferImage(file) {
 
   const path = `offers/${crypto.randomUUID()}.${extension}`;
 
-  const { error } = await client.storage
-    .from(IMAGE_BUCKET)
-    .upload(path, optimizedFile, {
-      cacheControl: '31536000',
-      upsert: false,
-      contentType: optimizedFile.type
-    });
-
-  if (error) throw error;
-
-  const { data } = client.storage
-    .from(IMAGE_BUCKET)
-    .getPublicUrl(path);
-
-  return {
-    image_url: data.publicUrl,
-    image_path: path
-  };
+  const uploaded = await uploadImageToR2(optimizedFile, 'offers');
+  return uploaded;
 }
 
 async function saveOffer(event) {
@@ -2709,10 +2728,11 @@ async function deleteOffer(id) {
   }
 
   if (offer.image_path) {
-    await client.storage
-      .from(IMAGE_BUCKET)
-      .remove([offer.image_path])
-      .catch(() => {});
+    if (String(offer.image_url || '').includes('.r2.dev/')) {
+      await deleteR2Image(offer.image_path).catch(error => console.warn('R2 delete failed:', error));
+    } else {
+      await client.storage.from(IMAGE_BUCKET).remove([offer.image_path]).catch(() => {});
+    }
   }
 
   await loadOffers();
