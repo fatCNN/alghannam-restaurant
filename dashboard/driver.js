@@ -240,8 +240,8 @@ function sendDriverOrderAlert(order, eventType) {
         try {
             const notification = new Notification(alert.title, {
                 body: alert.body,
-                icon: "../image/logo.png",
-                badge: "../image/logo.png",
+                icon: "../image/logo.webp",
+                badge: "../image/logo.webp",
                 tag: `ghannam-driver-${eventKey}`,
                 renotify: false
             });

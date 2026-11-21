@@ -175,8 +175,8 @@ function notifyNewOrder(order) {
     try {
       const notification = new Notification(title, {
         body: details,
-        icon: '../image/logo.png',
-        badge: '../image/logo.png',
+        icon: '../image/logo.webp',
+        badge: '../image/logo.webp',
         tag: `ghannam-order-${id}`,
         renotify: false
       });

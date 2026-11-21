@@ -897,135 +897,137 @@ import {
                 database.loadBranchOffers(BRANCH_ID)
             ]);
 
-            const discountsResult =
-                await loadBranchDiscounts(BRANCH_ID, true);
 
-            if (sequence !== menuLoadSequence) return;
+const discountsResult =
+    await loadBranchDiscounts(BRANCH_ID, false);
 
-            automaticDiscounts = Array.isArray(discountsResult)
-                ? discountsResult
-                : [];
+if (sequence !== menuLoadSequence) return;
 
-            if (!menuResult) {
-                throw new Error(
-                    "لم تصل بيانات المنيو من قاعدة البيانات"
-                );
-            }
+automaticDiscounts = Array.isArray(discountsResult)
+    ? discountsResult
+    : [];
 
-            databaseCategories =
-                Array.isArray(menuResult.categories)
-                    ? menuResult.categories
-                    : [];
+if (!menuResult) {
+    throw new Error(
+        "لم تصل بيانات المنيو من قاعدة البيانات"
+    );
+}
 
-            const rawProducts =
-                Array.isArray(menuResult.products)
-                    ? menuResult.products
-                    : [];
+databaseCategories =
+    Array.isArray(menuResult.categories)
+        ? menuResult.categories
+        : [];
 
-            databaseOffers =
-                Array.isArray(offersResult)
-                    ? offersResult
-                    : [];
+const rawProducts =
+    Array.isArray(menuResult.products)
+        ? menuResult.products
+        : [];
 
-            const categoryIds = new Set(
-                databaseCategories.map(category =>
-                    String(category.id)
-                )
-            );
+databaseOffers =
+    Array.isArray(offersResult)
+        ? offersResult
+        : [];
 
-            products = rawProducts
-                .filter(product =>
-                    categoryIds.has(String(product.category_id))
-                )
-                .filter(product =>
-                    product.is_available !== false
-                )
-                .map(product => ({
-                    ...product,
+const categoryIds = new Set(
+    databaseCategories.map(category =>
+        String(category.id)
+    )
+);
 
-                    id: String(product.id),
+products = rawProducts
+    .filter(product =>
+        categoryIds.has(String(product.category_id))
+    )
+    .filter(product =>
+        product.is_available !== false
+    )
+    .map(product => ({
+        ...product,
 
-                    name_ar:
-                        product.name_ar ||
-                        product.name ||
-                        "",
+        id: String(product.id),
 
-                    name_en:
-                        product.name_en || "",
+        name_ar:
+            product.name_ar ||
+            product.name ||
+            "",
 
-                    description_ar:
-                        product.description_ar ||
-                        product.description ||
-                        "",
+        name_en:
+            product.name_en || "",
 
-                    description_en:
-                        product.description_en ||
-                        product.description ||
-                        "",
+        description_ar:
+            product.description_ar ||
+            product.description ||
+            "",
 
-                    price: safeNumber(product.price),
+        description_en:
+            product.description_en ||
+            product.description ||
+            "",
 
-                    image: getProductImage(product)
-                }));
+        price: safeNumber(product.price),
 
-            if (!window.__falafelCartRestored) {
-                cart = loadStoredCart();
-                window.__falafelCartRestored = true;
-            }
+        image: getProductImage(product)
+    }));
 
-            reconcileCartWithDatabase();
+if (!window.__falafelCartRestored) {
+    cart = loadStoredCart();
+    window.__falafelCartRestored = true;
+}
 
-            renderMenu();
-            renderOffers();
-            renderCart();
+reconcileCartWithDatabase();
 
-            console.info(
-                "تم تحميل منيو الفلافل من Supabase",
-                {
-                    categories: databaseCategories.length,
-                    products: products.length,
-                    offers: databaseOffers.length,
-                    discounts: automaticDiscounts.length,
-                    language: currentLanguage
-                }
-            );
+renderMenu();
+renderOffers();
+renderCart();
 
-        } catch (error) {
-            if (sequence !== menuLoadSequence) return;
+console.info(
+    "تم تحميل منيو الفلافل من Supabase",
+    {
+        categories: databaseCategories.length,
+        products: products.length,
+        offers: databaseOffers.length,
+        discounts: automaticDiscounts.length,
+        language: currentLanguage
+    }
+);
 
-            console.error("خطأ تحميل المنيو:", error);
+} catch (error) {
+    if (sequence !== menuLoadSequence) return;
 
-            products = [];
-            databaseCategories = [];
-            databaseOffers = [];
-            automaticDiscounts = [];
+    console.error("خطأ تحميل المنيو:", error);
 
-            if (menu) {
-                menu.innerHTML = `
-                    <div class="empty-message">
-                        <p>${escapeHTML(t("loadingError"))}</p>
+    products = [];
+    databaseCategories = [];
+    databaseOffers = [];
+    automaticDiscounts = [];
 
-                        <button type="button" id="retryMenuLoading">
-                            ${escapeHTML(t("retry"))}
-                        </button>
-                    </div>
-                `;
-            }
+    if (menu) {
+        menu.innerHTML = `
+            <div class="empty-message">
+                <p>${escapeHTML(t("loadingError"))}</p>
 
-            if (categoryNav) {
-                categoryNav.innerHTML = "";
-            }
-
-            renderOffers();
-            renderCart();
-        }
+                <button type="button" id="retryMenuLoading">
+                    ${escapeHTML(t("retry"))}
+                </button>
+            </div>
+        `;
     }
 
-    document.addEventListener("click", event => {
-        if (event.target.closest("#retryMenuLoading")) {
-            loadDatabaseMenu();
-        }
-    });
+    if (categoryNav) {
+        categoryNav.innerHTML = "";
+    }
+
+    renderOffers();
+    renderCart();
+}
+
+}
+
+document.addEventListener("click", event => {
+    if (event.target.closest("#retryMenuLoading")) {
+        loadDatabaseMenu();
+    }
+});
 
     /* =====================================================
        13 — DATABASE CATEGORIES
@@ -2751,41 +2753,47 @@ import {
         }
     });
 
-    /* =====================================================
-       29 — INITIALIZE PAGE
-    ===================================================== */
 
-    async function initializeFalafelPage() {
-        applyStaticTranslations();
+/* =====================================================
+   29 — INITIALIZE PAGE
+===================================================== */
 
-        initializeProductView();
+async function initializeFalafelPage() {
+    applyStaticTranslations();
 
-        activeCoupon = loadCoupon();
+    initializeProductView();
 
-        if (activeCoupon && couponInput) {
-            couponInput.value = activeCoupon;
+    activeCoupon = loadCoupon();
 
-            if (couponStatus) {
-                couponStatus.textContent = t("validatingCoupon");
-                couponStatus.style.color = "";
-            }
+    if (activeCoupon && couponInput) {
+        couponInput.value = activeCoupon;
+
+        if (couponStatus) {
+            couponStatus.textContent = t("validatingCoupon");
+            couponStatus.style.color = "";
         }
+    }
 
-        ensureOffersContainer();
+    ensureOffersContainer();
 
-        await loadDatabaseMenu();
+    await loadDatabaseMenu();
 
-        // Revalidate any saved coupon against the current cart
-        // and current customer session.
-        if (activeCoupon && cart.length) {
-            await validateActiveCoupon();
-        }
+    // Revalidate any saved coupon against the current cart
+    // and current customer session.
+    if (activeCoupon && cart.length) {
+        await validateActiveCoupon();
+    }
 
-        // Refresh automatic discounts periodically.
-        window.setInterval(async () => {
+    // Refresh automatic discounts periodically.
+    // Use cached data instead of forcing a Supabase request.
+    // Prevent creating duplicate intervals.
+    if (!window.__falafelDiscountRefreshTimer) {
+        window.__falafelDiscountRefreshTimer = window.setInterval(async () => {
             try {
-                const discounts =
-                    await loadBranchDiscounts(BRANCH_ID, true);
+                const discounts = await loadBranchDiscounts(
+                    BRANCH_ID,
+                    false
+                );
 
                 automaticDiscounts = Array.isArray(discounts)
                     ? discounts
@@ -2794,7 +2802,7 @@ import {
                 renderMenu();
 
                 if (activeCoupon) {
-                    validateActiveCoupon();
+                    await validateActiveCoupon();
                 }
 
                 renderCart();
@@ -2805,9 +2813,10 @@ import {
                     error
                 );
             }
-        }, 60000);
+        }, 5 * 60 * 1000);
     }
+}
 
-    initializeFalafelPage();
+initializeFalafelPage();
 
 })();
