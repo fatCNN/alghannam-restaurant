@@ -3250,3 +3250,8 @@ input[type="number"],
         transition: none;
     }
 }
+
+/* إخفاء واجهة أكواد الخصم مؤقتاً */
+.coupon-box {
+    display: none !important;
+}

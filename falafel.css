@@ -3474,3 +3474,8 @@ html[dir="ltr"] .fastfood-offer-info {
     }
 }
 
+
+/* إخفاء واجهة أكواد الخصم مؤقتاً */
+.coupon-box {
+    display: none !important;
+}

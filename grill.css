@@ -4381,3 +4381,7 @@ html[dir="ltr"] #cartModalOverlay .popup-footer-total {
 body.cart-modal-open {
     overflow: hidden;
 }
+/* إخفاء واجهة أكواد الخصم مؤقتاً */
+.coupon-box {
+    display: none !important;
+}

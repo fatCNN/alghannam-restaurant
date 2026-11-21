@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#3b0805">
-    <meta name="description" content="Ù…Ù†ÙŠÙˆ Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… - ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ">
+    <meta name="description" content="منيو مطعم الغنام - فرع المشاوي">
 
-    <title>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… | ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ</title>
+    <title>مطعم الغنام | فرع المشاوي</title>
 
     <link rel="stylesheet" href="grill.css">
     <link rel="stylesheet" href="dashboard/loader.css">
@@ -20,39 +20,39 @@
 
 <body>
 
-    <!-- Ø´Ø§Ø´Ø© Ø§Ù„ØªØ­Ù…ÙŠÙ„ -->
+    <!-- شاشة التحميل -->
     <div id="pageLoader" class="page-loader">
         <div class="loader-content">
-            <img src="image/logo.webp" alt="Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ù‘Ø§Ù…">
+            <img src="image/logo.webp" alt="مطعم الغنّام">
             <div class="loader-spinner"></div>
-            <p>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ù‘Ø§Ù…</p>
-            <span>ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±...</span>
+            <p>مطعم الغنّام</p>
+            <span>يرجى الانتظار...</span>
         </div>
     </div>
 
-    <!-- Ø§Ù„Ù‡ÙŠØ¯Ø± -->
+    <!-- الهيدر -->
     <header class="site-header">
 
         <a class="brand" href="index.html"
-           aria-label="Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… - Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©">
+           aria-label="مطعم الغنام - الصفحة الرئيسية">
             <img src="image/logo.webp"
-                 alt="Ø´Ø¹Ø§Ø± Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù…"
+                 alt="شعار مطعم الغنام"
                  onerror="this.style.display='none'">
-            <span>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù…</span>
+            <span>مطعم الغنام</span>
         </a>
 
-        <nav class="header-actions" aria-label="Ø§Ù„ØªÙ†Ù‚Ù„ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ">
+        <nav class="header-actions" aria-label="التنقل الرئيسي">
 
             <a class="back-link" href="index.html"
-               title="Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©">
-                Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©
+               title="العودة إلى الصفحة الرئيسية">
+                العودة للرئيسية
             </a>
 
             <button type="button"
                     class="language-toggle"
                     id="languageToggle"
-                    aria-label="ØªØºÙŠÙŠØ± Ø§Ù„Ù„ØºØ©"
-                    title="ØªØºÙŠÙŠØ± Ø§Ù„Ù„ØºØ©">
+                    aria-label="تغيير اللغة"
+                    title="تغيير اللغة">
                 EN
             </button>
 
@@ -61,8 +61,8 @@
                     id="openSettingsPanel"
                     aria-controls="settingsPanel"
                     aria-expanded="false"
-                    aria-label="ÙØªØ­ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©"
-                    title="Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©">
+                    aria-label="فتح القائمة الجانبية"
+                    title="القائمة">
 
                 <svg class="menu-lines-icon"
                      xmlns="http://www.w3.org/2000/svg"
@@ -83,15 +83,15 @@
     </header>
 
 
-    <!-- Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ -->
+    <!-- المحتوى الرئيسي -->
     <main class="container">
 
-        <section class="hero hero-home" id="home" aria-label="ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ">
+        <section class="hero hero-home" id="home" aria-label="فرع المشاوي">
 
             <img
                 class="hero-banner-image"
                 src="imagegrill/grill-banner.webp"
-                alt="Ù…Ø´Ø§ÙˆÙŠ Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ù‘Ø§Ù…"
+                alt="مشاوي مطعم الغنّام"
                 onerror="this.style.display='none'"
             >
 
@@ -99,35 +99,35 @@
 
         </section>
 
-        <!-- Ø§Ù„Ø¨Ø­Ø« ÙˆØ§Ù„ØªØµÙ†ÙŠÙØ§Øª -->
-        <section class="menu-tools" aria-label="Ø§Ù„Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù…Ù†ÙŠÙˆ">
+        <!-- البحث والتصنيفات -->
+        <section class="menu-tools" aria-label="البحث في المنيو">
 
             <input id="grillSearch"
                    type="search"
-                   placeholder="Ø§Ø¨Ø­Ø« Ø¹Ù† ÙˆØ¬Ø¨ØªÙƒ Ø§Ù„Ù…ÙØ¶Ù„Ø©..."
-                   aria-label="Ø§Ø¨Ø­Ø« Ø¹Ù† ÙˆØ¬Ø¨ØªÙƒ Ø§Ù„Ù…ÙØ¶Ù„Ø©">
+                   placeholder="ابحث عن وجبتك المفضلة..."
+                   aria-label="ابحث عن وجبتك المفضلة">
 
             <nav id="categoryNav"
                  class="category-nav"
-                 aria-label="Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ù…Ù†ÙŠÙˆ">
+                 aria-label="أقسام المنيو">
             </nav>
 
         </section>
 
-        <!-- Ø§Ù„ØªØ­ÙƒÙ… Ø¨Ø·Ø±ÙŠÙ‚Ø© Ø¹Ø±Ø¶ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª -->
-        <section class="menu-heading-row" aria-label="Ø·Ø±ÙŠÙ‚Ø© Ø¹Ø±Ø¶ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª">
+        <!-- التحكم بطريقة عرض المنتجات -->
+        <section class="menu-heading-row" aria-label="طريقة عرض المنتجات">
 
             <div class="menu-heading-text"></div>
 
             <div class="menu-view-controls"
                  role="group"
-                 aria-label="Ø·Ø±ÙŠÙ‚Ø© Ø¹Ø±Ø¶ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª">
+                 aria-label="طريقة عرض المنتجات">
 
                 <button type="button"
                         class="view-icon"
                         id="grillGridView"
-                        aria-label="Ø¹Ø±Ø¶ Ø´Ø¨ÙƒÙŠ"
-                        title="Ø¹Ø±Ø¶ Ø´Ø¨ÙƒÙŠ"
+                        aria-label="عرض شبكي"
+                        title="عرض شبكي"
                         aria-pressed="true">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -144,8 +144,8 @@
                 <button type="button"
                         class="view-icon"
                         id="grillListView"
-                        aria-label="Ø¹Ø±Ø¶ Ø£ÙÙ‚ÙŠ"
-                        title="Ø¹Ø±Ø¶ Ø£ÙÙ‚ÙŠ"
+                        aria-label="عرض أفقي"
+                        title="عرض أفقي"
                         aria-pressed="false">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -162,14 +162,14 @@
             </div>
         </section>
 
-        <!-- Ø§Ù„Ø¹Ø±ÙˆØ¶ -->
+        <!-- العروض -->
         <section
             class="grill-offers-section"
             id="grillOffersSection"
             hidden
         >
             <div class="grill-offers-heading">
-                <h2 id="grillOffersTitle">Ø¹Ø±ÙˆØ¶Ù†Ø§ Ø§Ù„Ù…Ù…ÙŠØ²Ø©</h2>
+                <h2 id="grillOffersTitle">عروضنا المميزة</h2>
             </div>
 
             <div
@@ -178,22 +178,22 @@
             ></div>
         </section>
 
-        <!-- Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø·Ø¹Ø§Ù… -->
+        <!-- قائمة الطعام -->
         <section id="menu" class="menu-area">
 
             <div id="grillMenu">
-                <p class="empty-message">Ø¬Ø§Ø±Ù ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ÙŠÙˆ...</p>
+                <p class="empty-message">جارٍ تحميل المنيو...</p>
             </div>
 
         </section>
 
-        <!-- Ø¹Ù†Ø§ØµØ± Ø§Ù„ØªÙˆØ§ÙÙ‚ Ù…Ø¹ JavaScript -->
+        <!-- عناصر التوافق مع JavaScript -->
         <section id="cart"
                  class="cart-section"
                  hidden
                  aria-hidden="true">
 
-            <span id="cartCount">0 ØµÙ†Ù</span>
+            <span id="cartCount">0 صنف</span>
 
             <div id="grillCartItems"></div>
 
@@ -211,29 +211,29 @@
 
     </main>
 
-    <!-- Ø´Ø±ÙŠØ· Ø§Ù„Ø³Ù„Ø© Ø§Ù„Ø«Ø§Ø¨Øª -->
+    <!-- شريط السلة الثابت -->
     <button type="button"
             class="fixed-cart-bar"
             id="fixedCartBar"
-            aria-label="ÙØªØ­ Ø³Ù„Ø© Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª">
+            aria-label="فتح سلة المشتريات">
 
         <span class="fixed-cart-icon">
-            <span class="cart-icon" aria-hidden="true">ðŸ›’</span>
+            <span class="cart-icon" aria-hidden="true">🛒</span>
             <span class="fixed-cart-count" id="fixedCartCount">0</span>
         </span>
 
         <span class="fixed-cart-label">
-            <strong>Ø¹Ø±Ø¶ Ø§Ù„Ø³Ù„Ø©</strong>
-            <small id="fixedCartSubtitle">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª ÙÙŠ Ø§Ù„Ø³Ù„Ø©</small>
+            <strong>عرض السلة</strong>
+            <small id="fixedCartSubtitle">لا توجد منتجات في السلة</small>
         </span>
 
-        <strong class="fixed-cart-total" id="fixedCartTotal">0 Ø¯.Ø¹</strong>
+        <strong class="fixed-cart-total" id="fixedCartTotal">0 د.ع</strong>
 
-        <span class="fixed-cart-arrow" aria-hidden="true">â†</span>
+        <span class="fixed-cart-arrow" aria-hidden="true">←</span>
 
     </button>
 
-    <!-- Ù†Ø§ÙØ°Ø© Ø§Ù„Ø³Ù„Ø© -->
+    <!-- نافذة السلة -->
     <div class="cart-modal-overlay" id="cartModalOverlay" hidden>
 
         <section class="cart-modal"
@@ -244,32 +244,32 @@
             <header class="cart-modal-header">
 
                 <div>
-                    <h2 id="cartModalTitle">Ø³Ù„Ø© Ù…Ø´ØªØ±ÙŠØ§ØªÙƒ ðŸ›’</h2>
-                    <p>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… â€” ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ</p>
+                    <h2 id="cartModalTitle">سلة مشترياتك 🛒</h2>
+                    <p>مطعم الغنام — فرع المشاوي</p>
                 </div>
 
                 <button type="button"
                         id="closeCartModal"
                         class="cart-modal-close"
-                        aria-label="Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ø³Ù„Ø©">
-                    Ã—
+                        aria-label="إغلاق السلة">
+                    ×
                 </button>
 
             </header>
 
             <div class="cart-modal-body">
 
-                <!-- Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª -->
+                <!-- المنتجات -->
                 <section class="popup-cart-products"
-                         aria-label="Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª ÙÙŠ Ø§Ù„Ø³Ù„Ø©">
+                         aria-label="المنتجات في السلة">
 
-                    <h3 class="popup-section-title">Ø·Ù„Ø¨Ùƒ Ø§Ù„Ø­Ø§Ù„ÙŠ</h3>
+                    <h3 class="popup-section-title">طلبك الحالي</h3>
 
                     <div id="popupCartItems"></div>
 
                 </section>
 
-                <!-- Ø§Ù„Ø¥Ø¶Ø§ÙØ§Øª -->
+                <!-- الإضافات -->
                 <section class="cart-addons-section"
                          id="cartAddonsSection"
                          aria-labelledby="cartAddonsTitle">
@@ -277,41 +277,41 @@
                     <div class="cart-addons-heading">
 
                         <div>
-                            <h3 id="cartAddonsTitle">Ø£Ø¶Ù Ø¥Ù„Ù‰ Ø·Ù„Ø¨Ùƒ</h3>
-                            <p>Ø¥Ø¶Ø§ÙØ§Øª Ù…Ù† Ø§Ù„Ù…Ù†ÙŠÙˆ</p>
+                            <h3 id="cartAddonsTitle">أضف إلى طلبك</h3>
+                            <p>إضافات من المنيو</p>
                         </div>
 
                         <span class="cart-addons-hint" aria-hidden="true">
-                            Ø§Ø³Ø­Ø¨ Ù„Ù„ØªØµÙØ­ â†
+                            اسحب للتصفح ←
                         </span>
 
                     </div>
 
                     <div id="cartAddonsList"
                          class="cart-addons-list"
-                         aria-label="Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª Ø§Ù„Ø¥Ø¶Ø§ÙØ§Øª">
+                         aria-label="اقتراحات الإضافات">
 
-                        <p class="addons-loading">Ø¬Ø§Ø±Ù ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¥Ø¶Ø§ÙØ§Øª...</p>
+                        <p class="addons-loading">جارٍ تحميل الإضافات...</p>
 
                     </div>
 
                 </section>
 
-                <!-- ÙƒÙˆØ¯ Ø§Ù„Ø®ØµÙ… -->
+                <!-- كود الخصم -->
                 <section class="coupon-box">
 
-                    <label for="couponCode">ðŸŽŸï¸ ÙƒÙˆØ¯ Ø§Ù„Ø®ØµÙ…</label>
+                    <label for="couponCode">🎟️ كود الخصم</label>
 
                     <div class="coupon-input-row">
 
                         <input id="couponCode"
                                type="text"
-                               placeholder="Ø£Ø¯Ø®Ù„ ÙƒÙˆØ¯ Ø§Ù„Ø®ØµÙ…"
+                               placeholder="أدخل كود الخصم"
                                autocomplete="off"
                                maxlength="40">
 
                         <button type="button" id="applyCouponButton">
-                            ØªØ·Ø¨ÙŠÙ‚
+                            تطبيق
                         </button>
 
                     </div>
@@ -323,33 +323,33 @@
 
                 </section>
 
-                <!-- Ù…Ù„Ø®Øµ Ø§Ù„Ø­Ø³Ø§Ø¨ -->
+                <!-- ملخص الحساب -->
                 <section class="coupon-summary"
-                         aria-label="Ù…Ù„Ø®Øµ Ø§Ù„Ø­Ø³Ø§Ø¨">
+                         aria-label="ملخص الحساب">
 
                     <div>
-                        <span>Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹ Ø§Ù„ÙØ±Ø¹ÙŠ</span>
-                        <strong id="popupSubtotal">0 Ø¯.Ø¹</strong>
+                        <span>المجموع الفرعي</span>
+                        <strong id="popupSubtotal">0 د.ع</strong>
                     </div>
 
                     <div>
-                        <span>Ø§Ù„Ø®ØµÙ…</span>
-                        <strong id="popupDiscount">0 Ø¯.Ø¹</strong>
+                        <span>الخصم</span>
+                        <strong id="popupDiscount">0 د.ع</strong>
                     </div>
 
                     <div class="coupon-grand-total">
-                        <span>Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ</span>
-                        <strong id="popupGrandTotal">0 Ø¯.Ø¹</strong>
+                        <span>الإجمالي النهائي</span>
+                        <strong id="popupGrandTotal">0 د.ع</strong>
                     </div>
 
                 </section>
 
-                <!-- Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø²Ø¨ÙˆÙ† -->
+                <!-- معلومات الزبون -->
                 <form id="popupOrderForm" class="popup-order-form">
 
-                    <h3>Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø²Ø¨ÙˆÙ†</h3>
+                    <h3>معلومات الزبون</h3>
 
-                    <label for="popupCustomerName">Ø§Ù„Ø§Ø³Ù…</label>
+                    <label for="popupCustomerName">الاسم</label>
 
                     <input id="popupCustomerName"
                            name="name"
@@ -357,9 +357,9 @@
                            required
                            maxlength="100"
                            autocomplete="name"
-                           placeholder="Ø§Ù„Ø§Ø³Ù… Ø§Ù„ÙƒØ§Ù…Ù„">
+                           placeholder="الاسم الكامل">
 
-                    <label for="popupCustomerPhone">Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ</label>
+                    <label for="popupCustomerPhone">رقم الهاتف</label>
 
                     <input id="popupCustomerPhone"
                            name="phone"
@@ -367,9 +367,9 @@
                            required
                            maxlength="25"
                            autocomplete="tel"
-                           placeholder="Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ">
+                           placeholder="رقم الهاتف">
 
-                    <label for="popupCustomerAddress">Ø§Ù„Ø¹Ù†ÙˆØ§Ù†</label>
+                    <label for="popupCustomerAddress">العنوان</label>
 
                     <input id="popupCustomerAddress"
                            name="address"
@@ -377,11 +377,11 @@
                            required
                            maxlength="250"
                            autocomplete="street-address"
-                           placeholder="Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ø³ÙƒÙ† ÙˆØ£Ù‚Ø±Ø¨ Ù†Ù‚Ø·Ø© Ø¯Ø§Ù„Ø©">
+                           placeholder="منطقة السكن وأقرب نقطة دالة">
 
-                    <!-- Ø±Ø§Ø¨Ø· Ù…ÙˆÙ‚Ø¹ Ø§Ù„Ø²Ø¨ÙˆÙ† Ø¹Ù„Ù‰ Ø§Ù„Ø®Ø±ÙŠØ·Ø© -->
+                    <!-- رابط موقع الزبون على الخريطة -->
                     <label for="popupCustomerLocationUrl">
-                        Ø±Ø§Ø¨Ø· Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ø¹Ù„Ù‰ Ø§Ù„Ø®Ø±ÙŠØ·Ø© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)
+                        رابط الموقع على الخريطة (اختياري)
                     </label>
 
                     <input id="popupCustomerLocationUrl"
@@ -389,23 +389,23 @@
                            type="url"
                            maxlength="1000"
                            autocomplete="url"
-                           placeholder="Ø£Ù„ØµÙ‚ Ø±Ø§Ø¨Ø· Ù…ÙˆÙ‚Ø¹Ùƒ Ù…Ù† Google Maps"
+                           placeholder="ألصق رابط موقعك من Google Maps"
                            dir="ltr">
 
                     <small class="location-url-hint">
-                        ÙŠÙ…ÙƒÙ†Ùƒ Ù†Ø³Ø® Ø±Ø§Ø¨Ø· Ù…ÙˆÙ‚Ø¹Ùƒ Ù…Ù† Ø®Ø±Ø§Ø¦Ø· Google ÙˆÙ„ØµÙ‚Ù‡ Ù‡Ù†Ø§
+                        يمكنك نسخ رابط موقعك من خرائط Google ولصقه هنا
                     </small>
 
-                    <label for="popupCustomerNotes">Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø¥Ø¶Ø§ÙÙŠØ©</label>
+                    <label for="popupCustomerNotes">ملاحظات إضافية</label>
 
                     <textarea id="popupCustomerNotes"
                               name="notes"
                               rows="2"
                               maxlength="500"
-                              placeholder="Ø£ÙŠ Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ø·Ù„Ø¨"></textarea>
+                              placeholder="أي ملاحظات على الطلب"></textarea>
 
                     <button type="submit" class="popup-submit-button">
-                        Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨ Ø¹Ø¨Ø± ÙˆØ§ØªØ³Ø§Ø¨
+                        إرسال الطلب عبر واتساب
                     </button>
 
                     <p id="popupOrderStatus"
@@ -423,12 +423,12 @@
                 <button type="button"
                         id="continueShoppingButton"
                         class="popup-continue-button">
-                    Ù…ÙˆØ§ØµÙ„Ø© Ø§Ù„ØªØ³ÙˆÙ‚
+                    مواصلة التسوق
                 </button>
 
                 <div class="popup-footer-total">
-                    <span>Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ</span>
-                    <strong id="popupFooterTotal">0 Ø¯.Ø¹</strong>
+                    <span>الإجمالي</span>
+                    <strong id="popupFooterTotal">0 د.ع</strong>
                 </div>
 
             </footer>
@@ -437,13 +437,13 @@
 
     </div>
 
-    <!-- Ø®Ù„ÙÙŠØ© Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ© -->
+    <!-- خلفية القائمة الجانبية -->
     <div class="settings-overlay"
          id="settingsOverlay"
          hidden>
     </div>
 
-    <!-- Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ© -->
+    <!-- القائمة الجانبية -->
     <aside class="settings-panel"
           id="settingsPanel"
           role="dialog"
@@ -457,12 +457,12 @@
             <div class="settings-heading">
 
                 <span class="settings-heading-icon" aria-hidden="true">
-                    â˜°
+                    ☰
                 </span>
 
                 <div>
-                    <h2 id="settingsPanelTitle">Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©</h2>
-                    <p>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… â€” ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ</p>
+                    <h2 id="settingsPanelTitle">القائمة</h2>
+                    <p>مطعم الغنام — فرع المشاوي</p>
                 </div>
 
             </div>
@@ -470,26 +470,26 @@
             <button type="button"
                     class="settings-close"
                     id="closeSettingsPanel"
-                    aria-label="Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©">
-                Ã—
+                    aria-label="إغلاق القائمة">
+                ×
             </button>
 
         </header>
 
         <div class="settings-panel-content">
 
-            <h3 class="settings-section-title">Ø§Ù„ØªÙ†Ù‚Ù„</h3>
+            <h3 class="settings-section-title">التنقل</h3>
 
             <a class="settings-menu-item" href="index.html">
 
-                <span class="settings-item-icon" aria-hidden="true">âŒ‚</span>
+                <span class="settings-item-icon" aria-hidden="true">⌂</span>
 
                 <span>
-                    <strong>Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©</strong>
-                    <small>Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ ØµÙØ­Ø© Ø§Ù„ÙØ±ÙˆØ¹</small>
+                    <strong>الصفحة الرئيسية</strong>
+                    <small>العودة إلى صفحة الفروع</small>
                 </span>
 
-                <span class="settings-item-arrow" aria-hidden="true">â†</span>
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
 
             </a>
 
@@ -497,14 +497,14 @@
                href="#menu"
                id="settingsGoToMenu">
 
-                <span class="settings-item-icon" aria-hidden="true">ðŸ½ï¸</span>
+                <span class="settings-item-icon" aria-hidden="true">🍽️</span>
 
                 <span>
-                    <strong>Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø·Ø¹Ø§Ù…</strong>
-                    <small>Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ø¥Ù„Ù‰ Ø§Ù„Ù…Ù†ÙŠÙˆ</small>
+                    <strong>قائمة الطعام</strong>
+                    <small>الانتقال إلى المنيو</small>
                 </span>
 
-                <span class="settings-item-arrow" aria-hidden="true">â†</span>
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
 
             </a>
 
@@ -512,65 +512,65 @@
                     class="settings-menu-item settings-menu-button"
                     id="settingsOpenCart">
 
-                <span class="settings-item-icon" aria-hidden="true">ðŸ›’</span>
+                <span class="settings-item-icon" aria-hidden="true">🛒</span>
 
                 <span>
-                    <strong>Ø³Ù„Ø© Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª</strong>
-                    <small>Ø¹Ø±Ø¶ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª ÙˆØ§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ</small>
+                    <strong>سلة المشتريات</strong>
+                    <small>عرض المنتجات والإجمالي</small>
                 </span>
 
-                <span class="settings-item-arrow" aria-hidden="true">â†</span>
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
 
             </button>
 
             <div class="settings-divider"></div>
 
-            <h3 class="settings-section-title">Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ù…Ø·Ø¹Ù…</h3>
+            <h3 class="settings-section-title">معلومات المطعم</h3>
 
             <div class="settings-info-card">
 
-                <span aria-hidden="true">ðŸ¥©</span>
+                <span aria-hidden="true">🥩</span>
 
                 <div>
-                    <strong>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù…</strong>
-                    <p>ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ</p>
+                    <strong>مطعم الغنام</strong>
+                    <p>فرع المشاوي</p>
                 </div>
 
             </div>
 
             <div class="settings-info-card">
 
-                <span aria-hidden="true">ðŸ’°</span>
+                <span aria-hidden="true">💰</span>
 
                 <div>
-                    <strong>Ø§Ù„Ø¹Ù…Ù„Ø©</strong>
-                    <p>Ø§Ù„Ø¯ÙŠÙ†Ø§Ø± Ø§Ù„Ø¹Ø±Ø§Ù‚ÙŠ (Ø¯.Ø¹)</p>
+                    <strong>العملة</strong>
+                    <p>الدينار العراقي (د.ع)</p>
                 </div>
 
             </div>
 
-            <!-- Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯Ø© ÙˆØ§Ù„Ø´ÙƒØ§ÙˆÙ‰ -->
+            <!-- المساعدة والشكاوى -->
             <a class="settings-menu-item" href="support/support.html">
 
-                <span class="settings-item-icon" aria-hidden="true">ðŸ’¬</span>
+                <span class="settings-item-icon" aria-hidden="true">💬</span>
 
                 <span>
-                    <strong>Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯Ø© ÙˆØ§Ù„Ø´ÙƒØ§ÙˆÙ‰</strong>
-                    <small>Ù„Ù„Ø§Ø³ØªÙØ³Ø§Ø±Ø§Øª ÙˆØªÙ‚Ø¯ÙŠÙ… Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰</small>
+                    <strong>المساعدة والشكاوى</strong>
+                    <small>للاستفسارات وتقديم الشكاوى</small>
                 </span>
 
-                <span class="settings-item-arrow" aria-hidden="true">â†</span>
+                <span class="settings-item-arrow" aria-hidden="true">←</span>
 
             </a>
 
-            <!-- Ø£Ø±Ù‚Ø§Ù… Ø§Ù„ÙØ±Ø¹ -->
+            <!-- أرقام الفرع -->
             <div class="settings-compact-card">
 
-                <span class="settings-compact-icon" aria-hidden="true">ðŸ“ž</span>
+                <span class="settings-compact-icon" aria-hidden="true">📞</span>
 
                 <div class="settings-compact-content">
 
-                    <strong>Ø£Ø±Ù‚Ø§Ù… Ø§Ù„ÙØ±Ø¹</strong>
+                    <strong>أرقام الفرع</strong>
 
                     <a href="tel:07740000062">07740000062</a>
                     <a href="tel:07840000062">07840000062</a>
@@ -579,20 +579,20 @@
 
             </div>
 
-            <!-- Ù…ÙˆÙ‚Ø¹ Ø§Ù„ÙØ±Ø¹ -->
+            <!-- موقع الفرع -->
             <a class="settings-compact-card settings-location-link"
-               href="https://maps.google.com/?q=Ù…Ø·Ø¹Ù…+Ø§Ù„ØºÙ†Ø§Ù…+ÙØ±Ø¹+Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ"
+               href="https://maps.google.com/?q=مطعم+الغنام+فرع+المشاوي"
                target="_blank"
                rel="noopener noreferrer">
 
-                <span class="settings-compact-icon" aria-hidden="true">ðŸ“</span>
+                <span class="settings-compact-icon" aria-hidden="true">📍</span>
 
                 <div class="settings-compact-content">
-                    <strong>Ù…ÙˆÙ‚Ø¹ Ø§Ù„ÙØ±Ø¹</strong>
-                    <small>Ø¹Ø±Ø¶ Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ø¹Ù„Ù‰ Ø®Ø±Ø§Ø¦Ø· Google</small>
+                    <strong>موقع الفرع</strong>
+                    <small>عرض الموقع على خرائط Google</small>
                 </div>
 
-                <span class="settings-item-arrow" aria-hidden="true">â†—</span>
+                <span class="settings-item-arrow" aria-hidden="true">↗</span>
 
             </a>
 
@@ -603,25 +603,25 @@
             <button type="button"
                     class="settings-done-button"
                     id="settingsDoneButton">
-                Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©
+                إغلاق القائمة
             </button>
 
         </footer>
 
     </aside>
 
-    <!-- ØªØ°ÙŠÙŠÙ„ Ø§Ù„Ù…ÙˆÙ‚Ø¹ -->
+    <!-- تذييل الموقع -->
     <footer class="site-footer">
 
-        <p>Ù…Ø·Ø¹Ù… Ø§Ù„ØºÙ†Ø§Ù… â€” ÙØ±Ø¹ Ø§Ù„Ù…Ø´Ø§ÙˆÙŠ</p>
+        <p>مطعم الغنام — فرع المشاوي</p>
 
-        <p>Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£Ø³Ø¹Ø§Ø± Ø¨Ø§Ù„Ø¯ÙŠÙ†Ø§Ø± Ø§Ù„Ø¹Ø±Ø§Ù‚ÙŠ</p>
+        <p>جميع الأسعار بالدينار العراقي</p>
 
-        <a href="index.html">Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©</a>
+        <a href="index.html">العودة إلى الصفحة الرئيسية</a>
 
     </footer>
 
-    <!-- ÙˆØ¸Ø§Ø¦Ù Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ© -->
+    <!-- وظائف القائمة الجانبية -->
     <script>
     (() => {
         const panel = document.getElementById("settingsPanel");
@@ -702,7 +702,7 @@
     })();
     </script>
 
-    <!-- Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙˆÙ‚Ø¹ -->
+    <!-- ملفات الموقع -->
     <script src="dashboard/loader.js"></script>
     <script type="module" src="customer-auth.js"></script>
 
