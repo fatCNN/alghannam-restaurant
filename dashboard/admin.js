@@ -5,8 +5,8 @@ import {
 
 const $ = selector => document.querySelector(selector);
 
-// Cloudflare R2 image service. Replace after deploying the Worker.
-const R2_IMAGE_WORKER_URL = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+// Cloudflare R2 image service.
+const R2_IMAGE_WORKER_URL = 'https://alghannam-r2-images.fatimaalkhafaji76.workers.dev';
 const IMAGE_BUCKET = 'menu-images'; // Legacy bucket name; retained only for old records.
 
 const SERVER_OWNER_IDS = new Set([
@@ -2031,7 +2031,7 @@ async function uploadImageToR2(file, folder) {
   const token = await getR2WorkerToken();
   const form = new FormData();
   form.append('file', file, file.name || 'image');
-  form.append('branch', folder);
+  form.append('folder', folder);
 
   const response = await fetch(`${R2_IMAGE_WORKER_URL}/upload`, {
     method: 'POST',
