@@ -1,6 +1,6 @@
-
 // =====================================================
 // مطعم الغنّام — محرك الخصومات التلقائية المشترك
+// تحميل مرة واحدة طوال جلسة الصفحة
 // =====================================================
 
 import {
@@ -8,12 +8,13 @@ import {
     isSupabaseConfigured
 } from "./dashboard/supabase-client.js";
 
+// =====================================================
 // التخزين المؤقت للخصومات
-let cachedDiscounts = [];
-let lastLoadedAt = 0;
+// =====================================================
 
-// مدة التخزين المؤقت: 5 دقائق
-const DISCOUNTS_CACHE_DURATION = 5 * 60 * 1000;
+let cachedDiscounts = [];
+let discountsLoaded = false;
+let discountsLoadPromise = null;
 
 
 // =====================================================
@@ -22,50 +23,82 @@ const DISCOUNTS_CACHE_DURATION = 5 * 60 * 1000;
 
 export async function loadBranchDiscounts(branchId, force = false) {
 
+    // التحقق من إعداد Supabase
     if (!isSupabaseConfigured || !supabaseClient) {
         return cachedDiscounts;
     }
 
-    const now = Date.now();
-
-    // استخدام النسخة المخزنة إذا لم تنتهِ مدة التخزين
-    if (
-        !force &&
-        now - lastLoadedAt < DISCOUNTS_CACHE_DURATION
-    ) {
+    // استخدام البيانات المحملة سابقاً
+    // لا نرسل طلباً جديداً عند استدعاء الدالة مرة أخرى
+    if (discountsLoaded && !force) {
         return cachedDiscounts;
     }
 
-    const { data, error } = await supabaseClient
-        .from("discounts")
-        .select(`
-            id,
-            name,
-            discount_percent,
-            scope_type,
-            branch_ids,
-            category_ids,
-            product_ids,
-            starts_at,
-            ends_at,
-            is_active
-        `)
-        .eq("is_active", true);
-
-    if (error) {
-        console.error(
-            "تعذر تحميل الخصومات التلقائية:",
-            error
-        );
-
-        // الاحتفاظ بآخر نسخة سليمة عند حدوث خطأ
-        return cachedDiscounts;
+    // منع الطلبات المتزامنة والمكررة
+    if (discountsLoadPromise) {
+        return discountsLoadPromise;
     }
 
-    cachedDiscounts = Array.isArray(data) ? data : [];
-    lastLoadedAt = Date.now();
+    // تسجيل حالة التحميل
+    discountsLoaded = true;
 
-    return cachedDiscounts;
+    discountsLoadPromise = (async () => {
+
+        try {
+
+            const { data, error } = await supabaseClient
+                .from("discounts")
+                .select(`
+                    id,
+                    name,
+                    discount_percent,
+                    scope_type,
+                    branch_ids,
+                    category_ids,
+                    product_ids,
+                    starts_at,
+                    ends_at,
+                    is_active
+                `)
+                .eq("is_active", true);
+
+            if (error) {
+
+                console.error(
+                    "تعذر تحميل الخصومات التلقائية:",
+                    error
+                );
+
+                return cachedDiscounts;
+            }
+
+            // حفظ آخر نسخة من الخصومات
+            cachedDiscounts = Array.isArray(data)
+                ? data
+                : [];
+
+            return cachedDiscounts;
+
+        } catch (error) {
+
+            console.error(
+                "حدث خطأ أثناء تحميل الخصومات:",
+                error
+            );
+
+            return cachedDiscounts;
+        }
+
+    })();
+
+    try {
+
+        return await discountsLoadPromise;
+
+    } finally {
+
+        discountsLoadPromise = null;
+    }
 }
 
 
@@ -156,6 +189,7 @@ export function getBestAutomaticDiscount(
             percent > 0 &&
             (!best || percent > best.percent)
         ) {
+
             best = {
                 id: rule.id,
                 name: rule.name || "",

@@ -1989,7 +1989,7 @@ import {
         currentLanguage
       );
 
-      automaticDiscounts = await loadBranchDiscounts(BRANCH_ID, true);
+      automaticDiscounts = await loadBranchDiscounts(BRANCH_ID, false);
 
       const dbCategories = Array.isArray(result?.categories)
         ? result.categories
@@ -2384,12 +2384,6 @@ import {
       refreshOffersFromDatabase()
     ]);
 
-    window.setInterval(async () => {
-      automaticDiscounts = await loadBranchDiscounts(BRANCH_ID, true);
-      renderMenu();
-      renderCart();
-      if (activeCouponCode && cart.length) void validateCoupon(activeCouponCode, false);
-    }, 60000);
   }
 
   void initialize();

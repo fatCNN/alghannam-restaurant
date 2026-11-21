@@ -2784,37 +2784,6 @@ async function initializeFalafelPage() {
         await validateActiveCoupon();
     }
 
-    // Refresh automatic discounts periodically.
-    // Use cached data instead of forcing a Supabase request.
-    // Prevent creating duplicate intervals.
-    if (!window.__falafelDiscountRefreshTimer) {
-        window.__falafelDiscountRefreshTimer = window.setInterval(async () => {
-            try {
-                const discounts = await loadBranchDiscounts(
-                    BRANCH_ID,
-                    false
-                );
-
-                automaticDiscounts = Array.isArray(discounts)
-                    ? discounts
-                    : [];
-
-                renderMenu();
-
-                if (activeCoupon) {
-                    await validateActiveCoupon();
-                }
-
-                renderCart();
-
-            } catch (error) {
-                console.warn(
-                    "تعذر تحديث الخصومات التلقائية:",
-                    error
-                );
-            }
-        }, 5 * 60 * 1000);
-    }
 }
 
 initializeFalafelPage();

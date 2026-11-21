@@ -2705,6 +2705,7 @@ function setGrillLanguage(language) {
 
     renderGrillOffers();
     renderCart();
+    // Automatic discount refresh disabled.
     restoreCouponUI();
 }
 
@@ -2835,7 +2836,8 @@ window.addEventListener("storage", event => {
     if (event.key === STORAGE_KEYS.coupon) {
         activeCoupon = loadSavedCoupon();
         renderCart();
-        restoreCouponUI();
+    // Automatic discount refresh disabled.
+    restoreCouponUI();
     }
 
     if (event.key === STORAGE_KEYS.language) {
@@ -2863,6 +2865,7 @@ window.addEventListener("pageshow", () => {
     }
 
     renderCart();
+    // Automatic discount refresh disabled.
     restoreCouponUI();
 });
 
@@ -2876,10 +2879,7 @@ async function refreshGrillAutomaticDiscounts() {
     automaticDiscountsLoading = true;
 
     try {
-        const result = await loadBranchDiscounts(
-            GRILL_BRANCH_ID,
-            true
-        );
+        const result = await loadBranchDiscounts(GRILL_BRANCH_ID, false);
 
         automaticDiscounts = Array.isArray(result)
             ? result
@@ -2923,10 +2923,7 @@ function initializeGrillPage() {
     void syncGrillOffersFromDatabase();
     void refreshGrillAutomaticDiscounts();
 
-    window.setInterval(() => {
-        void refreshGrillAutomaticDiscounts();
-    }, 60000);
-
+    // Automatic discount refresh disabled.
     restoreCouponUI();
     renderCart();
 }
