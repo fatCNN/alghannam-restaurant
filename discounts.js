@@ -21,90 +21,141 @@ let discountsLoadPromise = null;
 // تحميل الخصومات من Supabase
 // =====================================================
 
+const DISCOUNTS_CACHE_DB = "alghannam_timed_cache";
+const DISCOUNTS_CACHE_STORE = "entries";
+const DISCOUNTS_CACHE_KEY = "discounts:global";
+const DISCOUNTS_CACHE_TTL = 60 * 60 * 1000;
+
+let discountsLoadedAt = 0;
+
+function openDiscountsCacheDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DISCOUNTS_CACHE_DB, 1);
+
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(DISCOUNTS_CACHE_STORE)) {
+                db.createObjectStore(DISCOUNTS_CACHE_STORE, { keyPath: "key" });
+            }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function readDiscountsCache() {
+    try {
+        const db = await openDiscountsCacheDB();
+
+        return await new Promise((resolve, reject) => {
+            const transaction = db.transaction(DISCOUNTS_CACHE_STORE, "readonly");
+            const request = transaction.objectStore(DISCOUNTS_CACHE_STORE)
+                .get(DISCOUNTS_CACHE_KEY);
+
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+            transaction.oncomplete = () => db.close();
+            transaction.onerror = () => db.close();
+        });
+    } catch (error) {
+        console.warn("???? ????? ??? ????????:", error);
+        return null;
+    }
+}
+
+async function writeDiscountsCache(payload) {
+    try {
+        const db = await openDiscountsCacheDB();
+
+        await new Promise((resolve, reject) => {
+            const transaction = db.transaction(DISCOUNTS_CACHE_STORE, "readwrite");
+
+            transaction.objectStore(DISCOUNTS_CACHE_STORE).put({
+                key: DISCOUNTS_CACHE_KEY,
+                savedAt: Date.now(),
+                payload
+            });
+
+            transaction.oncomplete = resolve;
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error);
+        });
+
+        db.close();
+    } catch (error) {
+        console.warn("???? ??? ??? ????????:", error);
+    }
+}
+
 export async function loadBranchDiscounts(branchId, force = false) {
-
-    // التحقق من إعداد Supabase
-    if (!isSupabaseConfigured || !supabaseClient) {
-        return cachedDiscounts;
-    }
-
-    // استخدام البيانات المحملة سابقاً
-    // لا نرسل طلباً جديداً عند استدعاء الدالة مرة أخرى
-    if (discountsLoaded && !force) {
-        return cachedDiscounts;
-    }
-
-    // منع الطلبات المتزامنة والمكررة
     if (discountsLoadPromise) {
         return discountsLoadPromise;
     }
 
-    // تسجيل حالة التحميل
-    discountsLoaded = true;
+    if (
+        !force &&
+        discountsLoadedAt &&
+        Date.now() - discountsLoadedAt < DISCOUNTS_CACHE_TTL
+    ) {
+        return cachedDiscounts;
+    }
 
     discountsLoadPromise = (async () => {
+        const cachedRecord = await readDiscountsCache();
+
+        if (
+            cachedRecord &&
+            Array.isArray(cachedRecord.payload)
+        ) {
+            cachedDiscounts = cachedRecord.payload;
+
+            if (
+                !force &&
+                Date.now() - cachedRecord.savedAt < DISCOUNTS_CACHE_TTL
+            ) {
+                discountsLoadedAt = cachedRecord.savedAt;
+                return cachedDiscounts;
+            }
+        }
+
+        if (!isSupabaseConfigured || !supabaseClient) {
+            discountsLoadedAt = 0;
+            return cachedDiscounts;
+        }
 
         try {
-
             const { data, error } = await supabaseClient
                 .from("discounts")
-                .select(`
-                    id,
-                    name,
-                    discount_percent,
-                    scope_type,
-                    branch_ids,
-                    category_ids,
-                    product_ids,
-                    starts_at,
-                    ends_at,
-                    is_active
-                `)
+                .select("id, name, discount_percent, scope_type, branch_ids, category_ids, product_ids, starts_at, ends_at, is_active")
                 .eq("is_active", true);
 
             if (error) {
-
-                console.error(
-                    "تعذر تحميل الخصومات التلقائية:",
-                    error
-                );
-
+                console.error("???? ????? ???????? ?????????:", error);
+                discountsLoadedAt = 0;
                 return cachedDiscounts;
             }
 
-            // حفظ آخر نسخة من الخصومات
-            cachedDiscounts = Array.isArray(data)
-                ? data
-                : [];
+            cachedDiscounts = Array.isArray(data) ? data : [];
+            discountsLoadedAt = Date.now();
+
+            await writeDiscountsCache(cachedDiscounts);
 
             return cachedDiscounts;
 
         } catch (error) {
-
-            console.error(
-                "حدث خطأ أثناء تحميل الخصومات:",
-                error
-            );
-
+            console.error("??? ??? ????? ????? ????????:", error);
+            discountsLoadedAt = 0;
             return cachedDiscounts;
         }
-
     })();
 
     try {
-
         return await discountsLoadPromise;
-
     } finally {
-
         discountsLoadPromise = null;
     }
 }
-
-
-// =====================================================
-// تحديد أفضل خصم تلقائي للمنتج
-// =====================================================
 
 export function getBestAutomaticDiscount(
     product,

@@ -11,6 +11,72 @@ import {
 
 const VISITOR_TOKEN_KEY = 'ghannam_laila_visitor_token_v1';
 
+const LOCAL_CHAT_CACHE_TTL = 25 * 60 * 60 * 1000;
+
+function getLocalChatCacheKey() {
+    return `ghannam_laila_chat_cache_v1_${visitorToken || getVisitorToken()}`;
+}
+
+function loadLocalChatCache() {
+    try {
+        const raw = localStorage.getItem(getLocalChatCacheKey());
+        const messages = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(messages)) {
+            return [];
+        }
+
+        const now = Date.now();
+
+        const validMessages = messages.filter(message =>
+            message &&
+            typeof message.text === 'string' &&
+            typeof message.sender === 'string' &&
+            Number.isFinite(message.time) &&
+            now - message.time < LOCAL_CHAT_CACHE_TTL
+        );
+
+        if (validMessages.length !== messages.length) {
+            localStorage.setItem(
+                getLocalChatCacheKey(),
+                JSON.stringify(validMessages)
+            );
+        }
+
+        return validMessages;
+
+    } catch (error) {
+        console.warn('???? ????? ??? ?????? ????:', error);
+        return [];
+    }
+}
+
+function saveLocalChatMessage(text, sender) {
+    try {
+        const messages = loadLocalChatCache();
+
+        messages.push({
+            text: String(text),
+            sender,
+            time: Date.now()
+        });
+
+        const limitedMessages = messages;
+
+        localStorage.setItem(
+            getLocalChatCacheKey(),
+            JSON.stringify(limitedMessages)
+        );
+
+        return true;
+
+    } catch (error) {
+        console.warn('???? ??? ??????? ?? ??? ????:', error);
+        return false;
+    }
+}
+
+
 const chatMessages = document.getElementById('chatMessages');
 const chatForm = document.getElementById('chatForm');
 const userInput = document.getElementById('userInput');
@@ -64,6 +130,7 @@ const BRANCH_KEYWORDS = {
 
 let complaintText = '';
 let complaintMode = false;
+let staffContactMode = false;
 let waitingForComplaint = false;
 let waitingForBranch = false;
 
@@ -97,6 +164,42 @@ const renderedMessageIds = new Set();
 let pollingHandle = null;
 let historyBusy = false;
 let lastPersist = Promise.resolve();
+let staffConversationActive = false;
+
+const POLLING_INTERVAL = 15000;
+
+function stopConversationPolling() {
+    if (pollingHandle) {
+        clearInterval(pollingHandle);
+        pollingHandle = null;
+    }
+}
+
+function startConversationPolling() {
+    stopConversationPolling();
+
+    if (
+        document.hidden ||
+        !supabase ||
+        !staffConversationActive
+    ) {
+        return;
+    }
+
+    pollingHandle = setInterval(() => {
+        void refreshConversationHistory();
+    }, POLLING_INTERVAL);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopConversationPolling();
+    } else if (staffConversationActive) {
+        startConversationPolling();
+        void refreshConversationHistory();
+    }
+});
+
 
 
 // =====================================================
@@ -223,14 +326,27 @@ function queuePersist(text, senderRole, element) {
 }
 
 
-function addMessage(text, sender = 'bot') {
+function addMessage(text, sender = 'bot', options = {}) {
+    const isImportantFlow = complaintMode || staffContactMode;
+
+    const {
+        save = isImportantFlow,
+        local = !isImportantFlow
+    } = options;
+
     const role = sender === 'user'
         ? 'visitor'
         : 'laila';
 
     const element = appendMessageToPage(text, sender);
 
-    queuePersist(text, role, element);
+    if (local) {
+        saveLocalChatMessage(text, role);
+    }
+
+    if (save) {
+        queuePersist(text, role, element);
+    }
 
     return element;
 }
@@ -325,6 +441,24 @@ async function refreshConversationHistory({ replace = false } = {}) {
             throw error;
         }
 
+        const conversation = data?.conversation;
+
+        staffConversationActive = Boolean(
+            conversation &&
+            (
+                conversation.needs_staff === true ||
+                conversation.status === 'in_progress'
+            )
+        );
+
+        if (staffConversationActive) {
+            if (!pollingHandle) {
+                startConversationPolling();
+            }
+        } else {
+            stopConversationPolling();
+        }
+
         const rows = Array.isArray(data?.messages)
             ? data.messages
             : [];
@@ -368,14 +502,14 @@ async function refreshConversationHistory({ replace = false } = {}) {
 // =====================================================
 
 async function requestStaff(branchId = null) {
-    if (!supabase) {
-        return;
+    if (!supabase || !visitorToken) {
+        return false;
     }
 
     try {
         await ensureConversation();
 
-        const { error } = await supabase.rpc(
+        const { data, error } = await supabase.rpc(
             'laila_request_staff',
             {
                 p_visitor_token: visitorToken,
@@ -387,35 +521,61 @@ async function requestStaff(branchId = null) {
             throw error;
         }
 
+        if (data !== true) {
+            console.warn('Staff request was not registered.');
+            return false;
+        }
+
+        staffConversationActive = true;
+        startConversationPolling();
+
+        return true;
+
     } catch (error) {
         console.warn(
-            'تعذر تسجيل طلب الموظف:',
+            '???? ????? ??? ??????:',
             error.message || error
         );
+        return false;
     }
 }
 
 
 async function cancelStaffRequest() {
     if (!supabase || !visitorToken) {
-        return;
+        return false;
     }
 
     try {
         await ensureConversation();
 
-        await supabase.rpc(
+        const { data, error } = await supabase.rpc(
             'laila_cancel_staff_request',
             {
                 p_visitor_token: visitorToken
             }
         );
 
+        if (error) {
+            throw error;
+        }
+
+        if (data !== true) {
+            console.warn('No cancellable staff request was found.');
+            return false;
+        }
+
+        staffConversationActive = false;
+        stopConversationPolling();
+
+        return true;
+
     } catch (error) {
         console.warn(
-            'تعذر إلغاء طلب الموظف:',
+            'Failed to cancel staff request:',
             error.message || error
         );
+        return false;
     }
 }
 
@@ -484,19 +644,32 @@ async function loadAssistantSettings() {
 // =====================================================
 
 async function initializeLailaChat() {
+    visitorToken = getVisitorToken();
+
+    const localMessages = loadLocalChatCache();
+
+    if (localMessages.length) {
+        chatMessages.replaceChildren();
+        renderedMessageIds.clear();
+
+        localMessages.forEach((message, index) => {
+            appendMessageToPage(
+                message.text,
+                message.sender,
+                `local-cache-${message.time}-${index}`
+            );
+        });
+    }
+
     if (!readyConfig || !supabase) {
         console.warn(
-            'إعداد Supabase غير مكتمل؛ ستعمل ليلى محليًا دون حفظ المحادثات.'
+            'Supabase is unavailable; local chat history remains visible.'
         );
-
         return;
     }
 
-    visitorToken = getVisitorToken();
-
     try {
         await loadAssistantSettings();
-
         await ensureConversation();
 
         const { data, error } = await supabase.rpc(
@@ -510,42 +683,132 @@ async function initializeLailaChat() {
             throw error;
         }
 
+        const conversation = data?.conversation;
+
+        staffConversationActive = Boolean(
+            conversation &&
+            (
+                conversation.needs_staff === true ||
+                conversation.status === 'in_progress'
+            )
+        );
+
         const rows = Array.isArray(data?.messages)
             ? data.messages
             : [];
 
-        if (rows.length) {
-            await refreshConversationHistory({
-                replace: true
+        const unmatchedLocalByKey = new Map();
+
+        localMessages.forEach((message, index) => {
+            const key = `${message.sender}\u0000${message.text}`;
+
+            if (!unmatchedLocalByKey.has(key)) {
+                unmatchedLocalByKey.set(key, []);
+            }
+
+            unmatchedLocalByKey.get(key).push({
+                index,
+                time: message.time
             });
+        });
+
+        if (rows.length && !localMessages.length) {
+            chatMessages.replaceChildren();
+            renderedMessageIds.clear();
+        }
+
+        const entries = [];
+
+        localMessages.forEach((message, index) => {
+            entries.push({
+                text: message.text,
+                sender: message.sender,
+                time: message.time,
+                id: `local-cache-${message.time}-${index}`,
+                source: 'local'
+            });
+        });
+
+        const matchedRemoteIds = new Set();
+
+        for (const row of rows) {
+            if (!row.id) {
+                continue;
+            }
+
+            const sender =
+                row.sender_role === 'visitor'
+                    ? 'visitor'
+                    : row.sender_role;
+
+            const parsedTime = Date.parse(
+                row.created_at || row.createdAt || ''
+            );
+
+            const key = `${sender}\u0000${row.content}`;
+            const candidates = unmatchedLocalByKey.get(key);
+
+            if (candidates && Number.isFinite(parsedTime)) {
+                const matchIndex = candidates.findIndex(candidate =>
+                    Math.abs(candidate.time - parsedTime) <= 30000
+                );
+
+                if (matchIndex !== -1) {
+                    candidates.splice(matchIndex, 1);
+                    matchedRemoteIds.add(row.id);
+                    continue;
+                }
+            }
+
+            entries.push({
+                text: row.content,
+                sender,
+                time: Number.isFinite(parsedTime) ? parsedTime : 0,
+                id: row.id,
+                source: 'remote'
+            });
+        }
+
+        if (localMessages.length || rows.length) {
+            chatMessages.replaceChildren();
+            renderedMessageIds.clear();
+
+            for (const id of matchedRemoteIds) {
+                renderedMessageIds.add(id);
+            }
+
+            entries.sort((a, b) => a.time - b.time);
+
+            for (const entry of entries) {
+                if (
+                    entry.source === 'remote' &&
+                    renderedMessageIds.has(entry.id)
+                ) {
+                    continue;
+                }
+
+                appendMessageToPage(
+                    entry.text,
+                    entry.sender,
+                    entry.id
+                );
+            }
 
         } else if (welcomeElement) {
             welcomeElement.textContent =
                 assistantSettings.welcome_message;
 
-            const saved = await persistMessage(
+            saveLocalChatMessage(
                 assistantSettings.welcome_message,
                 'laila'
             );
-
-            if (saved?.id) {
-                welcomeElement.dataset.messageId = saved.id;
-                renderedMessageIds.add(saved.id);
-            }
         }
 
-        if (pollingHandle) {
-            clearInterval(pollingHandle);
-        }
-
-        pollingHandle = setInterval(
-            () => refreshConversationHistory(),
-            8000
-        );
+        startConversationPolling();
 
     } catch (error) {
         console.error(
-            'لم يتم تفعيل حفظ محادثات ليلى:',
+            'Failed to initialize Laila chat:',
             error.message || error
         );
     }
@@ -577,13 +840,20 @@ function showBranchChoices() {
         button.textContent = label;
 
         button.addEventListener('click', () => {
-            addMessage(label, 'user');
+            const isImportantFlow = complaintMode || staffContactMode;
+
+            addMessage(label, 'user', {
+                save: isImportantFlow,
+                local: !isImportantFlow
+            });
 
             removeBranchButtons();
 
             waitingForBranch = false;
 
-            requestStaff(branches[key].id);
+            if (staffContactMode) {
+                requestStaff(branches[key].id);
+            }
 
             showWhatsAppNumbers(key);
         });
@@ -598,12 +868,17 @@ function showBranchChoices() {
     cancel.textContent = 'إلغاء';
 
     cancel.addEventListener('click', () => {
-        void cancelStaffRequest();
+        const isImportantFlow = complaintMode || staffContactMode;
+
+        if (staffContactMode) {
+            void cancelStaffRequest();
+        }
 
         removeBranchButtons();
         removeWhatsAppButtons();
 
         complaintMode = false;
+        staffContactMode = false;
         waitingForComplaint = false;
         waitingForBranch = false;
 
@@ -613,7 +888,12 @@ function showBranchChoices() {
             'اكتب سؤالك أو تفاصيل الشكوى...';
 
         addMessage(
-            'تم إلغاء العملية. إذا احتجت أي مساعدة أني حاضرة.'
+            '???? ?????????? ??????????????. ?????? ?????????? ???? ???????????? ?????? ??????????.',
+            'bot',
+            {
+                save: isImportantFlow,
+                local: !isImportantFlow
+            }
         );
     });
 
@@ -641,9 +921,11 @@ function showWhatsAppNumbers(branchKey) {
         return;
     }
 
+    const isImportantFlow = complaintMode || staffContactMode;
+
     addMessage(
         `فرع ${branch.name} عنده رقمين واتساب. اختار الرقم اللي تفضله.`
-    );
+    , 'bot', { save: isImportantFlow, local: !isImportantFlow });
 
     const wrapper = document.createElement('div');
 
@@ -684,15 +966,16 @@ function showWhatsAppNumbers(branchKey) {
         addMessage(
             'جهزت رسالة الشكوى مع اسم الفرع والتفاصيل. 🌷\n' +
             'اضغط على رقم واتساب، وراجع الرسالة ثم اضغط «إرسال» داخل واتساب حتى تصل للموظف.'
-        );
+        , 'bot', { save: isImportantFlow, local: !isImportantFlow });
 
     } else {
         addMessage(
             'اضغط على رقم واتساب المناسب حتى تفتح المحادثة مع الفرع. تگدر تعدل الرسالة قبل إرسالها.'
-        );
+        , 'bot', { save: isImportantFlow, local: !isImportantFlow });
     }
 
     complaintMode = false;
+    staffContactMode = false;
     complaintText = '';
     waitingForBranch = false;
 
@@ -708,6 +991,7 @@ function startComplaint(prefilledText = '') {
     removeBranchButtons();
     removeWhatsAppButtons();
 
+    staffContactMode = false;
     complaintMode = true;
     waitingForComplaint = false;
     waitingForBranch = false;
@@ -717,7 +1001,7 @@ function startComplaint(prefilledText = '') {
     if (complaintText) {
         addMessage(
             'راح نجهز شكواك حتى تراسل الفرع المعني. 🌷\n\nاختار الفرع اللي يخص المشكلة.'
-        );
+        , 'bot', { save: true, local: false });
 
         waitingForBranch = true;
 
@@ -729,7 +1013,7 @@ function startComplaint(prefilledText = '') {
         addMessage(
             'أكيد، رأيك يهمنا ونريد نساعدك. 🌷\n\n' +
             'اكتب تفاصيل الشكوى برسالة وحدة، مثل تأخر الطلب أو مشكلة بالأكل أو الخدمة.'
-        );
+        , 'bot', { save: true, local: false });
 
         userInput.placeholder =
             'اكتب تفاصيل الشكوى هنا...';
@@ -747,16 +1031,16 @@ function startStaffContact() {
     removeBranchButtons();
     removeWhatsAppButtons();
 
+    staffContactMode = true;
     complaintMode = false;
     complaintText = '';
 
     waitingForComplaint = false;
     waitingForBranch = true;
 
-    requestStaff();
-
     addMessage(
-        'حاضر، راح أساعدك تتواصل ويا موظف حقيقي. 👩‍💼'
+        'حاضر، راح أساعدك تتواصل ويا موظف حقيقي. 👩‍💼',
+        'bot', { save: true, local: false }
     );
 
     showBranchChoices();
@@ -941,36 +1225,69 @@ function scoreProduct(product, terms) {
 // البحث في منتجات Supabase
 // =====================================================
 
-async function fetchProductsForTerm(term) {
-    const { data, error } = await supabase
-        .from('products')
-        .select(`
-            id,
-            name,
-            name_en,
-            description,
-            description_en,
-            price,
-            branch_id,
-            category_id,
-            is_available,
-            sort_order,
-            extra,
-            categories(name,name_en),
-            branches(name)
-        `)
-        .eq('is_available', true)
-        .or(
-            `name.ilike.%${term}%,name_en.ilike.%${term}%,description.ilike.%${term}%,description_en.ilike.%${term}%`
-        )
-        .order('sort_order')
-        .limit(30);
+const PRODUCT_SEARCH_CACHE_TTL = 60 * 1000;
+const productSearchCache = new Map();
+const productSearchPromises = new Map();
 
-    if (error) {
-        throw error;
+async function fetchProductsForTerm(term) {
+    const cacheKey = String(term).toLowerCase().trim();
+    const now = Date.now();
+    const cached = productSearchCache.get(cacheKey);
+
+    if (cached && now - cached.time < PRODUCT_SEARCH_CACHE_TTL) {
+        return cached.data;
     }
 
-    return data || [];
+    if (productSearchPromises.has(cacheKey)) {
+        return productSearchPromises.get(cacheKey);
+    }
+
+    const request = (async () => {
+        const { data, error } = await supabase
+            .from('products')
+            .select(`
+                id,
+                name,
+                name_en,
+                description,
+                description_en,
+                price,
+                branch_id,
+                category_id,
+                is_available,
+                sort_order,
+                extra,
+                categories(name,name_en),
+                branches(name)
+            `)
+            .eq('is_available', true)
+            .or(
+                `name.ilike.%${term}%,name_en.ilike.%${term}%,description.ilike.%${term}%,description_en.ilike.%${term}%`
+            )
+            .order('sort_order')
+            .limit(30);
+
+        if (error) {
+            throw error;
+        }
+
+        const products = data || [];
+
+        productSearchCache.set(cacheKey, {
+            data: products,
+            time: Date.now()
+        });
+
+        return products;
+    })();
+
+    productSearchPromises.set(cacheKey, request);
+
+    try {
+        return await request;
+    } finally {
+        productSearchPromises.delete(cacheKey);
+    }
 }
 
 
@@ -1193,22 +1510,42 @@ async function searchProductPrice(message) {
 // قراءة أسماء الفروع
 // =====================================================
 
+let branchNamesCache = null;
+let branchNamesPromise = null;
+
 async function loadBranchNames() {
     if (!supabase) {
         return null;
     }
 
-    const { data, error } = await supabase
-        .from('branches')
-        .select('id,name,description')
-        .eq('is_active', true)
-        .order('sort_order');
-
-    if (error) {
-        throw error;
+    if (branchNamesCache !== null) {
+        return branchNamesCache;
     }
 
-    return data || [];
+    if (branchNamesPromise) {
+        return branchNamesPromise;
+    }
+
+    branchNamesPromise = (async () => {
+        const { data, error } = await supabase
+            .from('branches')
+            .select('id,name,description')
+            .eq('is_active', true)
+            .order('sort_order');
+
+        if (error) {
+            throw error;
+        }
+
+        branchNamesCache = data || [];
+        return branchNamesCache;
+    })();
+
+    try {
+        return await branchNamesPromise;
+    } finally {
+        branchNamesPromise = null;
+    }
 }
 
 
@@ -1253,6 +1590,60 @@ async function replyWithBranchInfo() {
 // قراءة العروض
 // =====================================================
 
+const OFFERS_CACHE_TTL = 60 * 1000;
+let offersCache = null;
+let offersCacheTime = 0;
+let offersPromise = null;
+
+async function loadActiveOffers() {
+    const nowMs = Date.now();
+
+    if (
+        offersCache !== null &&
+        nowMs - offersCacheTime < OFFERS_CACHE_TTL
+    ) {
+        return offersCache;
+    }
+
+    if (offersPromise) {
+        return offersPromise;
+    }
+
+    if (!supabase) {
+        return null;
+    }
+
+    offersPromise = (async () => {
+        const now = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('offers')
+            .select(
+                'name,description,original_price,offer_price,branch_id,branches(name),starts_at,ends_at'
+            )
+            .eq('is_active', true)
+            .or(`starts_at.is.null,starts_at.lte.${now}`)
+            .or(`ends_at.is.null,ends_at.gte.${now}`)
+            .order('sort_order')
+            .limit(10);
+
+        if (error) {
+            throw error;
+        }
+
+        offersCache = data || [];
+        offersCacheTime = Date.now();
+
+        return offersCache;
+    })();
+
+    try {
+        return await offersPromise;
+    } finally {
+        offersPromise = null;
+    }
+}
+
 async function replyWithOffers() {
     if (!supabase) {
         addMessage(
@@ -1262,18 +1653,14 @@ async function replyWithOffers() {
         return;
     }
 
-    const now = new Date().toISOString();
+    let data;
+    let error = null;
 
-    const { data, error } = await supabase
-        .from('offers')
-        .select(
-            'name,description,original_price,offer_price,branch_id,branches(name)'
-        )
-        .eq('is_active', true)
-        .or(`starts_at.is.null,starts_at.lte.${now}`)
-        .or(`ends_at.is.null,ends_at.gte.${now}`)
-        .order('sort_order')
-        .limit(10);
+    try {
+        data = await loadActiveOffers();
+    } catch (loadError) {
+        error = loadError;
+    }
 
     if (error) {
         console.warn(
@@ -1452,7 +1839,16 @@ function sendMessage(text) {
         return;
     }
 
-    addMessage(cleanText, 'user');
+    const isImportantFlow =
+        waitingForComplaint ||
+        waitingForBranch ||
+        complaintMode ||
+        staffContactMode;
+
+    addMessage(cleanText, 'user', {
+        save: isImportantFlow,
+        local: !isImportantFlow
+    });
 
     userInput.value = '';
 
@@ -1511,26 +1907,26 @@ document.querySelectorAll('[data-action]')
             const action = button.dataset.action;
 
             if (action === 'complaint') {
-                addMessage('📝 تقديم شكوى', 'user');
+                addMessage('📝 تقديم شكوى', 'user', { save: true, local: false });
                 startComplaint();
 
             } else if (action === 'staff') {
-                addMessage('أريد موظف', 'user');
+                addMessage('أريد موظف', 'user', { save: true, local: false });
                 startStaffContact();
 
             } else if (action === 'branches') {
-                addMessage('عناوين الفروع', 'user');
+                addMessage('عناوين الفروع', 'user', { save: false });
                 void replyWithBranchInfo();
 
             } else if (action === 'hours') {
-                addMessage('أوقات العمل', 'user');
+                addMessage('أوقات العمل', 'user', { save: false });
 
                 addMessage(
                     `حسب المعلومات المتوفرة، فروع مطعم الغنّام تعمل ${assistantSettings.working_hours_text}. 🕒`
                 );
 
             } else if (action === 'menu') {
-                addMessage('المنيو والأسعار', 'user');
+                addMessage('المنيو والأسعار', 'user', { save: false });
 
                 addMessage(
                     'اكتب اسم الوجبة أو اسألني عن سعرها حتى أبحث لك في المنيو الحالي. وتگدر تسأل أيضًا عن العروض.'
