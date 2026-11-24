@@ -366,6 +366,90 @@ Deno.serve(async (req: Request) => {
     const action = cleanText(body.action);
 
     // ==========================================
+    // CHANGE PASSWORD (OWNER / SERVER OWNER)
+    // ==========================================
+
+    if (action === "change_password") {
+      if (!isOwner) {
+        return response(
+          { success: false, message: "ليس لديك صلاحية تغيير كلمات المرور" },
+          403,
+        );
+      }
+
+      const userId = readText(body, "user_id", "userId");
+      const password = typeof body.password === "string" ? body.password : "";
+
+      if (!validUUID(userId)) {
+        return response(
+          { success: false, message: "معرف المستخدم غير صحيح" },
+          400,
+        );
+      }
+
+      if (userId === caller.id || SERVER_OWNER_IDS.has(userId)) {
+        return response(
+          { success: false, message: "لا يمكن تغيير كلمة مرور حسابك أو حساب مالك السيرفر من هنا" },
+          403,
+        );
+      }
+
+      if (password.length < 8 || password.length > 128) {
+        return response(
+          { success: false, message: "كلمة المرور يجب أن تكون بين 8 و128 حرفاً" },
+          400,
+        );
+      }
+
+      const { data: target, error: targetError } = await admin
+        .from("profiles")
+        .select("id,role")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (targetError || !target) {
+        return response(
+          { success: false, message: "المستخدم غير موجود" },
+          404,
+        );
+      }
+
+      if (target.role === "server_owner") {
+        return response(
+          { success: false, message: "حساب مالك السيرفر محمي" },
+          403,
+        );
+      }
+
+      if (
+        !isServerOwner &&
+        !["manager", "staff", "customer", "delivery_driver"].includes(target.role)
+      ) {
+        return response(
+          { success: false, message: "لا تملك صلاحية تغيير كلمة مرور هذا الحساب" },
+          403,
+        );
+      }
+
+      const { error: passwordError } = await admin.auth.admin.updateUserById(
+        userId,
+        { password },
+      );
+
+      if (passwordError) {
+        return response(
+          { success: false, message: "تعذر تحديث كلمة المرور: " + passwordError.message },
+          400,
+        );
+      }
+
+      return response({
+        success: true,
+        message: "تم تغيير كلمة مرور الحساب بنجاح",
+      });
+    }
+
+    // ==========================================
     // LIST USERS
     // ==========================================
 
@@ -404,7 +488,7 @@ Deno.serve(async (req: Request) => {
 
       let permissionsByManager: Record<string, unknown>[] = [];
 
-      if (isServerOwner && userIds.length > 0) {
+      if (isOwner && userIds.length > 0) {
         const {
           data: permissions,
           error: permissionsError,
@@ -431,6 +515,10 @@ Deno.serve(async (req: Request) => {
         success: true,
         users: users ?? [],
         permissions: permissionsByManager,
+        isOwner,
+        isServerOwner,
+        ownPermissions: managerPermissions ?? {},
+        canDeleteStaff: isManager && hasPermission(managerPermissions, "can_delete_staff"),
         caller: {
           id: caller.id,
           role: caller.role,
@@ -515,7 +603,7 @@ Deno.serve(async (req: Request) => {
           "customer",
           "delivery_driver",
         ]
-        : ["staff"];
+        : ["staff", "manager", "delivery_driver"];
 
       if (!allowedRoles.includes(role)) {
         return response(
@@ -527,15 +615,6 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      if (role === "delivery_driver" && !isServerOwner) {
-        return response(
-          {
-            success: false,
-            message: "إضافة حسابات المندوبين متاحة لمالك السيرفر فقط",
-          },
-          403,
-        );
-      }
 
       const requiresBranch = [
         "staff",
@@ -792,8 +871,7 @@ Deno.serve(async (req: Request) => {
         !isServerOwner &&
         (
           target.role === "owner" ||
-          newRole === "owner" ||
-          newRole === "manager"
+          newRole === "owner"
         )
       ) {
         return response(
@@ -1008,15 +1086,6 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      if (target.role === "delivery_driver") {
-        return response(
-          {
-            success: false,
-            message: "حساب المندوب محمي. حذفه يحتاج إجراء مخصص لإدارة المندوبين",
-          },
-          403,
-        );
-      }
 
       if (isManager) {
         if (
@@ -1037,6 +1106,7 @@ Deno.serve(async (req: Request) => {
           "manager",
           "staff",
           "customer",
+          "delivery_driver",
         ];
 
         if (!allowedDeleteRoles.includes(target.role)) {
@@ -1054,6 +1124,7 @@ Deno.serve(async (req: Request) => {
           "manager",
           "staff",
           "customer",
+          "delivery_driver",
         ];
 
         if (!allowedDeleteRoles.includes(target.role)) {
@@ -1065,6 +1136,97 @@ Deno.serve(async (req: Request) => {
             403,
           );
         }
+      }
+
+      if (target.role === "delivery_driver") {
+        if (!isOwner) {
+          return response(
+            { success: false, message: "حذف حسابات المندوبين متاح لمالك المطعم ومالك السيرفر فقط" },
+            403,
+          );
+        }
+
+        const { data: driverRecord, error: driverReadError } = await admin
+          .from("delivery_drivers")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (driverReadError) {
+          return response(
+            { success: false, message: "تعذر قراءة بيانات المندوب: " + driverReadError.message },
+            400,
+          );
+        }
+
+        // Keep orders, but clear this driver's assignment from them.
+        const { error: unassignError } = await admin
+          .from("orders")
+          .update({ delivery_driver_id: null })
+          .eq("delivery_driver_id", userId);
+
+        if (unassignError) {
+          return response(
+            { success: false, message: "تعذر فك ارتباط طلبات المندوب: " + unassignError.message },
+            400,
+          );
+        }
+
+        const { error: trackingDeleteError } = await admin
+          .from("delivery_tracking")
+          .delete()
+          .eq("driver_id", userId);
+
+        if (trackingDeleteError) {
+          return response(
+            { success: false, message: "تعذر حذف سجلات تتبع المندوب: " + trackingDeleteError.message },
+            400,
+          );
+        }
+
+        const { error: driverDeleteError } = await admin
+          .from("delivery_drivers")
+          .delete()
+          .eq("id", userId);
+
+        if (driverDeleteError) {
+          return response(
+            { success: false, message: "تعذر حذف سجل المندوب: " + driverDeleteError.message },
+            400,
+          );
+        }
+
+        const { error: permissionsDeleteError } = await admin
+          .from("manager_permissions")
+          .delete()
+          .eq("user_id", userId);
+
+        if (permissionsDeleteError) {
+          console.warn("Driver permissions cleanup warning:", permissionsDeleteError.message);
+        }
+
+        const { error: deleteAuthError } = await admin.auth.admin.deleteUser(userId);
+
+        if (deleteAuthError) {
+          // Restore the driver row if the Auth deletion fails.
+          if (driverRecord) {
+            const { error: restoreError } = await admin
+              .from("delivery_drivers")
+              .upsert(driverRecord);
+            if (restoreError) {
+              console.error("Driver restore failed:", restoreError.message);
+            }
+          }
+          return response(
+            { success: false, message: "تعذر حذف حساب المندوب من Auth: " + deleteAuthError.message },
+            400,
+          );
+        }
+
+        return response({
+          success: true,
+          message: "تم حذف حساب المندوب وسجله وفك ارتباط طلباته بنجاح",
+        });
       }
 
       const { error: deleteError } =

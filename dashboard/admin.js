@@ -5,7 +5,6 @@ import {
 
 const $ = selector => document.querySelector(selector);
 
-// Cloudflare R2 image service.
 const R2_IMAGE_WORKER_URL = 'https://alghannam-r2-images.fatimaalkhafaji76.workers.dev';
 const IMAGE_BUCKET = 'menu-images'; // Legacy bucket name; retained only for old records.
 
@@ -481,7 +480,7 @@ function canResetUserPassword(user) {
 
   return (
     isOwner &&
-    ['manager', 'staff', 'customer'].includes(user.role)
+    ['manager', 'staff', 'customer', 'delivery_driver'].includes(user.role)
   );
 }
 
@@ -542,7 +541,8 @@ function configureCreateRoleOptions() {
   const definitions = [
     { value: 'staff', text: 'موظف' },
     { value: 'manager', text: 'مدير فرع' },
-    { value: 'owner', text: 'صاحب المطعم' }
+    { value: 'owner', text: 'صاحب المطعم' },
+    { value: 'delivery_driver', text: 'مندوب توصيل' }
   ];
 
   definitions.forEach(item => {
@@ -552,8 +552,9 @@ function configureCreateRoleOptions() {
 
     const allowed =
       item.value === 'staff' ||
-      (item.value === 'manager' && isServerOwner) ||
-      (item.value === 'owner' && isServerOwner);
+      (item.value === 'manager' && (isOwner || isServerOwner)) ||
+      (item.value === 'owner' && isServerOwner) ||
+      (item.value === 'delivery_driver' && (isOwner || isServerOwner));
 
     if (allowed && !exists) {
       const option = document.createElement('option');
@@ -564,10 +565,10 @@ function configureCreateRoleOptions() {
   });
 
   [...select.options].forEach(option => {
-    if (
-      !isServerOwner &&
-      ['manager', 'owner'].includes(option.value)
-    ) {
+    const privilegedOnly = ['manager', 'owner'].includes(option.value);
+    const driverOptionNotAllowed = option.value === 'delivery_driver' && !isOwner && !isServerOwner;
+
+    if ((!isServerOwner && option.value === 'owner') || driverOptionNotAllowed) {
       option.remove();
     }
   });
@@ -926,7 +927,8 @@ function roleLabel(role) {
     owner: 'صاحب المطعم',
     manager: 'مدير فرع',
     staff: 'موظف',
-    customer: 'زبون'
+    customer: 'زبون',
+    delivery_driver: 'مندوب توصيل'
   };
 
   return labels[role] || role || '—';
@@ -940,7 +942,7 @@ function canDeleteUser(user) {
   if (isServerOwner) return true;
 
   if (isOwner) {
-    return ['manager', 'staff', 'customer'].includes(user.role);
+    return ['manager', 'staff', 'customer', 'delivery_driver'].includes(user.role);
   }
 
   return (
@@ -973,6 +975,7 @@ function renderUsers() {
 
     const canChangeRole =
       !protectedAccount &&
+      user.role !== 'delivery_driver' &&
       (
         isServerOwner ||
         (
@@ -1034,6 +1037,7 @@ async function createUser(event) {
   const button = $('#createUserButton');
 
   const name = $('#newUserName').value.trim();
+  const phone = $('#newUserPhone')?.value.trim() || '';
   const email = $('#newUserEmail').value.trim();
   const password = $('#newUserPassword').value;
   const branchId = $('#newUserBranch').value;
@@ -1049,14 +1053,14 @@ async function createUser(event) {
     return;
   }
 
-  if (['staff', 'manager'].includes(role) && !branchId) {
+  if (['staff', 'manager', 'delivery_driver'].includes(role) && !branchId) {
     message($('#createUserMessage'), 'اختر الفرع لهذا الحساب.', 'error');
     return;
   }
 
   const allowedRoles = isServerOwner
-    ? ['staff', 'manager', 'owner']
-    : ['staff'];
+    ? ['staff', 'manager', 'owner', 'delivery_driver']
+    : ['staff', 'manager', 'delivery_driver'];
 
   if (!allowedRoles.includes(role)) {
     message($('#createUserMessage'), 'نوع الحساب غير مسموح لك بإنشائه.', 'error');
@@ -1070,6 +1074,7 @@ async function createUser(event) {
     await manageUsers({
       action: 'create',
       name,
+      phone: phone || null,
       email,
       password,
       branchId: branchId || null,
@@ -1079,8 +1084,11 @@ async function createUser(event) {
     $('#createUserForm').reset();
     configureCreateRoleOptions();
 
-    message($('#createUserMessage'), 'تم إنشاء الحساب بنجاح.', 'success');
-    toast('تم إنشاء الحساب بنجاح.');
+    const successText = role === 'delivery_driver'
+      ? 'تم إنشاء حساب مندوب التوصيل بنجاح.'
+      : 'تم إنشاء الحساب بنجاح.';
+    message($('#createUserMessage'), successText, 'success');
+    toast(successText);
 
     await loadUsers();
 
@@ -1116,7 +1124,7 @@ async function changeUserRole(userId) {
 
   const allowedRoles = isServerOwner
     ? ['owner', 'manager', 'staff', 'customer']
-    : ['staff', 'customer'];
+    : ['manager', 'staff', 'customer'];
 
   const answer = prompt(
     `تغيير رتبة ${user.full_name || user.email}\n\nالرتب المتاحة:\n${allowedRoles.join(' / ')}`,
@@ -1941,77 +1949,44 @@ function fillProductForm(product) {
   });
 }
 
-
-/* =========================================================
-   ضغط الصور قبل رفعها إلى Supabase
-   يحافظ على الأبعاد والنسبة والشفافية، ويحوّل إلى WebP
-========================================================= */
 async function prepareImageForUpload(file, {
   maxWidth = 1400,
   maxHeight = 1400,
   quality = 0.84
 } = {}) {
-  if (!file || !file.type.startsWith('image/')) {
-    return file;
-  }
-
-  if (typeof createImageBitmap !== 'function') {
-    return file;
-  }
+  if (!file || !file.type.startsWith('image/')) return file;
+  if (typeof createImageBitmap !== 'function') return file;
 
   let bitmap;
-
   try {
     bitmap = await createImageBitmap(file);
-
-    const scale = Math.min(
-      1,
-      maxWidth / bitmap.width,
-      maxHeight / bitmap.height
-    );
-
+    const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
-
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-
     const context = canvas.getContext('2d', { alpha: true });
     if (!context) return file;
-
     context.drawImage(bitmap, 0, 0, width, height);
 
     const webpBlob = await new Promise(resolve => {
       canvas.toBlob(resolve, 'image/webp', quality);
     });
-
-    if (!webpBlob || webpBlob.type !== 'image/webp') {
-      return file;
-    }
-
-    // لا نستبدل الملف إذا كانت نسخة WebP أكبر من الأصل.
-    if (webpBlob.size >= file.size) {
+    if (!webpBlob || webpBlob.type !== 'image/webp' || webpBlob.size >= file.size) {
       return file;
     }
 
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
-
-    return new File(
-      [webpBlob],
-      `${baseName}.webp`,
-      {
-        type: 'image/webp',
-        lastModified: Date.now()
-      }
-    );
+    return new File([webpBlob], `${baseName}.webp`, {
+      type: 'image/webp',
+      lastModified: Date.now()
+    });
   } catch (error) {
     console.warn('تعذّر ضغط الصورة؛ سيتم رفع الأصل:', error);
     return file;
   } finally {
-    if (bitmap && typeof bitmap.close === 'function') {
-      bitmap.close();
-    }
+    if (bitmap && typeof bitmap.close === 'function') bitmap.close();
   }
 }
 
@@ -2027,7 +2002,6 @@ async function uploadImageToR2(file, folder) {
   if (!R2_IMAGE_WORKER_URL || R2_IMAGE_WORKER_URL.includes('YOUR-WORKER-NAME')) {
     throw new Error('يجب إعداد رابط Cloudflare Worker أولاً.');
   }
-
   const token = await getR2WorkerToken();
   const form = new FormData();
   form.append('file', file, file.name || 'image');
@@ -2040,7 +2014,9 @@ async function uploadImageToR2(file, folder) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || 'فشل رفع الصورة إلى Cloudflare R2.');
-  if (!result.image_url || !result.image_path) throw new Error('استجابة رفع الصورة غير مكتملة.');
+  if (!result.image_url || !result.image_path) {
+    throw new Error('استجابة رفع الصورة غير مكتملة.');
+  }
   return result;
 }
 
@@ -2064,19 +2040,10 @@ async function deleteR2Image(key) {
 }
 
 async function uploadProductImage(file, branchId) {
-  if (!file) {
-    return {
-      image_url: currentImageUrl,
-      image_path: currentImagePath
-    };
-  }
+  if (!file) return { image_url: currentImageUrl, image_path: currentImagePath };
 
   const allowed = ['image/png', 'image/jpeg', 'image/webp'];
-
-  if (!allowed.includes(file.type)) {
-    throw new Error('اختر PNG أو JPG أو WebP.');
-  }
-
+  if (!allowed.includes(file.type)) throw new Error('اختر PNG أو JPG أو WebP.');
   if (file.size > 8 * 1024 * 1024) {
     throw new Error('حجم الصورة الأصلية يجب أن يكون أقل من 8 ميغابايت.');
   }
@@ -2086,16 +2053,7 @@ async function uploadProductImage(file, branchId) {
     maxHeight: 1400,
     quality: 0.84
   });
-
-  const extension = optimizedFile.type === 'image/webp'
-    ? 'webp'
-    : (optimizedFile.name.split('.').pop().toLowerCase()
-        .replace(/[^a-z0-9]/g, '') || 'png');
-
-  const path = `${branchId}/${crypto.randomUUID()}.${extension}`;
-
-  const uploaded = await uploadImageToR2(optimizedFile, branchId);
-  return uploaded;
+  return await uploadImageToR2(optimizedFile, branchId);
 }
 
 async function saveProduct(event) {
@@ -2547,19 +2505,10 @@ function fillOfferForm(offer) {
 }
 
 async function uploadOfferImage(file) {
-  if (!file) {
-    return {
-      image_url: currentOfferImageUrl,
-      image_path: currentOfferImagePath
-    };
-  }
+  if (!file) return { image_url: currentOfferImageUrl, image_path: currentOfferImagePath };
 
   const allowed = ['image/png', 'image/jpeg', 'image/webp'];
-
-  if (!allowed.includes(file.type)) {
-    throw new Error('اختر PNG أو JPG أو WebP.');
-  }
-
+  if (!allowed.includes(file.type)) throw new Error('اختر PNG أو JPG أو WebP.');
   if (file.size > 8 * 1024 * 1024) {
     throw new Error('حجم الصورة الأصلية يجب أن يكون أقل من 8 ميغابايت.');
   }
@@ -2569,16 +2518,7 @@ async function uploadOfferImage(file) {
     maxHeight: 1400,
     quality: 0.84
   });
-
-  const extension = optimizedFile.type === 'image/webp'
-    ? 'webp'
-    : (optimizedFile.name.split('.').pop().toLowerCase()
-        .replace(/[^a-z0-9]/g, '') || 'png');
-
-  const path = `offers/${crypto.randomUUID()}.${extension}`;
-
-  const uploaded = await uploadImageToR2(optimizedFile, 'offers');
-  return uploaded;
+  return await uploadImageToR2(optimizedFile, 'offers');
 }
 
 async function saveOffer(event) {
