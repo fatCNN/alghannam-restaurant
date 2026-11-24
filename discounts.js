@@ -24,7 +24,7 @@ let discountsLoadPromise = null;
 const DISCOUNTS_CACHE_DB = "alghannam_timed_cache";
 const DISCOUNTS_CACHE_STORE = "entries";
 const DISCOUNTS_CACHE_KEY = "discounts:global";
-const DISCOUNTS_CACHE_TTL = 60 * 60 * 1000;
+const DISCOUNTS_CACHE_TTL = 60 * 1000;
 
 let discountsLoadedAt = 0;
 

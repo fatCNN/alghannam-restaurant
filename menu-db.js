@@ -211,7 +211,7 @@ export function isCategoryVisible(
 
 const MENU_CACHE_DB_NAME = "alghannam_menu_cache";
 const MENU_CACHE_STORE = "branch_menus";
-const MENU_CACHE_TTL = 24 * 60 * 60 * 1000;
+const MENU_CACHE_TTL = 60 * 1000;
 
 function openMenuCacheDB() {
   return new Promise(resolve => {
@@ -510,7 +510,7 @@ export async function loadBranchMenu(branchId, language = "ar") {
 
 const OFFERS_CACHE_DB = "alghannam_timed_cache";
 const OFFERS_CACHE_STORE = "entries";
-const OFFERS_CACHE_TTL = 60 * 60 * 1000;
+const OFFERS_CACHE_TTL = 60 * 1000;
 
 function openOffersCacheDB() {
   return new Promise((resolve, reject) => {
