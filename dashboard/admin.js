@@ -182,12 +182,22 @@ function branchName(branchId) {
   )?.name || '—';
 }
 
+// إدارة محتوى المنيو (المنتجات والأسعار والتصنيفات):
+// مالك السيرفر فقط يملك صلاحية شاملة، والمدير يعتمد على صلاحياته الممنوحة.
+// مالك المطعم لا يضيف أو يعدّل أو يحذف المنتجات/الأسعار/التصنيفات.
 function canManageProducts() {
-  return hasPermission('can_manage_products');
+  return isServerOwner || (
+    !isOwner && ownPermissions?.can_manage_products === true
+  );
 }
 
 function canManagePrices() {
-  return hasPermission('can_manage_prices') || canManageProducts();
+  return isServerOwner || (
+    !isOwner && (
+      ownPermissions?.can_manage_prices === true ||
+      ownPermissions?.can_manage_products === true
+    )
+  );
 }
 
 function canEditAnyProduct() {
@@ -195,10 +205,8 @@ function canEditAnyProduct() {
 }
 
 function canManageCategories() {
-  return (
-    isServerOwner ||
-    isOwner ||
-    ownPermissions?.can_manage_menu === true
+  return isServerOwner || (
+    !isOwner && ownPermissions?.can_manage_menu === true
   );
 }
 
@@ -474,7 +482,7 @@ function canResetUserPassword(user) {
   if (!user || !currentProfile) return false;
 
   if (String(user.id) === String(currentProfile.id)) return false;
-  if (SERVER_OWNER_IDS.has(user.id)) return false;
+  if (SERVER_OWNER_IDS.has(user.id) || user.role === 'server_owner') return false;
 
   if (isServerOwner) return true;
 
@@ -565,10 +573,11 @@ function configureCreateRoleOptions() {
   });
 
   [...select.options].forEach(option => {
-    const privilegedOnly = ['manager', 'owner'].includes(option.value);
-    const driverOptionNotAllowed = option.value === 'delivery_driver' && !isOwner && !isServerOwner;
+    const managerNotAllowed = option.value === 'manager' && !isOwner && !isServerOwner;
+    const ownerNotAllowed = option.value === 'owner' && !isServerOwner;
+    const driverNotAllowed = option.value === 'delivery_driver' && !isOwner && !isServerOwner;
 
-    if ((!isServerOwner && option.value === 'owner') || driverOptionNotAllowed) {
+    if (managerNotAllowed || ownerNotAllowed || driverNotAllowed) {
       option.remove();
     }
   });
@@ -576,6 +585,17 @@ function configureCreateRoleOptions() {
   select.value = [...select.options].some(
     option => option.value === existingValue
   ) ? existingValue : 'staff';
+
+  syncNewUserBranchRequirement();
+}
+
+function syncNewUserBranchRequirement() {
+  const role = $('#newUserRole')?.value || 'staff';
+  const branchSelect = $('#newUserBranch');
+  if (!branchSelect) return;
+
+  // الموظف والمدير والمندوب يعملون ضمن فرع؛ حساب المالك لا يرتبط بفرع.
+  branchSelect.required = ['staff', 'manager', 'delivery_driver'].includes(role);
 }
 
 /* =====================================================
@@ -936,7 +956,7 @@ function roleLabel(role) {
 
 function canDeleteUser(user) {
   if (!user) return false;
-  if (SERVER_OWNER_IDS.has(user.id)) return false;
+  if (SERVER_OWNER_IDS.has(user.id) || user.role === 'server_owner') return false;
   if (user.id === currentProfile?.id) return false;
 
   if (isServerOwner) return true;
@@ -975,6 +995,7 @@ function renderUsers() {
 
     const canChangeRole =
       !protectedAccount &&
+      user.role !== 'server_owner' &&
       user.role !== 'delivery_driver' &&
       (
         isServerOwner ||
@@ -994,7 +1015,7 @@ function renderUsers() {
         : '';
 
     const passwordAction = canResetUserPassword(user)
-      ? `<button type="button" class="button button-quiet" data-reset-password="${escapeHTML(user.id)}">تغيير رمز السر</button>`
+      ? `<button type="button" class="button button-quiet" data-reset-password="${escapeHTML(user.id)}">تغيير كلمة المرور / رمز الدخول</button>`
       : '';
 
     const deleteAction = deleteAllowed
@@ -1112,8 +1133,8 @@ async function changeUserRole(userId) {
   const user = users.find(item => String(item.id) === String(userId));
   if (!user) return;
 
-  if (SERVER_OWNER_IDS.has(user.id)) {
-    toast('لا يمكن تغيير رتبة مالكي السيرفر الثابتين.', 'error');
+  if (SERVER_OWNER_IDS.has(user.id) || user.role === 'server_owner') {
+    toast('حسابات مالكي السيرفر محمية ولا يمكن تغيير رتبها.', 'error');
     return;
   }
 
@@ -3397,6 +3418,7 @@ function wireEvents() {
   /* المستخدمون */
 
   $('#createUserForm').addEventListener('submit', createUser);
+  $('#newUserRole')?.addEventListener('change', syncNewUserBranchRequirement);
   $('#refreshUsersButton').addEventListener('click', loadUsers);
 
   $('#usersTable').addEventListener('click', async event => {
