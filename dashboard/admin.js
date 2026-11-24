@@ -616,6 +616,15 @@ function applyDashboardPermissions() {
   $('#newProductButton').hidden = !productCreationAllowed;
   $('#productEditorPanel').hidden = !productsAllowed;
 
+  // إخفاء قائمة المنتجات والبحث عنها عن مدير الفرع والموظف.
+  // لا نغيّر صلاحيات الإضافة الممنوحة للمدير؛ نخفي القائمة فقط حسب طلب المالك.
+  const hideProductList = isManager() || currentProfile?.role === 'staff';
+  const productsListPanel = document.querySelector('.products-panel');
+  if (productsListPanel) productsListPanel.hidden = hideProductList;
+
+  const productSearchLabel = $('#productSearch')?.closest('.search-label');
+  if (productSearchLabel) productSearchLabel.hidden = hideProductList;
+
   // حاوية زر التصنيفات؛ مع دعم البنية القديمة إذا لم يُحدّث HTML بعد.
   const categoriesPanel = $('#categoriesPanel') ||
     $('#categoriesList')?.closest('.categories-panel');
