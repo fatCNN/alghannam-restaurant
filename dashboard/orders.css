@@ -1464,3 +1464,822 @@ body.edit-modal-open {
     min-height: 42px;
   }
 }
+
+/* ===== ??????? ?????? ????????? ??????? ===== */
+
+/* =========================================
+   التصميم المضغوط — إدارة الطلبات
+========================================= */
+
+.print-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 15px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.print-settings-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.print-settings-title strong {
+  color: var(--wine);
+  font-size: 13px;
+}
+
+.print-settings-title span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.print-settings-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.print-settings-fields label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.print-settings-fields select,
+.print-settings-fields input {
+  min-height: 36px;
+  width: auto;
+  min-width: 75px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.orders-count-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 2px 9px;
+  color: var(--wine);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.orders-count-bar span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* بطاقات الطلبات المضغوطة */
+
+.orders-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  align-items: start;
+}
+
+.order-card {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: white;
+  box-shadow: 0 3px 12px rgba(60,24,16,.045);
+}
+
+.order-card:hover {
+  box-shadow: 0 5px 16px rgba(60,24,16,.09);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 7px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-card-header h3 {
+  margin: 0;
+  color: var(--wine);
+  font-size: 13px;
+}
+
+.order-card-header span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.order-status {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.order-customer {
+  padding: 7px 0;
+}
+
+.order-customer p {
+  display: inline-block;
+  margin: 2px 7px 2px 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.order-customer strong {
+  color: var(--muted);
+}
+
+.order-mini-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 11px;
+}
+
+.order-mini-summary strong {
+  color: var(--wine);
+  white-space: nowrap;
+}
+
+.order-quick-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.order-quick-actions button,
+.order-quick-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 33px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: bold;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.whatsapp-order-button {
+  background: #e4f5e9;
+  color: #168447;
+}
+
+.print-order-button {
+  background: #f2eee8;
+  color: var(--ink);
+}
+
+.edit-order-button {
+  background: #fff0d5;
+  color: #865512;
+}
+
+.order-details {
+  margin-top: 7px;
+  border-top: 1px solid var(--line);
+}
+
+.order-details summary {
+  padding: 7px 2px 2px;
+  color: var(--wine);
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.order-details-content {
+  padding-top: 7px;
+}
+
+.order-details .order-items {
+  margin: 0 0 8px;
+  padding: 8px;
+  font-size: 11px;
+}
+
+.order-details .order-items h3 {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.order-details .order-item {
+  padding: 5px 0;
+  font-size: 11px;
+}
+
+.order-details .order-total {
+  padding: 7px 0;
+  font-size: 12px;
+}
+
+.compact-status-actions,
+.driver-assignment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: 7px;
+  border-top: 1px solid var(--line);
+}
+
+.compact-status-actions label,
+.driver-assignment label {
+  flex: 1;
+  min-width: 100px;
+  font-size: 10px;
+}
+
+.compact-status-actions select,
+.driver-assignment select {
+  width: 100%;
+  min-height: 35px;
+  margin-top: 3px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.compact-status-actions .button,
+.driver-assignment .button {
+  min-height: 35px;
+  padding: 6px 10px;
+  font-size: 10px;
+  width: auto;
+}
+
+.assigned-driver-info {
+  margin: 6px 0 0;
+  font-size: 10px;
+}
+
+.order-details-content .customer-location-link,
+.order-details-content .customer-location-missing {
+  display: block;
+}
+
+@media (max-width: 850px) {
+  .orders-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: 95%;
+    margin: 13px auto;
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .stat-card {
+    padding: 9px 5px;
+    gap: 5px;
+    border-radius: 9px;
+  }
+
+  .stat-card span {
+    font-size: 9px;
+  }
+
+  .stat-card strong {
+    font-size: 18px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .search-field {
+    grid-column: 1 / -1;
+  }
+
+  .filter-field input,
+  .filter-field select {
+    min-height: 39px;
+    font-size: 13px;
+  }
+
+  .orders-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .order-card {
+    padding: 10px;
+  }
+
+  .print-settings {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .print-settings-fields {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .print-settings-fields label {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .print-settings-fields select,
+  .print-settings-fields input {
+    max-width: 115px;
+  }
+
+  .order-customer p {
+    font-size: 11px;
+  }
+
+  .order-quick-actions button,
+  .order-quick-actions a {
+    min-height: 36px;
+  }
+}
+
+/* شاشة الطباعة */
+
+@media print {
+  @page {
+    margin: 4mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #singleOrderPrint,
+  #singleOrderPrint * {
+    visibility: visible !important;
+  }
+
+  #singleOrderPrint {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #000;
+    background: white;
+    font-family: Tahoma, Arial, sans-serif;
+    direction: rtl;
+  }
+
+  .print-copy {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-copy:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}
+
+/* =========================================
+   GHANNAM - COMPACT HORIZONTAL ORDER ROWS
+   ========================================= */
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.order-card {
+  display: grid;
+  grid-template-columns:
+    minmax(125px, .85fr)
+    minmax(180px, 1.2fr)
+    minmax(155px, 1fr)
+    minmax(125px, .75fr)
+    auto
+    minmax(150px, .9fr)
+    minmax(150px, .9fr);
+  grid-template-areas:
+    "head customer items total edit status driver"
+    "assigned assigned assigned assigned assigned assigned assigned";
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-right: 4px solid var(--gold);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 3px 12px rgba(60, 24, 16, .045);
+  min-width: 0;
+  transition: box-shadow .18s ease, border-color .18s ease;
+}
+
+.order-card:hover {
+  border-color: #d9bd91;
+  box-shadow: 0 5px 16px rgba(60, 24, 16, .08);
+}
+
+.order-card-header {
+  grid-area: head;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.order-card-header h3 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--wine-dark);
+}
+
+.order-card-header > div > span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.order-customer {
+  grid-area: customer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 10px;
+  border-right: 1px solid var(--line);
+}
+
+.order-customer p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.order-customer strong {
+  color: var(--wine);
+}
+
+.order-customer a {
+  color: var(--wine);
+  text-decoration: none;
+}
+
+.order-customer a:hover {
+  text-decoration: underline;
+}
+
+.order-items {
+  grid-area: items;
+  min-width: 0;
+  max-height: 75px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--line);
+}
+
+.order-items h3 {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.order-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px dashed #eee3d8;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.order-item:last-child {
+  border-bottom: 0;
+}
+
+.order-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.order-item strong {
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.order-total {
+  grid-area: total;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--line);
+  font-size: 10px;
+}
+
+.order-total span {
+  color: var(--muted);
+}
+
+.order-total strong {
+  color: var(--wine-dark);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.order-edit-actions {
+  grid-area: edit;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 95px;
+  margin: 0;
+}
+
+.order-edit-actions .button {
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 8px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.order-card > .order-actions:not(.driver-assignment) {
+  grid-area: status;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--line);
+}
+
+.order-card > .order-actions:not(.driver-assignment) label,
+.order-card > .driver-assignment label {
+  display: block;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.order-card > .order-actions:not(.driver-assignment) select,
+.order-card > .driver-assignment select {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 3px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.order-card > .order-actions:not(.driver-assignment) .button,
+.order-card > .driver-assignment .button {
+  width: 100%;
+  min-height: 31px;
+  padding: 5px 7px;
+  font-size: 10px;
+}
+
+.order-card > .driver-assignment {
+  grid-area: driver;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 8px;
+  border-right: 1px solid var(--line);
+}
+
+.order-card > .assigned-driver-info {
+  grid-area: assigned;
+  margin: 0;
+  padding-top: 5px;
+  border-top: 1px solid #f0e7dd;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.order-card button,
+.order-card select {
+  font-family: inherit;
+}
+
+.order-card button:focus-visible,
+.order-card select:focus-visible,
+.order-card a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* الشاشات المتوسطة */
+@media (max-width: 1350px) {
+  .order-card {
+    grid-template-columns:
+      minmax(130px, .8fr)
+      minmax(180px, 1.2fr)
+      minmax(170px, 1fr)
+      minmax(120px, .7fr);
+    grid-template-areas:
+      "head customer items total"
+      "edit status driver driver"
+      "assigned assigned assigned assigned";
+    gap: 9px 12px;
+  }
+
+  .order-edit-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .order-edit-actions .button {
+    flex: 1;
+  }
+}
+
+/* الأجهزة اللوحية */
+@media (max-width: 850px) {
+  .order-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "head head"
+      "customer total"
+      "items items"
+      "edit edit"
+      "status driver"
+      "assigned assigned";
+    gap: 9px;
+  }
+
+  .order-card-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .order-customer,
+  .order-items,
+  .order-total,
+  .order-card > .order-actions:not(.driver-assignment),
+  .order-card > .driver-assignment {
+    padding: 7px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .order-edit-actions {
+    flex-direction: row;
+  }
+}
+
+/* الهواتف */
+@media (max-width: 600px) {
+  .orders-list {
+    gap: 8px;
+  }
+
+  .order-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "customer"
+      "items"
+      "total"
+      "edit"
+      "status"
+      "driver"
+      "assigned";
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .order-card-header {
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .order-card-header h3 {
+    font-size: 13px;
+  }
+
+  .order-customer,
+  .order-items,
+  .order-total,
+  .order-card > .order-actions:not(.driver-assignment),
+  .order-card > .driver-assignment {
+    padding: 6px 2px;
+    border: 0;
+    border-bottom: 1px solid #f0e7dd;
+  }
+
+  .order-customer p {
+    font-size: 11px;
+  }
+
+  .order-item {
+    font-size: 11px;
+  }
+
+  .order-edit-actions {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .order-edit-actions .button {
+    flex: 1;
+  }
+
+  .order-card > .assigned-driver-info {
+    padding-top: 7px;
+  }
+}
+
+/* WHATSAPP CONFIRMATION BUTTON */
+/* WHATSAPP CONFIRMATION BUTTON */
+.order-edit-actions {
+  min-width: 0;
+}
+
+.order-edit-actions .button {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.order-edit-actions .whatsapp-confirm-button {
+  background: #16834b;
+  color: #fff;
+  border-color: #16834b;
+}
+
+.order-edit-actions .whatsapp-confirm-button:hover {
+  background: #116b3d;
+  border-color: #116b3d;
+}

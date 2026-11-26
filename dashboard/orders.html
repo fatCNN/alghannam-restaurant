@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#741f1f">
 
   <title>إدارة الطلبات | مطعم الغنّام</title>
 
@@ -16,7 +17,6 @@
 
 <body>
 
-  <!-- شاشة التحميل -->
   <div id="pageLoader" class="page-loader">
     <div class="loader-content">
       <img src="../image/logo.webp" alt="مطعم الغنّام">
@@ -26,7 +26,6 @@
     </div>
   </div>
 
-  <!-- الشريط العلوي -->
   <header class="topbar">
     <div>
       <strong>مطعم الغنّام</strong>
@@ -39,27 +38,22 @@
     </div>
   </header>
 
-  <!-- محتوى الصفحة -->
   <main class="container">
 
-    <!-- عنوان الصفحة -->
     <section class="page-heading">
       <div>
-        <h1>الطلبات</h1>
-        <p>متابعة وإدارة طلبات زبائن المطعم</p>
+        <h1>إدارة الطلبات</h1>
+        <p>متابعة وتعديل وطباعة طلبات الزبائن</p>
       </div>
 
       <button id="refreshButton" class="button" type="button">
-        تحديث الطلبات
+        ↻ تحديث
       </button>
     </section>
 
-    <!-- رسائل النظام -->
     <div id="message" class="message" hidden></div>
 
-    <!-- إحصائيات الطلبات -->
     <section class="stats">
-
       <article class="stat-card">
         <span>كل الطلبات</span>
         <strong id="totalCount">0</strong>
@@ -79,15 +73,12 @@
         <span>جاهزة</span>
         <strong id="readyCount">0</strong>
       </article>
-
     </section>
 
-    <!-- أدوات البحث والتصفية -->
     <section class="filters">
 
       <div class="filter-field">
         <label for="branchFilter">الفرع</label>
-
         <select id="branchFilter">
           <option value="">كل الفروع</option>
         </select>
@@ -95,7 +86,6 @@
 
       <div class="filter-field">
         <label for="statusFilter">حالة الطلب</label>
-
         <select id="statusFilter">
           <option value="">كل الحالات</option>
           <option value="new">جديد</option>
@@ -108,8 +98,7 @@
       </div>
 
       <div class="filter-field search-field">
-        <label for="searchInput">بحث</label>
-
+        <label for="searchInput">البحث عن طلب</label>
         <input
           id="searchInput"
           type="search"
@@ -120,17 +109,50 @@
 
     </section>
 
-    <!-- قائمة الطلبات -->
+    <section class="print-settings">
+      <div class="print-settings-title">
+        <strong>🖨️ إعدادات الطباعة</strong>
+        <span>تطبق على جميع الطلبات</span>
+      </div>
+
+      <div class="print-settings-fields">
+        <label>
+          حجم الورقة
+          <select id="printPaperSize">
+            <option value="80mm">حراري 80mm</option>
+            <option value="58mm">حراري 58mm</option>
+            <option value="A5">A5</option>
+            <option value="A4">A4</option>
+          </select>
+        </label>
+
+        <label>
+          عدد النسخ
+          <input
+            id="printCopies"
+            type="number"
+            min="1"
+            max="10"
+            value="1"
+          >
+        </label>
+      </div>
+    </section>
+
+    <div class="orders-count-bar">
+      <span>قائمة الطلبات</span>
+      <span id="visibleOrdersCount">0 طلب</span>
+    </div>
+
     <section id="ordersList" class="orders-list">
       <div class="loading">جارٍ تحميل الطلبات...</div>
     </section>
 
   </main>
 
-  <!-- ملفات JavaScript -->
   <script type="module" src="./orders.js"></script>
   <script src="./loader.js"></script>
-
   <script type="module" src="./notifications.js"></script>
+
 </body>
 </html>

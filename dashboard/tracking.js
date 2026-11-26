@@ -50,7 +50,11 @@ const activeTrackingForDriver = id => trackingRows.filter(t => String(t.driver_i
   .sort((a,b) => new Date(b.last_seen_at || 0) - new Date(a.last_seen_at || 0))[0];
 const orderForTracking = row => orders.find(o => String(o.id) === String(row?.order_id));
 const selectedOrder = () => orders.find(o => String(o.id) === String(selectedOrderId));
-const selectedTracking = () => trackingRows.find(t => String(t.order_id) === String(selectedOrderId) && t.status === 'active');
+const selectedTracking = () => {
+  const order = selectedOrder();
+  if (!order || order.status === 'delivered') return null;
+  return trackingRows.find(t => String(t.order_id) === String(selectedOrderId) && t.status === 'active');
+};
 const driverForOrder = order => drivers.find(d => String(d.id) === String(order?.delivery_driver_id));
 const formatDate = value => value ? new Date(value).toLocaleString('ar-IQ') : 'لم يصل موقع بعد';
 
@@ -105,7 +109,7 @@ async function loadData() {
   const driverQuery = supabase.from('delivery_drivers').select('id,branch_id,full_name,phone,is_active').order('full_name');
   let orderQuery = supabase.from('orders')
     .select('id,order_number,branch_id,customer_name,customer_phone,customer_address,customer_location_url,status,delivery_driver_id,created_at')
-    .eq('status', 'out_for_delivery').order('created_at', { ascending: false });
+    .in('status', ['out_for_delivery', 'delivered']).order('created_at', { ascending: false });
   if (!canViewAll()) orderQuery = orderQuery.eq('branch_id', String(profile.branch_id));
   const [b,d,o,t] = await Promise.all([
     branchQuery, driverQuery, orderQuery,
@@ -149,26 +153,69 @@ function updateStats() {
   const active = drivers.filter(d => d.is_active);
   els.driversCount.textContent = active.length;
   els.onlineCount.textContent = active.filter(d => fresh(activeTrackingForDriver(d.id))).length;
-  els.activeCount.textContent = orders.length;
+  els.activeCount.textContent = orders.filter(o => o.status === 'out_for_delivery').length;
   els.driversLabel.textContent = drivers.length;
-  els.ordersLabel.textContent = orders.length;
+  els.ordersLabel.textContent = orders.filter(o => !o.delivery_driver_id).length;
 }
 function renderLists() {
   const shownDrivers = getVisibleDrivers();
-  els.driversList.innerHTML = shownDrivers.length ? shownDrivers.map(d => {
-    const tr = activeTrackingForDriver(d.id), online = fresh(tr);
-    const assigned = orders.find(o => String(o.delivery_driver_id) === String(d.id));
-    return `<button type="button" class="driver-row ${String(selectedDriverId)===String(d.id)?'active':''}" data-driver="${esc(d.id)}">
-      <span class="row-main"><strong>${esc(d.full_name)}</strong><small>${esc(branchName(d.branch_id))}${assigned ? ` · طلب ${esc(assigned.order_number ?? assigned.id)}` : ' · لا يوجد طلب ظاهر'}</small></span>
-      <span class="status-chip ${online?'online':'offline'}">${online?'متصل':'لا يوجد تحديث حديث'}</span></button>`;
-  }).join('') : '<p class="empty">لا يوجد مندوبون في هذا الفرع.</p>';
   const shownOrders = getVisibleOrders();
-  els.ordersList.innerHTML = shownOrders.length ? shownOrders.map(o => {
-    const d = driverForOrder(o);
-    return `<button type="button" class="order-row ${String(selectedOrderId)===String(o.id)?'active':''}" data-order="${esc(o.id)}">
-      <span class="row-main"><strong>طلب ${esc(o.order_number ?? o.id)} · ${esc(o.customer_name)}</strong><small>${esc(branchName(o.branch_id))} · ${esc(d?.full_name || 'لم يحدد المندوب')}</small></span>
-      <span class="status-chip">قيد التوصيل</span></button>`;
-  }).join('') : '<p class="empty">لا توجد طلبات قيد التوصيل حالياً.</p>';
+
+  els.driversList.innerHTML = shownDrivers.length ? shownDrivers.map(d => {
+    const tr = activeTrackingForDriver(d.id);
+    const online = fresh(tr);
+    const assigned = shownOrders.filter(o =>
+      String(o.delivery_driver_id) === String(d.id)
+    );
+
+    return `
+      <article class="driver-card">
+        <button type="button"
+          class="driver-card-head ${String(selectedDriverId) === String(d.id) ? 'active' : ''}"
+          data-driver="${esc(d.id)}">
+          <span class="row-main">
+            <strong>${esc(d.full_name)}</strong>
+            <small>${esc(branchName(d.branch_id))} · ${assigned.length} طلب</small>
+          </span>
+          <span class="status-chip ${online ? 'online' : 'offline'}">
+            ${online ? 'متصل' : 'لا يوجد تحديث GPS حديث'}
+          </span>
+        </button>
+        <div class="driver-orders">
+          ${assigned.length ? assigned.map(o => `
+            <button type="button"
+              class="driver-order ${String(selectedOrderId) === String(o.id) ? 'active' : ''}"
+              data-order="${esc(o.id)}">
+              <span class="driver-order-main">
+                <strong>طلب ${esc(o.order_number ?? o.id)}</strong>
+                <small>${esc(o.customer_name || 'زبون غير محدد')}</small>
+              </span>
+              <span class="status-chip ${o.status === 'delivered' ? 'delivered' : 'in-delivery'}">
+                ${o.status === 'delivered' ? 'تم التوصيل' : 'قيد التوصيل'}
+              </span>
+            </button>
+          `).join('') : '<div class="driver-empty">لا توجد طلبات مسندة لهذا المندوب حالياً.</div>'}
+        </div>
+      </article>
+    `;
+  }).join('') : '<p class="empty">لا يوجد مندوبون في هذا الفرع.</p>';
+
+  const unassignedOrders = shownOrders.filter(o => !o.delivery_driver_id);
+  els.ordersLabel.textContent = unassignedOrders.length;
+
+  els.ordersList.innerHTML = unassignedOrders.length ? unassignedOrders.map(o => `
+    <button type="button"
+      class="order-row ${String(selectedOrderId) === String(o.id) ? 'active' : ''}"
+      data-order="${esc(o.id)}">
+      <span class="row-main">
+        <strong>طلب ${esc(o.order_number ?? o.id)} · ${esc(o.customer_name)}</strong>
+        <small>${esc(branchName(o.branch_id))}</small>
+      </span>
+      <span class="status-chip ${o.status === 'delivered' ? 'delivered' : 'in-delivery'}">
+        ${o.status === 'delivered' ? 'تم التوصيل' : 'قيد التوصيل'}
+      </span>
+    </button>
+  `).join('') : '<p class="empty">لا توجد طلبات غير مسندة حالياً.</p>';
 }
 
 function iconMarker(kind, color) {
@@ -272,7 +319,14 @@ function etaCard(state, duration, distance, source, errorText = '') {
   return `<div class="eta-card"><strong>⏱ الوصول المتوقع: ${esc(fmtDuration(duration))}</strong><span>وقت الوصول التقريبي: ${esc(arrival)}</span><small>المسافة: ${esc(fmtDistance(distance))} · ${esc(source)}</small></div>`;
 }
 async function drawSelectedRoute(force = false) {
-  const order = selectedOrder(); if (!order || !map) return;
+  const order = selectedOrder();
+  if (!order || !map) return;
+  if (order.status === 'delivered') {
+    clearRoute();
+    const holder = $('#etaHolder');
+    if (holder) holder.innerHTML = '<div class="eta-card"><strong>تم التوصيل</strong><small>تم إغلاق التوصيل لهذا الطلب.</small></div>';
+    return;
+  }
   const requestKey = `${order.id}:${selectedTracking()?.last_seen_at || 'nogps'}:${order.customer_location_url || order.customer_address || ''}`;
   const etaHolder = $('#etaHolder');
   if (!force && lastRouteOrderId === String(order.id) && Date.now()-lastRouteAt < 30_000) {
@@ -344,10 +398,25 @@ function showSelectedDetails() {
       <div class="detail-line"><strong>الزبون:</strong> ${esc(order.customer_name)}</div>
       <div class="detail-line"><strong>الهاتف:</strong> ${esc(order.customer_phone)}</div>
       <div class="detail-line"><strong>الفرع:</strong> ${esc(branchName(order.branch_id))}</div>
+      <div class="detail-line"><strong>الحالة:</strong> ${order.status === 'delivered' ? 'تم التوصيل' : 'قيد التوصيل'}</div>
       <div class="detail-line"><strong>المندوب:</strong> ${esc(driver?.full_name || 'غير معيّن')}</div>
       <div class="detail-line"><strong>العنوان:</strong> ${esc(order.customer_address || 'غير متوفر')}</div>
-      <div class="detail-line"><strong>آخر تحديث GPS:</strong> ${esc(formatDate(tr?.last_seen_at))}</div>
-      <div id="etaHolder">${etaCard('loading')}</div>`;
+      <div class="detail-line"><strong>آخر تحديث GPS:</strong> ${order.status === 'delivered' ? 'تم التوصيل' : esc(formatDate(tr?.last_seen_at))}</div>
+      <div id="etaHolder">${order.status === 'delivered' ? '<div class="eta-card"><strong>تم التوصيل</strong><small>تم إغلاق التوصيل لهذا الطلب.</small></div>' : etaCard('loading')}</div>`;
+    if (order.status === 'delivered') {
+      clearRoute();
+      const rawLink = order.customer_location_url || order.customer_address;
+      if (rawLink) {
+        els.routeLink.href = order.customer_location_url && /^https?:\/\//i.test(order.customer_location_url)
+          ? order.customer_location_url
+          : googleMapsPlaceUrl(`${rawLink}, Baghdad, Iraq`);
+        els.routeLink.textContent = 'فتح موقع الزبون في Google Maps';
+        els.routeLink.hidden = false;
+      } else {
+        els.routeLink.hidden = true;
+      }
+      return;
+    }
     els.routeLink.textContent = 'فتح الاتجاهات في Google Maps';
     if (googlePlace && !order.customer_location_url) {
       els.routeLink.href = googleMapsPlaceUrl(`${googlePlace}, Baghdad, Iraq`);
@@ -381,8 +450,13 @@ function syncSelections() {
 }
 function selectDriver(id) {
   selectedDriverId = String(id);
-  const assigned = orders.find(o => String(o.delivery_driver_id) === selectedDriverId);
-  selectedOrderId = assigned ? String(assigned.id) : '';
+  const assigned = orders
+    .filter(o => String(o.delivery_driver_id) === selectedDriverId)
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'out_for_delivery' ? -1 : 1;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+  selectedOrderId = assigned.length ? String(assigned[0].id) : '';
   syncSelections();
 }
 function selectOrder(id) { selectedOrderId = String(id); selectedDriverId = ''; syncSelections(); }
@@ -437,9 +511,18 @@ function wireEvents() {
     selectedOrderId=assigned?String(assigned.id):'';
     syncSelections();
   });
-  els.driversList.addEventListener('click',event => {
-    const button=event.target.closest('[data-driver]');
-    if(button) { clearRoute(); selectDriver(button.dataset.driver); }
+  els.driversList.addEventListener('click', event => {
+    const orderButton = event.target.closest('[data-order]');
+    if (orderButton) {
+      clearRoute();
+      selectOrder(orderButton.dataset.order);
+      return;
+    }
+    const driverButton = event.target.closest('[data-driver]');
+    if (driverButton) {
+      clearRoute();
+      selectDriver(driverButton.dataset.driver);
+    }
   });
   els.ordersList.addEventListener('click',event => {
     const button=event.target.closest('[data-order]');

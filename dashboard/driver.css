@@ -821,3 +821,42 @@ button:disabled {
     background: transparent;
     mix-blend-mode: normal;
 }
+
+
+/* أزرار إجراءات الطلب */
+.order-card-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.change-order-status-btn {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #28734b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.change-order-status-btn:hover {
+    background: #1f5c3b;
+}
+
+.change-order-status-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (max-width: 520px) {
+    .order-card-actions {
+        width: 100%;
+    }
+
+    .order-card-actions button {
+        flex: 1 1 130px;
+    }
+}

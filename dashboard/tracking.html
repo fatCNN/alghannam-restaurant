@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
@@ -63,34 +63,47 @@
       </label>
     </section>
 
-    <section class="main-grid">
+    <section class="drivers-panel panel">
+      <div class="panel-heading">
+        <div>
+          <h2>المندوبون ومواقع التوصيل</h2>
+          <p class="muted">تابع مواقع المندوبين والطلبات المسندة إليهم في الوقت الحالي</p>
+        </div>
+        <span id="driversLabel" class="muted">0</span>
+      </div>
+      <div id="driversList" class="drivers-list">
+        <p class="muted">جارٍ تحميل المندوبين...</p>
+      </div>
+    </section>
+
+    <section class="lower-grid">
       <div class="map-panel panel">
         <div class="panel-heading">
           <div>
             <h2>خريطة التوصيل</h2>
-            <p class="muted" id="mapHint">مواقع الفروع والمندوبين النشطين</p>
+            <p class="muted" id="mapHint">موقع الفرع هو نقطة البداية، مع متابعة المندوب ومسار التوصيل إلى الزبون</p>
           </div>
           <span class="map-label">OpenStreetMap</span>
         </div>
 
-        <div id="map" role="application" aria-label="خريطة مواقع الفروع والمندوبين">
+        <div id="map" role="application" aria-label="خريطة تتبع الطلبات والمندوبين">
           <div class="map-placeholder" id="mapPlaceholder">
-            <strong>الخريطة قيد التحميل</strong>
-            <span>جارٍ تحميل خريطة OpenStreetMap المجانية</span>
+            <strong>جاري تحميل الخريطة</strong>
+            <span>يرجى الانتظار حتى يتم تحميل خريطة OpenStreetMap</span>
           </div>
         </div>
 
         <div class="legend">
           <span><i class="dot branch-dot"></i> موقع الفرع</span>
           <span><i class="dot driver-dot"></i> موقع المندوب</span>
-          <span><i class="dot customer-dot"></i> عنوان الزبون</span>
+          <span><i class="dot customer-dot"></i> موقع الزبون</span>
         </div>
       </div>
 
       <aside class="side-panel">
         <section class="panel selected-card">
           <h2>تفاصيل التوصيل</h2>
-          <div id="selectedDetails" class="muted">اختاري طلباً أو مندوباً لعرض التفاصيل.</div>
+          <div id="selectedDetails" class="muted">اختر طلباً أو مندوباً لعرض التفاصيل.</div>
           <a id="openRouteLink" class="route-link" href="#" target="_blank" rel="noopener" hidden>
             فتح الاتجاهات في Google Maps
           </a>
@@ -98,17 +111,7 @@
 
         <section class="panel">
           <div class="panel-heading">
-            <h2>المندوبون</h2>
-            <span id="driversLabel" class="muted">0</span>
-          </div>
-          <div id="driversList" class="drivers-list">
-            <p class="muted">جارٍ تحميل المندوبين...</p>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-heading">
-            <h2>طلبات التوصيل</h2>
+            <h2>طلبات غير مسندة</h2>
             <span id="ordersLabel" class="muted">0</span>
           </div>
           <div id="ordersList" class="orders-list">

@@ -529,3 +529,158 @@ select {
     min-height: 350px;
   }
 }
+
+/* ===== ????? ?????? ????????? ???????? ===== */
+.drivers-panel {
+  padding: 18px;
+  margin-bottom: 15px;
+}
+
+.drivers-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: none;
+  overflow: visible;
+}
+
+.driver-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #eadfd7;
+  border-radius: 13px;
+  background: #fffdfb;
+}
+
+.driver-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 11px;
+  border: 0;
+  border-bottom: 1px solid #f0e8e2;
+  background: transparent;
+  color: inherit;
+  text-align: right;
+  font: inherit;
+  cursor: pointer;
+}
+
+.driver-card-head:hover,
+.driver-card-head.active {
+  color: #8b1e16;
+}
+
+.driver-card-head .row-main strong {
+  font-size: 14px;
+}
+
+.driver-orders {
+  display: grid;
+  gap: 7px;
+  padding-top: 9px;
+}
+
+.driver-order {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid #eee7e1;
+  border-radius: 9px;
+  background: #fff;
+  color: inherit;
+  text-align: right;
+  font: inherit;
+  cursor: pointer;
+}
+
+.driver-order:hover,
+.driver-order.active {
+  border-color: #a66b45;
+  background: #fff7f0;
+}
+
+.driver-order-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.driver-order-main strong {
+  font-size: 12px;
+}
+
+.driver-order-main small {
+  color: #8a7e77;
+  font-size: 11px;
+}
+
+.status-chip.delivered {
+  background: #e4f5e9;
+  color: #267444;
+}
+
+.status-chip.in-delivery {
+  background: #fff0dc;
+  color: #9a5a13;
+}
+
+.driver-empty {
+  padding: 9px 2px 2px;
+  color: #938780;
+  font-size: 11px;
+}
+
+.lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(290px, .8fr);
+  gap: 15px;
+  align-items: start;
+}
+
+.lower-grid .map-panel {
+  min-width: 0;
+}
+
+.lower-grid #map {
+  height: 340px;
+  min-height: 280px;
+}
+
+.lower-grid .side-panel {
+  min-width: 0;
+}
+
+.lower-grid .orders-list {
+  max-height: 250px;
+}
+
+@media (max-width: 950px) {
+  .lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lower-grid #map {
+    height: 320px;
+  }
+
+  .drivers-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .drivers-list {
+    grid-template-columns: 1fr;
+  }
+
+  .lower-grid #map {
+    height: 280px;
+    min-height: 240px;
+  }
+}

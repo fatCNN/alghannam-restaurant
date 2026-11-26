@@ -9,7 +9,7 @@ import {
 // مطعم الغنّام — صفحة المندوب والخريطة
 // =====================================================
 
-const ACTIVE_ORDER_STATUSES = ["ready", "out_for_delivery"];
+const ACTIVE_ORDER_STATUSES = ["ready", "out_for_delivery", "delivered", "completed"];
 
 const BRANCH_FALLBACKS = {
     grill: {
@@ -316,6 +316,10 @@ function startDriverOrderRealtime() {
             }
 
             knownOrderStatuses.set(id, order.status);
+
+            if (assignedToMe || wasAssignedToMe) {
+                loadAssignedOrders();
+            }
         })
         .subscribe((status) => {
             if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -737,9 +741,21 @@ function renderOrders() {
 
     container.innerHTML = assignedOrders.map((order) => {
         const isSelected = selectedOrder?.id === order.id;
-        const statusText = order.status === "out_for_delivery"
-            ? "قيد التوصيل"
-            : "جاهز للاستلام";
+        const statusLabels = {
+            ready: "جاهز للاستلام",
+            out_for_delivery: "قيد التوصيل",
+            delivered: "تم التوصيل",
+            completed: "مكتمل"
+        };
+        const statusText = statusLabels[order.status] || "حالة غير معروفة";
+        const nextStatus = order.status === "ready"
+            ? "out_for_delivery"
+            : order.status === "out_for_delivery"
+                ? "delivered"
+                : null;
+        const actionLabel = nextStatus === "out_for_delivery"
+            ? "بدء التوصيل"
+            : "تم التوصيل";
 
         return `
             <article
@@ -783,13 +799,25 @@ function renderOrders() {
 
                 <div class="order-card-footer">
                     <span>${formatDate(order.created_at)}</span>
-                    <button
-                        type="button"
-                        class="select-order-btn"
-                        data-select-order="${escapeHtml(order.id)}"
-                    >
-                        ${isSelected ? "الطلب المحدد" : "عرض على الخريطة"}
-                    </button>
+                    <div class="order-card-actions">
+                        ${
+                            nextStatus
+                                ? `<button
+                                    type="button"
+                                    class="change-order-status-btn"
+                                    data-change-status="${nextStatus}"
+                                    data-order-id="${escapeHtml(order.id)}"
+                                >${actionLabel}</button>`
+                                : ""
+                        }
+                        <button
+                            type="button"
+                            class="select-order-btn"
+                            data-select-order="${escapeHtml(order.id)}"
+                        >
+                            ${isSelected ? "الطلب المحدد" : "عرض على الخريطة"}
+                        </button>
+                    </div>
                 </div>
             </article>
         `;
@@ -798,6 +826,13 @@ function renderOrders() {
     container.querySelectorAll("[data-select-order]").forEach((button) => {
         button.addEventListener("click", () => {
             selectOrder(button.dataset.selectOrder);
+        });
+    });
+
+    container.querySelectorAll("[data-change-status]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            changeOrderStatus(button);
         });
     });
 
@@ -812,6 +847,63 @@ function renderOrders() {
 // =====================================================
 // اختيار الطلب وموقع الزبون
 // =====================================================
+
+async function changeOrderStatus(button) {
+    if (!button || button.disabled || !currentUser) return;
+
+    const orderId = button.dataset.orderId;
+    const nextStatus = button.dataset.changeStatus;
+
+    const order = assignedOrders.find(
+        (item) => String(item.id) === String(orderId)
+    );
+
+    const validTransition =
+        (order?.status === "ready" && nextStatus === "out_for_delivery") ||
+        (order?.status === "out_for_delivery" && nextStatus === "delivered");
+
+    if (!validTransition) {
+        showPageMessage("لا يمكن تغيير حالة هذا الطلب.", "error");
+        return;
+    }
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "جارٍ التحديث...";
+
+    try {
+        const { error } = await supabase.rpc(
+            "driver_update_order_status",
+            {
+                p_order_id: orderId,
+                p_status: nextStatus
+            }
+        );
+
+        if (error) throw error;
+
+        showPageMessage(
+            nextStatus === "out_for_delivery"
+                ? "تم بدء توصيل الطلب."
+                : "تم تسجيل الطلب بأنه تم توصيله.",
+            "success"
+        );
+
+        await loadAssignedOrders();
+
+    } catch (error) {
+        console.error("Driver order status update error:", error);
+        showPageMessage(
+            error.message || "تعذر تحديث حالة الطلب.",
+            "error"
+        );
+    } finally {
+        if (button.isConnected) {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+}
 
 function selectOrder(orderId) {
     const order = assignedOrders.find(

@@ -458,6 +458,19 @@ function renderOrders() {
           >
             ✏️ تعديل بيانات الطلب
           </button>
+
+          <button
+            class="button print-order-button"
+            type="button"
+          >
+            \U0001F5A8\uFE0F \u0637\u0628\u0627\u0639\u0629 \u0627\u0644\u0637\u0644\u0628
+          </button>
+          <button
+            class="button whatsapp-confirm-button"
+            type="button"
+          >
+            💬 مراسلة للتأكيدات
+          </button>
         </div>
 
         <div class="order-actions">
@@ -511,6 +524,141 @@ function renderOrders() {
 // =====================================================
 // نافذة تعديل الطلب
 // =====================================================
+
+
+function createPrintModal() {
+  if ($('#printSettingsModal')) return;
+
+  const modal = document.createElement('div');
+
+  modal.id = 'printSettingsModal';
+  modal.className = 'order-edit-modal';
+  modal.hidden = true;
+
+  modal.innerHTML = `
+    <div class="order-edit-backdrop" data-close-print></div>
+
+    <section
+      class="order-edit-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="printSettingsTitle"
+    >
+      <div class="order-edit-header">
+        <div>
+          <h2 id="printSettingsTitle">
+            \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0637\u0628\u0627\u0639\u0629 \u0627\u0644\u0637\u0644\u0628
+          </h2>
+          <p id="printSettingsOrderNumber"></p>
+        </div>
+
+        <button
+          type="button"
+          class="edit-modal-close"
+          data-close-print
+          aria-label="\u0625\u063a\u0644\u0627\u0642"
+        >?</button>
+      </div>
+
+      <form id="orderPrintSettingsForm">
+        <div class="edit-section">
+          <label>
+            \u062d\u062c\u0645 \u0627\u0644\u0648\u0631\u0642
+            <select id="orderPrintPaper" required>
+              <option value="80mm">\u062d\u0631\u0627\u0631\u064a 80mm</option>
+              <option value="58mm">\u062d\u0631\u0627\u0631\u064a 58mm</option>
+              <option value="A5">A5</option>
+              <option value="A4">A4</option>
+            </select>
+          </label>
+
+          <label>
+            \u0639\u062f\u062f \u0627\u0644\u0646\u0633\u062e
+            <input
+              id="orderPrintCopies"
+              type="number"
+              min="1"
+              max="10"
+              step="1"
+              value="2"
+              required
+            >
+          </label>
+        </div>
+
+        <div class="edit-section">
+          <h3>\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0638\u0627\u0647\u0631\u0629 \u0641\u064a \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</h3>
+
+          <label>
+            <input type="checkbox" id="orderPrintCustomer" checked>
+            \u0625\u0638\u0647\u0627\u0631 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0632\u0628\u0648\u0646
+          </label>
+
+          <label>
+            <input type="checkbox" id="orderPrintNotes" checked>
+            \u0625\u0638\u0647\u0627\u0631 \u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0627\u0644\u0637\u0644\u0628
+          </label>
+
+          <label>
+            <input type="checkbox" id="orderPrintPrices" checked>
+            \u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a
+          </label>
+        </div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="edit-cancel-button"
+            data-close-print
+          >
+            \u0625\u0644\u063a\u0627\u0621
+          </button>
+
+          <button type="submit" class="button">
+            \u0637\u0628\u0627\u0639\u0629 \u0627\u0644\u0622\u0646
+          </button>
+        </div>
+      </form>
+    </section>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+let printingOrderId = null;
+
+function openPrintSettings(orderId) {
+  const order = allOrders.find(item =>
+    String(item.id) === String(orderId)
+  );
+
+  if (!order) {
+    showMessage('\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628.', 'error');
+    return;
+  }
+
+  printingOrderId = orderId;
+
+  $('#printSettingsOrderNumber').textContent =
+    '\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628: ' +
+    String(order.order_number ?? order.id);
+
+  $('#orderPrintPaper').value = '80mm';
+  $('#orderPrintCopies').value = '2';
+  $('#orderPrintCustomer').checked = true;
+  $('#orderPrintNotes').checked = true;
+  $('#orderPrintPrices').checked = true;
+
+  $('#printSettingsModal').hidden = false;
+}
+
+function closePrintSettings() {
+  const modal = $('#printSettingsModal');
+
+  if (modal) modal.hidden = true;
+
+  printingOrderId = null;
+}
 
 function createEditModal() {
   if ($('#orderEditModal')) return;
@@ -1368,11 +1516,49 @@ function wireEvents() {
     const orderId = card.dataset.orderId;
 
     const editButton = event.target.closest('.edit-order-button');
+    const printButton = event.target.closest('.print-order-button');
+    const whatsappButton = event.target.closest('.whatsapp-confirm-button');
     const statusButton = event.target.closest('.save-status-button');
     const driverButton = event.target.closest('.save-driver-button');
 
     if (editButton) {
       openEditOrder(orderId);
+      return;
+    }
+
+    if (printButton) {
+      openPrintSettings(orderId);
+      return;
+    }
+    if (whatsappButton) {
+      const order = allOrders.find(item =>
+        String(item.id) === String(orderId)
+      );
+
+      if (!order) {
+        showMessage('لم يتم العثور على الطلب.', 'error');
+        return;
+      }
+
+      const whatsappLink = getWhatsAppLink(order.customer_phone);
+
+      if (!whatsappLink) {
+        showMessage('رقم هاتف الزبون غير صالح للواتساب.', 'error');
+        return;
+      }
+
+      const orderNumber = order.order_number ?? order.id;
+
+      const message =
+        `مرحباً ${order.customer_name || ''}، معك مطعم الغنّام 🌷 ` +
+        `نود تأكيد طلبك رقم ${orderNumber} ` +
+        `بإجمالي ${formatPrice(order.total)}. ` +
+        `هل تؤكد الطلب؟`;
+
+      const url =
+        `${whatsappLink}?text=${encodeURIComponent(message)}`;
+
+      window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -1444,11 +1630,39 @@ function wireEvents() {
     }
   });
 
+  $('#printSettingsModal').addEventListener('click', event => {
+    if (event.target.closest('[data-close-print]')) {
+      closePrintSettings();
+    }
+  });
+
+  $('#orderPrintSettingsForm').addEventListener('submit', event => {
+    event.preventDefault();
+
+    if (printingOrderId === null) return;
+
+    const settings = {
+      paper: $('#orderPrintPaper').value,
+      copies: $('#orderPrintCopies').value,
+      showCustomer: $('#orderPrintCustomer').checked,
+      showNotes: $('#orderPrintNotes').checked,
+      showPrices: $('#orderPrintPrices').checked
+    };
+
+    const orderId = printingOrderId;
+    closePrintSettings();
+    printOrder(orderId, settings);
+  });
+
   document.addEventListener('keydown', event => {
-    if (
-      event.key === 'Escape' &&
-      !$('#orderEditModal').hidden
-    ) {
+    if (event.key !== 'Escape') return;
+
+    if (!$('#printSettingsModal').hidden) {
+      closePrintSettings();
+      return;
+    }
+
+    if (!$('#orderEditModal').hidden) {
       closeEditOrder();
     }
   });
@@ -1461,6 +1675,7 @@ function wireEvents() {
 async function startOrdersPage() {
   try {
     createEditModal();
+    createPrintModal();
     wireEvents();
 
     const allowed = await authorizeUser();
@@ -1481,3 +1696,281 @@ async function startOrdersPage() {
 }
 
 startOrdersPage();
+
+// ===== Local WhatsApp and printing additions =====
+
+function normalizeWhatsAppPhone(phone) {
+  let number = String(phone || '').replace(/\D/g, '');
+
+  if (number.startsWith('00')) {
+    number = number.slice(2);
+  }
+
+  if (number.startsWith('0')) {
+    number = '964' + number.slice(1);
+  } else if (number.startsWith('7') && number.length === 10) {
+    number = '964' + number;
+  }
+
+  return number;
+}
+
+function getWhatsAppLink(phone) {
+  const number = normalizeWhatsAppPhone(phone);
+
+  if (!number || number.length < 10) return '';
+
+  return `https://wa.me/${number}`;
+}
+
+function printOrder(orderId, settings = {}) {
+  const order = allOrders.find(item =>
+    String(item.id) === String(orderId)
+  );
+
+  if (!order) {
+    showMessage('\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628.', 'error');
+    return;
+  }
+
+  const allowedPapers = ['80mm', '58mm', 'A5', 'A4'];
+  const requestedPaper = settings.paper || $('#printPaperSize')?.value || '80mm';
+  const paper = allowedPapers.includes(requestedPaper)
+    ? requestedPaper
+    : '80mm';
+
+  const copies = Math.max(
+    1,
+    Math.min(10, Math.floor(Number(settings.copies ?? $('#printCopies')?.value) || 1))
+  );
+
+  const showCustomer = settings.showCustomer !== false;
+  const showNotes = settings.showNotes !== false;
+  const showPrices = settings.showPrices !== false;
+
+  const width = {
+    '80mm': '72mm',
+    '58mm': '50mm',
+    'A5': '140mm',
+    'A4': '190mm'
+  }[paper];
+
+  const items = Array.isArray(order.items) ? order.items : [];
+
+  const itemsHTML = items.map(item => {
+    const name = item.name || item.title ||
+      item.product_name || '\u0645\u0646\u062a\u062c';
+
+    const quantity = numberValue(item.quantity ?? item.qty, 1);
+    const price = numberValue(item.price ?? item.unit_price, 0);
+
+    return `
+      <div class="print-item">
+        <span>${escapeHTML(name)} ? ${quantity}</span>
+        ${showPrices ? `<strong>${formatPrice(quantity * price)}</strong>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const customerHTML = showCustomer ? `
+    <div class="print-customer">
+      <p>\u0627\u0644\u0632\u0628\u0648\u0646: ${escapeHTML(order.customer_name || '')}</p>
+      <p>\u0627\u0644\u0647\u0627\u062a\u0641: ${escapeHTML(order.customer_phone || '')}</p>
+      <p>\u0627\u0644\u0639\u0646\u0648\u0627\u0646: ${escapeHTML(order.customer_address || '')}</p>
+    </div>
+  ` : '';
+
+  const pricesHTML = showPrices ? `
+    <hr>
+    <p>\u0627\u0644\u0645\u062c\u0645\u0648\u0639: ${formatPrice(order.subtotal)}</p>
+    <p>\u0627\u0644\u062e\u0635\u0645: ${formatPrice(order.discount_amount)}</p>
+    <h3>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a: ${formatPrice(order.total)}</h3>
+  ` : '';
+
+  const notesHTML = showNotes && order.customer_notes ? `
+    <p class="print-notes">\u0645\u0644\u0627\u062d\u0638\u0627\u062a: ${escapeHTML(order.customer_notes)}</p>
+  ` : '';
+
+  const content = `
+    <div class="print-ticket" style="width:${width}">
+      <div class="print-center">
+        <h2>\u0645\u0637\u0639\u0645 \u0627\u0644\u063a\u0646\u0651\u0627\u0645</h2>
+        <p>\u0641\u0627\u062a\u0648\u0631\u0629 \u0637\u0644\u0628</p>
+      </div>
+
+      <hr>
+
+      <p>\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628: ${escapeHTML(order.order_number ?? order.id)}</p>
+      <p>\u0627\u0644\u062a\u0627\u0631\u064a\u062e: ${escapeHTML(formatDate(order.created_at))}</p>
+
+      ${customerHTML}
+
+      <hr>
+
+      <strong>\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a</strong>
+      ${itemsHTML}
+
+      ${pricesHTML}
+      ${notesHTML}
+
+      <hr>
+      <div class="print-center">\u0634\u0643\u0631\u0627\u064b \u0644\u0632\u064a\u0627\u0631\u062a\u0643\u0645</div>
+    </div>
+  `;
+
+  const printWindow = window.open('', '_blank');
+
+  if (!printWindow) {
+    showMessage('\u064a\u0631\u062c\u0649 \u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0627\u0644\u0646\u0648\u0627\u0641\u0630 \u0627\u0644\u0645\u0646\u0628\u062b\u0642\u0629 \u0644\u0644\u0637\u0628\u0627\u0639\u0629.', 'error');
+    return;
+  }
+
+  const copiesHTML = Array.from(
+    { length: copies },
+    () => `<div class="print-copy">${content}</div>`
+  ).join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>\u0637\u0628\u0627\u0639\u0629 \u0627\u0644\u0637\u0644\u0628</title>
+      <style>
+        @page {
+          size: ${paper === 'A4' || paper === 'A5' ? paper : 'auto'};
+          margin: 3mm;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+          margin: 0;
+          padding: 0;
+          background: white;
+          color: black;
+          font-family: Tahoma, Arial, sans-serif;
+          font-size: 12px;
+          direction: rtl;
+        }
+
+        .print-ticket {
+          margin: 0 auto;
+          padding: 5px 4px;
+          font-size: 12px;
+          line-height: 1.75;
+          overflow-wrap: anywhere;
+          color: #171717;
+          background: #fff;
+        }
+
+        .print-ticket .print-center:first-child {
+          padding: 5px 0 9px;
+          border-bottom: 2px solid #222;
+          margin-bottom: 8px;
+        }
+
+        .print-ticket .print-customer {
+          margin: 7px 0;
+          padding: 7px 0;
+          border-top: 1px dashed #777;
+          border-bottom: 1px dashed #777;
+        }
+
+        .print-ticket .print-notes {
+          margin-top: 9px;
+          padding: 7px;
+          border: 1px dashed #555;
+          border-radius: 4px;
+        }
+
+        .print-ticket h2 {
+          margin: 0 0 3px;
+          font-size: 21px;
+          font-weight: 900;
+          letter-spacing: -.4px;
+        }
+
+        .print-ticket h3 {
+          margin: 9px 0 3px;
+          padding: 8px 5px;
+          border: 1.5px solid #222;
+          border-radius: 4px;
+          font-size: 16px;
+          font-weight: 900;
+          text-align: center;
+        }
+
+        .print-ticket p {
+          margin: 3px 0;
+        }
+
+        .print-center {
+          text-align: center;
+        }
+
+        .print-item {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 7px;
+          padding: 6px 1px;
+          border-bottom: 1px dashed #aaa;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .print-item span {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .print-item strong {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          font-weight: 900;
+        }
+
+        .print-ticket > strong {
+          display: block;
+          margin: 7px 0;
+          font-size: 13px;
+        }
+
+        hr {
+          border: 0;
+          border-top: 1px dashed #888;
+          margin: 7px 0;
+        }
+
+        .print-copy {
+          padding-bottom: 8px;
+          page-break-after: always;
+          break-after: page;
+        }
+
+        .print-copy:last-child {
+          page-break-after: auto;
+          break-after: auto;
+        }
+
+        @media print {
+          body { -webkit-print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      ${copiesHTML}
+      <script>
+        window.onload = () => {
+          window.focus();
+          window.print();
+          window.onafterprint = () => window.close();
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+}
